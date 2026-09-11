@@ -41,6 +41,7 @@ Separate calculations from I/O. Keep business rules and validation directly test
 
 ## Go coding style
 
+- Keep code readable and clearly structured. Separate logical blocks with blank lines, keep related statements together, and avoid dense one-line control flow or multiple statements on one line. Use clear names and small, focused functions.
 - Make the smallest sufficient change. Preserve the existing style and public interfaces unless the task requires a change.
 - Prefer the standard library. Add dependencies only for a concrete requirement.
 - Prefer unexported types and functions unless another package needs them.
@@ -60,7 +61,7 @@ Unit tests are required for every non-trivial logic change. Bug fixes need a reg
 - Cover normal cases, boundary values, empty input, malformed input, missing optional values, dependency failures, cancellation, and deadlines as relevant.
 - Use table-driven tests when cases share a behavior. Keep expected values explicit; do not recreate the production algorithm to compute the expected result.
 - Use controlled clocks, timers, and synchronization for time and concurrency tests. Do not rely on arbitrary sleeps, random scheduling, external services, or wall-clock timing for correctness.
-- Keep unit tests beside the code in `*_test.go`. Use the standard `testing` package unless an existing project convention has a clear benefit. Do not add a mocking framework by default.
+- Keep unit tests beside the code in `*_test.go`. Use the standard `testing` package as the test runner and `testify/assert` or `testify/require` for assertions. Use `require` for prerequisites that must stop the test on failure, and `assert` for independent result checks. Prefer clear assertions over manual `if` blocks with `t.Fatal` or `t.Errorf`. Do not add a mocking framework by default.
 - Do not test trivial getters, setters, or pure data containers without meaningful behavior. Coverage numbers help locate gaps; they are not a substitute for assertions and are not a reason to add empty tests.
 
 Keep unit tests isolated from external services and credentials. Use integration tests to verify real component boundaries and serialization paths; they do not replace unit tests for business logic. Derive feature-specific scenarios from the specification instead of maintaining a second list here.

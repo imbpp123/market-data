@@ -1,96 +1,1265 @@
-# Phase 01 implementation contract. The loader and its tests will be implemented in phase 02.
+# Complete, runnable v1 configuration reference. Every value below is its default.
+# Validate without starting HTTP or workers:
+#   go run ./cmd/market-data-service -config docs/examples/config-v1.yaml -check-config
+#
+# Field comments use Description, Values, Default, and Required in that order.
+# Default is the built-in value used when neither YAML nor ENV overrides the field.
+# Required: no means the field can be omitted. Entire sections can also be omitted;
+# their child fields keep defaults. Explicit values must still pass validation.
+# Required: conditional means a value must be supplied through YAML or ENV when
+# the stated condition applies. Only Sentry DSN has this requirement in v1.
+#
+# Loading: built-in defaults -> YAML leaves -> explicit MDS_ environment leaves
+# -> validation. Missing leaves keep defaults; lists replace the whole list.
+# Unknown/duplicate keys, explicit nulls, wrong types, YAML anchors/aliases, and
+# multiple YAML documents are rejected. Disabled sections must still be valid.
+# Strings are literal: ${NAME} is not expanded. Configuration is loaded at startup;
+# changing this file or the environment requires a process restart.
+#
+# Environment names are MDS_ plus the uppercase dot path with dots replaced by _.
+# For example: server.port -> MDS_SERVER_PORT=8081.
+# List overrides are JSON arrays, for example:
+#   MDS_EXCHANGES_BYBIT_MARKETS='["spot","linear"]'
+# Booleans are true/false; environment integers use base-10 text.
+# Durations are positive Go duration strings: ns, us, ms, s, m, h, or combinations
+# such as 1m30s. Days (1d) are not supported. Durations must fit time.Duration.
+# Counts and byte limits are positive integers that fit Go int; additional bounds
+# and relationships are documented below. Zero does not mean unlimited or disabled.
+#
+# Implementation status after phase 02:
+# - Loading, validation, server binding, health routes, HTTP server timeouts,
+#   header limits, health query limits, and process shutdown are implemented.
+# - Snapshot request limits, storage, kline handling, exchange collection,
+#   upstream admission/retries, and observability integrations are future work.
+#   Their comments describe the agreed v1 behavior, not features already running.
+# - Kline/snapshot request timeouts already determine the HTTP write deadline and
+#   the required shutdown timeout, even before data handlers are implemented.
+# See ../implementation-contract-v1.md and ../technical-specification-v1.md.
+
+# Incoming HTTP listener, request bounds, and process shutdown.
 server:
+  # Description: Bind address for incoming HTTP connections. 0.0.0.0 listens on all IPv4
+  #              interfaces; 127.0.0.1 restricts access to this host. The port is
+  #              configured separately below.
+  #
+  # Values: IPv4/IPv6 address, hostname, or an empty string for all interfaces. Use a
+  #         bare host without a URL scheme, path, or port.
+  #
+  # Default: "0.0.0.0"
+  #
+  # Required: no
   host: "0.0.0.0"
+
+  # Description: TCP listening port. Startup fails if the address/port cannot be bound.
+  #
+  # Values: Integer from 1 to 65535. Zero does not select an automatic port.
+  #
+  # Default: 8080
+  #
+  # Required: no
   port: 8080
+
+  # Description: Maximum time to read incoming HTTP request headers. Limits slow header
+  #              senders; it does not set the lifetime of a data request or an outgoing
+  #              exchange attempt.
+  #
+  # Values: Positive Go duration; see duration syntax at the top of this file.
+  #
+  # Default: 5s
+  #
+  # Required: no
   read_header_timeout: 5s
+
+  # Description: How long an HTTP keep-alive connection may wait for its next request
+  #              before being closed. Increasing this retains idle connections for
+  #              longer.
+  #
+  # Values: Positive Go duration; see duration syntax at the top of this file.
+  #
+  # Default: 60s
+  #
+  # Required: no
   idle_timeout: 60s
+
+  # Description: Total grace period after cancellation, SIGINT, or SIGTERM. Root work is
+  #              canceled, new HTTP requests stop, and owned workers/active requests are
+  #              awaited; remaining HTTP connections are closed when the grace period
+  #              ends. This is one process-wide shutdown bound, not an extra timeout per
+  #              worker.
+  #
+  # Values: Positive Go duration; must be >= max(klines.request_timeout,
+  #         klines.fill_timeout, server.snapshot_timeout) + 5s.
+  #
+  # Default: 35s
+  #
+  # Required: no
   shutdown_timeout: 35s
+
+  # Description: Incoming request-header parsing limit in bytes (32768 = 32 KiB). Larger
+  #              values permit larger headers and increase per-connection resource use.
+  #              The upper bound leaves room for the HTTP server's internal arithmetic.
+  #
+  # Values: Positive integer in bytes; must be <= MaxInt - 4096.
+  #
+  # Default: 32768
+  #
+  # Required: no
   max_header_bytes: 32768
+
+  # Description: Maximum raw query-string length in bytes, including percent-encoded
+  #              text. Queries over this bound return HTTP 414 / request_too_large. This
+  #              is separate from header size and from the number of candle slots
+  #              requested.
+  #
+  # Values: Positive integer that fits Go int.
+  #
+  # Default: 8192
+  #
+  # Required: no
   max_query_bytes: 8192
+
+  # Description: Maximum concurrent snapshot API requests across instruments, tickers,
+  #              and market statistics. Excess requests fail immediately with
+  #              service_overloaded. Kline callers have their own limit; /health and
+  #              /ready use a separate path.
+  #
+  # Values: Positive integer that fits Go int.
+  #
+  # Default: 64
+  #
+  # Required: no
   max_snapshot_requests: 64
+
+  # Description: Total lifetime of a snapshot API read; these reads never fetch from an
+  #              exchange. Together with klines.request_timeout this derives the HTTP
+  #              write timeout: max(klines.request_timeout, snapshot_timeout) + 5s.
+  #              There is no separate YAML write_timeout field. Increasing this may
+  #              require a larger shutdown_timeout.
+  #
+  # Values: Positive Go duration; see duration syntax at the top of this file.
+  #
+  # Default: 5s
+  #
+  # Required: no
   snapshot_timeout: 5s
+
+# Local market-data storage. This section does not configure exchange-side history.
 storage:
+  # Description: Storage implementation. With memory, data lives in this process and is
+  #              lost on restart; there is no database or disk backend in v1. Memory
+  #              repositories are implemented in a later phase.
+  #
+  # Values: memory only; no other storage driver is supported in v1.
+  #
+  # Default: memory
+  #
+  # Required: no
   driver: memory
+
+  # Description: Interval between periodic removal of expired candles from idle cached
+  #              series. Expiration uses klines.max_history_candles and the
+  #              exchange/interval calendar. Increasing this delays physical cleanup,
+  #              not the API history cutoff. Fills also prune expired rows when merging
+  #              data. Instrument/ticker/statistics snapshots are not subject to this
+  #              candle cleanup interval.
+  #
+  # Values: Positive Go duration; see duration syntax at the top of this file.
+  #
+  # Default: 1h
+  #
+  # Required: no
   cleanup_interval: 1h
+
+# Client kline requests and shared cache fills. A fill is service-owned work that
+# fetches missing/stale candle pages and may serve several callers of one series.
 klines:
+  # Description: Total deadline for one client kline request, including admission,
+  #              waiting for shared fills, fetching, and result assembly. Expiry yields
+  #              request_timeout. This is independent of http_client.timeout, which
+  #              bounds one HTTP attempt. Increasing it also raises the derived HTTP
+  #              write timeout and required shutdown grace period. Canceling one caller
+  #              must not cancel work needed by other callers.
+  #
+  # Values: Positive Go duration; see duration syntax at the top of this file.
+  #
+  # Default: 30s
+  #
+  # Required: no
   request_timeout: 30s
+
+  # Description: One N-slot bound for API history depth, maximum slots in a request, and
+  #              retention for every supported exchange/market/interval. N counts
+  #              calendar positions: the latest N closed slots, not the last N stored
+  #              rows or N arbitrarily old rows. An explicitly requested current open
+  #              slot also consumes one request slot. Larger N increases possible cache
+  #              memory, response size, and upstream page work; it does not preload
+  #              candles or change per-exchange page limits below. The upper bound
+  #              protects calendar arithmetic. There is no supported
+  #              storage.retention.klines or per-interval duration map.
+  #
+  # Values: Positive integer; must be <= MaxInt64 / (31 * 24 * 60 * 60) and fit Go int.
+  #         For every enabled exchange/market, ceil(N / page_limit) must fit
+  #         upstream.lanes_per_exchange.klines.max_attempts.
+  #
+  # Default: 1000
+  #
+  # Required: no
   max_history_candles: 1000
+
+  # Description: Maximum simultaneous client kline calls across the whole process.
+  #              Includes warm reads and callers waiting for shared fills; excess calls
+  #              fail immediately with service_overloaded. Raising this permits more
+  #              waiting callers, not more exchange HTTP concurrency by itself.
+  #
+  # Values: Positive integer that fits Go int.
+  #
+  # Default: 64
+  #
+  # Required: no
   max_callers: 64
+
+  # Description: Maximum service-owned fills running across all enabled exchanges at
+  #              once. Each fill fetches its pages sequentially. Callers waiting for a
+  #              fill slot still count toward max_callers. This is a global ceiling, not
+  #              a reserved fill count.
+  #
+  # Values: Positive integer that fits Go int.
+  #
+  # Default: 12
+  #
+  # Required: no
   max_active_fills: 12
+
+  # Description: Maximum active fills for one exchange, shared by all of its markets.
+  #              Both global and per-exchange caps apply; unused capacity does not force
+  #              work.
+  #
+  # Values: Positive integer; must be <= klines.max_active_fills and <=
+  #         upstream.lanes_per_exchange.klines.http_slots.
+  #
+  # Default: 6
+  #
+  # Required: no
   max_active_fills_per_exchange: 6
+
+  # Description: Lifetime of one owned fill, covering its queue waits, pages, and
+  #              retries. It has its own deadline, independent of any caller, and
+  #              expires with request_timeout. Increasing it may require a larger
+  #              server.shutdown_timeout.
+  #
+  # Values: Positive Go duration; see duration syntax at the top of this file.
+  #
+  # Default: 30s
+  #
+  # Required: no
   fill_timeout: 30s
+
+# Market statistics describe a rolling exchange window, not operational metrics.
 market_stats:
+  # Description: Supported rolling windows for exchange market statistics. This selects
+  #              the data window; it is not a refresh interval or retention period.
+  #
+  # Values: Exactly [24h]. Empty lists, duplicates, other durations, and additional
+  #         windows are rejected.
+  #
+  # Default: [24h]
+  #
+  # Required: no
   windows: [24h]
+
+# Outgoing exchange request admission. Every attempt, including retries and pages,
+# must satisfy all applicable windows, operation shares, pacing, and concurrency.
+# State is local and memory-only: this cannot account for other processes on the
+# same outgoing IP, and exchange usage/bans can survive a process restart.
 upstream:
+  # Description: Percentage withheld from each configured/discovered common window
+  #              ceiling. Common allowance is floor(min(configured_limit,
+  #              discovered_limit) * (100 - margin) / 100). Before discovery, the
+  #              configured ceiling is used. A larger margin lowers request capacity;
+  #              validation rejects allowances too small for permitted work.
+  #
+  # Values: Integer from 0 to 99.
+  #
+  # Default: 20
+  #
+  # Required: no
   safety_margin_percent: 20
+
+  # Reserved shares of the common allowance AFTER the safety margin. These exact
+  # four keys must each be integers in 1..100 and sum to 100. Partial YAML/ENV
+  # overrides keep the other defaults, so the final sum still has to be 100.
+  # Each share is rounded down separately; unused shares cannot be borrowed.
+  # Changing shares changes relative throughput, not the exchange's total limit.
   operation_share_percent:
+    # Description: Share for ticker requests. Binance uses it independently from
+    #              statistics. Bybit combines this percentage with market_stats BEFORE
+    #              rounding because one ticker response supplies both models: the
+    #              default combined share is 65%.
+    #
+    # Values: Integer from 1 to 100. The four operation shares must total 100 after
+    #         defaults and overrides are merged.
+    #
+    # Default: 60
+    #
+    # Required: no
     tickers: 60
+
+    # Description: Share for candle pages and their retries. A larger share supports
+    #              more cache misses at the expense of the other operations; it does not
+    #              raise fill caps.
+    #
+    # Values: Integer from 1 to 100. The four operation shares must total 100 after
+    #         defaults and overrides are merged.
+    #
+    # Default: 30
+    #
+    # Required: no
     klines: 30
+
+    # Description: Share for complete instrument catalog refreshes and their
+    #              pages/retries. It must admit catalog requests in every applicable
+    #              split window. Binance funding metadata also has the separate, unsplit
+    #              funding-family window below.
+    #
+    # Values: Integer from 1 to 100. The four operation shares must total 100 after
+    #         defaults and overrides are merged.
+    #
+    # Default: 5
+    #
+    # Required: no
     instruments: 5
+
+    # Description: Share for independent Binance 24h statistics requests and retries.
+    #              For Bybit it joins the ticker share rather than creating a statistics
+    #              lane.
+    #
+    # Values: Integer from 1 to 100. The four operation shares must total 100 after
+    #         defaults and overrides are merged.
+    #
+    # Default: 5
+    #
+    # Required: no
     market_stats: 5
+
+  # Description: Process-wide maximum simultaneously executing exchange HTTP attempts.
+  #              Must cover the sum of all configured lanes for enabled providers: the
+  #              default lanes require 22 slots with both providers enabled (10 Bybit +
+  #              12 Binance). Raising this alone does not raise lane limits or exchange
+  #              window allowances.
+  #
+  # Values: Positive integer; must cover the sum of HTTP slot caps for all enabled
+  #         exchange lanes.
+  #
+  # Default: 24
+  #
+  # Required: no
   max_http_inflight: 24
+
+  # Description: Process-wide maximum attempts waiting for admission, separate from
+  #              active HTTP attempts and client callers. Must cover enabled lane waiter
+  #              caps: the default lanes require 52 waiters with both providers (24
+  #              Bybit + 28 Binance). Larger queues retain more waiting work; they do
+  #              not add exchange capacity.
+  #
+  # Values: Positive integer; must cover the sum of waiter caps for all enabled exchange
+  #         lanes.
+  #
+  # Default: 56
+  #
+  # Required: no
   max_admission_waiters: 56
+
+  # Description: Maximum wait for admission, also bounded by the owning cycle/fill
+  #              deadline. Queue overflow or admission expiry gives service_overloaded.
+  #              A known cooldown extending beyond the operation's lifetime gives
+  #              upstream_unavailable instead. Waiting for pacing/budget/cooldown must
+  #              not occupy an active HTTP slot.
+  #
+  # Values: Positive Go duration; see duration syntax at the top of this file.
+  #
+  # Default: 10s
+  #
+  # Required: no
   admission_timeout: 10s
+
+  # Each enabled exchange has these independent operation lanes, shared by that
+  # exchange's markets. Bybit has no independent market_stats lane. HTTP slots and
+  # waiting places are not borrowed across lanes; every count must be positive.
   lanes_per_exchange:
-    tickers: {http_slots: 2, waiters: 4, cycle_timeout: 15s, max_attempts: 9}
-    instruments: {http_slots: 2, waiters: 4, cycle_timeout: 60s, max_attempts: 100}
-    klines: {http_slots: 6, waiters: 16, max_attempts: 12}
-    market_stats: {http_slots: 2, waiters: 4, cycle_timeout: 15s, max_attempts: 3}
-  limits:
-    binance_spot:
-      min_request_spacing: 20ms
-      windows:
-        request_weight_1m: {unit: weight, window: 1m, limit: 6000, split_operations: true}
-        raw_requests_5m: {unit: requests, window: 5m, limit: 300000, split_operations: true}
-    binance_linear:
-      min_request_spacing: 20ms
-      windows:
-        request_weight_1m: {unit: weight, window: 1m, limit: 2400, split_operations: true}
-        funding_requests_5m: {unit: requests, window: 5m, limit: 500, split_operations: false}
-    bybit:
-      min_request_spacing: 10ms
-      windows:
-        http_requests_5s: {unit: requests, window: 5s, limit: 600, split_operations: true}
-  cooldown:
-    binance_429: 60s
-    binance_418: 72h
-    bybit_429: 60s
-    bybit_10006: 60s
-    bybit_403_access_too_frequent: 10m
-exchanges:
-  bybit:
-    enabled: true
-    markets: [spot, linear]
+    # Continuous ticker collection, including shared Bybit market statistics.
+    # There is no ticker refresh_interval: admission, latency, and backoff set pace.
+    tickers:
+      # Description: Maximum concurrent ticker HTTP attempts for one exchange. Both
+      #              markets share these slots; increasing them also requires enough
+      #              global HTTP slots.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 2
+      #
+      # Required: no
+      http_slots: 2
+
+      # Description: Maximum ticker attempts queued for admission per exchange. Overflow
+      #              fails rather than creating an unbounded backlog; global waiter
+      #              capacity must fit.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 4
+      #
+      # Required: no
+      waiters: 4
+
+      # Description: Deadline for one complete ticker refresh cycle, including its
+      #              component requests, admission, and retries. Failure retains the
+      #              previous snapshot.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 15s
+      #
+      # Required: no
+      cycle_timeout: 15s
+
+      # Description: Total HTTP attempts in one ticker cycle, counting every component
+      #              and retry. Distinct from the per-request retry limit; increasing it
+      #              allows more work only while cycle_timeout and all admission limits
+      #              still permit it.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 9
+      #
+      # Required: no
+      max_attempts: 9
+
+    # Complete instrument catalog collection, including pagination and metadata.
     instruments:
-      refresh_interval: 10m
+      # Description: Maximum active instrument HTTP attempts per exchange, shared across
+      #              markets. Increasing this requires sufficient
+      #              upstream.max_http_inflight capacity.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 2
+      #
+      # Required: no
+      http_slots: 2
+
+      # Description: Maximum instrument attempts waiting for admission per exchange.
+      #              Increasing this permits more queued work and requires sufficient
+      #              global waiter capacity.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 4
+      #
+      # Required: no
+      waiters: 4
+
+      # Description: Deadline for one full catalog refresh, including pages, funding
+      #              metadata, waits, and retries. A failed/partial refresh keeps the
+      #              previous snapshot.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 60s
+      #
+      # Required: no
+      cycle_timeout: 60s
+
+      # Description: Total allowed HTTP attempts for a full catalog cycle, including all
+      #              pages and retries. Too small a value can prevent a large catalog
+      #              from completing.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 100
+      #
+      # Required: no
+      max_attempts: 100
+
+    # Candle page fetches performed by owned fills; no separate cycle_timeout key.
     klines:
-      max_candles_per_request: {spot: 1000, linear: 1000}
-  binance:
-    enabled: true
-    markets: [spot, linear]
-    instruments:
-      refresh_interval: 10m
-    klines:
-      max_candles_per_request: {spot: 1000, linear: 1500}
+      # Description: Maximum simultaneous candle HTTP attempts per exchange. Must be at
+      #              least klines.max_active_fills_per_exchange and fit the global HTTP
+      #              slot budget.
+      #
+      # Values: Positive integer; must be >= klines.max_active_fills_per_exchange and
+      #         fit the global HTTP slot budget.
+      #
+      # Default: 6
+      #
+      # Required: no
+      http_slots: 6
+
+      # Description: Maximum candle attempts waiting for admission per exchange. This
+      #              queue is separate from callers awaiting a shared fill or a free
+      #              fill slot.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 16
+      #
+      # Required: no
+      waiters: 16
+
+      # Description: Total page/retry attempts per fill and the logical bound for each
+      #              caller's awaited fills. A shared attempt counts once for the
+      #              exchange and once for each participating caller; joining another
+      #              fill does not reset its bound. Must cover
+      #              ceil(klines.max_history_candles / page_limit) for every enabled
+      #              exchange/market. Lowering page limits may require raising this
+      #              value.
+      #
+      # Values: Positive integer; must cover ceil(klines.max_history_candles /
+      #         page_limit) for every enabled exchange/market.
+      #
+      # Default: 12
+      #
+      # Required: no
+      max_attempts: 12
+
+    # Independent Binance statistics only; these settings create no Bybit lane.
     market_stats:
-      refresh_interval: 30s
-http_client:
-  timeout: 10s
-  max_response_bytes: 16777216
-  retry:
-    max_attempts: 3
-    initial_backoff: 100ms
-    max_backoff: 2s
-observability:
-  sentry:
-    enabled: false
-    dsn: ""
-    environment: local
-    traces_sample_rate: 0.1
-  prometheus:
-    enabled: false
-    path: /metrics
-  stats:
+      # Description: Maximum simultaneous independent statistics HTTP attempts per
+      #              exchange. The default Binance spot and linear markets share these
+      #              two slots.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 2
+      #
+      # Required: no
+      http_slots: 2
+
+      # Description: Maximum independent statistics attempts queued for admission per
+      #              exchange. Overflow fails the operation; larger queues require a
+      #              larger global cap.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 4
+      #
+      # Required: no
+      waiters: 4
+
+      # Description: Deadline for a complete independent statistics cycle, including
+      #              admission and retries. It is separate from the pause between cycles
+      #              configured below.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 15s
+      #
+      # Required: no
+      cycle_timeout: 15s
+
+      # Description: Total HTTP attempts per independent statistics cycle, including
+      #              retries. A higher value cannot bypass its window share or cycle
+      #              deadline.
+      #
+      # Values: Positive integer that fits Go int.
+      #
+      # Default: 3
+      #
+      # Required: no
+      max_attempts: 3
+
+  # Fixed allocation scope/window IDs. Unknown scopes or windows are rejected.
+  # unit, window duration, and split_operations must match the fixed values below;
+  # numeric ceilings and positive pacing durations may be changed. All applicable
+  # windows must pass together. Limits are sliding allowances, not refill tokens.
+  # Validation checks single permitted request costs and statistics schedule capacity.
+  # Runtime discovery may tighten a ceiling; raising config cannot override that.
+  limits:
+    # Binance Spot API scope; its ledgers are separate from Binance USD(S)-M.
+    binance_spot:
+      # Description: Minimum elapsed spacing between dispatches of any Spot operation.
+      #              Raising this slows dispatch even if budgets are available. It does
+      #              not accumulate credit while idle or replace the longer allocation
+      #              windows.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 20ms
+      #
+      # Required: no
+      min_request_spacing: 20ms
+
+      # Both Spot windows constrain every applicable request at the same time.
+      windows:
+        # Endpoint-dependent request weight over a one-minute sliding window.
+        request_weight_1m:
+          # Description: Accounting unit for this fixed window. A request can consume
+          #              more than one weight unit according to its endpoint.
+          #
+          # Values: weight only; this value is fixed for this allocation window.
+          #
+          # Default: weight
+          #
+          # Required: no
+          unit: weight
+
+          # Description: Length of this sliding accounting window. It defines the period
+          #              for the exchange ceiling, not a polling interval. Changing the
+          #              duration would change the meaning of the ceiling and is
+          #              rejected.
+          #
+          # Values: 1m only; this value is fixed for this allocation window.
+          #
+          # Default: 1m
+          #
+          # Required: no
+          window: 1m
+
+          # Description: Positive weight ceiling BEFORE margin and operation splitting.
+          #              6000 with 20% margin yields 4800 common units and 240
+          #              statistics units; an 80-weight FULL statistics call fits twice
+          #              per default 30s schedule, with room for one additional attempt
+          #              per minute. Retries can delay work.
+          #
+          # Values: Positive integer that fits Go int.
+          #
+          # Default: 6000
+          #
+          # Required: no
+          limit: 6000
+
+          # Description: Reserve operation percentages in this window. Both the common
+          #              allowance and the operation's own share constrain a call.
+          #
+          # Values: true only; this value is fixed for this allocation window.
+          #
+          # Default: true
+          #
+          # Required: no
+          split_operations: true
+
+        # Count of actual Spot HTTP attempts over a five-minute sliding window.
+        raw_requests_5m:
+          # Description: Accounting unit for this fixed window. Each HTTP attempt costs
+          #              one request, regardless of its separate endpoint weight.
+          #              Retries count again.
+          #
+          # Values: requests only; this value is fixed for this allocation window.
+          #
+          # Default: requests
+          #
+          # Required: no
+          unit: requests
+
+          # Description: Length of this sliding accounting window. It defines the period
+          #              for the exchange ceiling, not a polling interval. Changing the
+          #              duration would change the meaning of the ceiling and is
+          #              rejected.
+          #
+          # Values: 5m only; this value is fixed for this allocation window.
+          #
+          # Default: 5m
+          #
+          # Required: no
+          window: 5m
+
+          # Description: Positive raw-request ceiling before margin/shares. The default
+          #              gives 240000 common attempts per 5m; the weight window and
+          #              pacing still apply.
+          #
+          # Values: Positive integer that fits Go int.
+          #
+          # Default: 300000
+          #
+          # Required: no
+          limit: 300000
+
+          # Description: Reserve operation shares in the raw-request capacity. A request
+          #              fitting the weight budget can still be blocked by this window.
+          #
+          # Values: true only; this value is fixed for this allocation window.
+          #
+          # Default: true
+          #
+          # Required: no
+          split_operations: true
+
+    # Binance USD(S)-M linear derivatives API scope; never use Spot limits here.
+    binance_linear:
+      # Description: Minimum spacing between linear-scope dispatches across all
+      #              operations. Independent of Spot pacing; positive duration, with
+      #              larger values slower.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 20ms
+      #
+      # Required: no
+      min_request_spacing: 20ms
+
+      # Weight applies broadly; the funding-family window applies only to fundingInfo.
+      windows:
+        # Endpoint-dependent linear API request weight per minute.
+        request_weight_1m:
+          # Description: Accounting unit for this fixed window. Candle weight depends on
+          #              the actual sent page limit; other endpoints have their own
+          #              fixed costs.
+          #
+          # Values: weight only; this value is fixed for this allocation window.
+          #
+          # Default: weight
+          #
+          # Required: no
+          unit: weight
+
+          # Description: Length of this sliding accounting window. It defines the period
+          #              for the exchange ceiling, not a polling interval. Changing the
+          #              duration would change the meaning of the ceiling and is
+          #              rejected.
+          #
+          # Values: 1m only; this value is fixed for this allocation window.
+          #
+          # Default: 1m
+          #
+          # Required: no
+          window: 1m
+
+          # Description: Positive weight ceiling before margin/shares. 2400 gives 1920
+          #              common units and 96 statistics units at the defaults. Two
+          #              40-weight statistics calls fit per minute; retries share that
+          #              same finite allowance.
+          #
+          # Values: Positive integer that fits Go int.
+          #
+          # Default: 2400
+          #
+          # Required: no
+          limit: 2400
+
+          # Description: Apply each operation's reserved share after the safety margin.
+          #
+          # Values: true only; this value is fixed for this allocation window.
+          #
+          # Default: true
+          #
+          # Required: no
+          split_operations: true
+
+        # Separate request-count limit for the funding metadata endpoint family.
+        funding_requests_5m:
+          # Description: Accounting unit for the funding endpoint family. Each
+          #              fundingInfo HTTP attempt consumes one family request unit even
+          #              though its REQUEST_WEIGHT cost is zero.
+          #
+          # Values: requests only; this value is fixed for this allocation window.
+          #
+          # Default: requests
+          #
+          # Required: no
+          unit: requests
+
+          # Description: Length of this sliding accounting window. It defines the period
+          #              for the exchange ceiling, not a polling interval. Changing the
+          #              duration would change the meaning of the ceiling and is
+          #              rejected.
+          #
+          # Values: 5m only; this value is fixed for this allocation window.
+          #
+          # Default: 5m
+          #
+          # Required: no
+          window: 5m
+
+          # Description: Positive family request ceiling before the safety margin. The
+          #              default yields 400 funding metadata attempts per 5m, subject to
+          #              other applicable constraints. v1 does not make fundingRate
+          #              history requests.
+          #
+          # Values: Positive integer that fits Go int.
+          #
+          # Default: 500
+          #
+          # Required: no
+          limit: 500
+
+          # Description: Keep this instrument-only endpoint-family allowance outside
+          #              operation splitting. Instruments may use the whole allowance
+          #              after the safety margin; other operations do not use it.
+          #
+          # Values: false only; this value is fixed for this allocation window.
+          #
+          # Default: false
+          #
+          # Required: no
+          split_operations: false
+
+    # Shared Bybit public HTTP/IP scope across spot, linear, and all operations.
+    bybit:
+      # Description: Minimum elapsed spacing between any two Bybit HTTP dispatches. Both
+      #              markets share this pacing; reducing it does not remove the common
+      #              five-second limit.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 10ms
+      #
+      # Required: no
+      min_request_spacing: 10ms
+
+      # One shared public HTTP window; no per-market or UID trading windows in v1.
+      windows:
+        # Count of Bybit HTTP attempts over a five-second sliding window.
+        http_requests_5s:
+          # Description: Accounting unit for this fixed window. Every HTTP attempt costs
+          #              one request; a ticker response reused for market statistics is
+          #              one attempt, not two.
+          #
+          # Values: requests only; this value is fixed for this allocation window.
+          #
+          # Default: requests
+          #
+          # Required: no
+          unit: requests
+
+          # Description: Length of this sliding accounting window. It defines the period
+          #              for the exchange ceiling, not a polling interval. Changing the
+          #              duration would change the meaning of the ceiling and is
+          #              rejected.
+          #
+          # Values: 5s only; this value is fixed for this allocation window.
+          #
+          # Default: 5s
+          #
+          # Required: no
+          window: 5s
+
+          # Description: Positive request ceiling before margin/shares. The default
+          #              yields 480 common attempts per 5s: 312 shared
+          #              ticker/statistics, 144 kline, and 24 instrument attempts.
+          #              Pacing and concurrency may reduce actual throughput.
+          #
+          # Values: Positive integer that fits Go int.
+          #
+          # Default: 600
+          #
+          # Required: no
+          limit: 600
+
+          # Description: Reserve operation shares in the shared Bybit window. Combine
+          #              ticker and statistics percentages before rounding; do not
+          #              create an independent Bybit statistics allocation or worker.
+          #
+          # Values: true only; this value is fixed for this allocation window.
+          #
+          # Default: true
+          #
+          # Required: no
+          split_operations: true
+
+  # Fallback waits for rate-limit/ban signals when a trustworthy future exchange
+  # wait is absent or invalid. These are not generic retry backoff values. A valid
+  # explicit wait is respected even when longer than max_backoff; late responses
+  # never shorten an existing cooldown. No cooldown state survives process restart.
+  cooldown:
+    # Description: Fallback for Binance HTTP 429 (rate limit). Must be >= 60s. Pauses
+    #              new work in the affected scope; a valid explicit wait is used instead
+    #              of this fallback.
+    #
+    # Values: Go duration >= 60s.
+    #
+    # Default: 60s
+    #
+    # Required: no
+    binance_429: 60s
+
+    # Description: Fallback for Binance HTTP 418 (IP ban). Must be >= 72h. Increasing
+    #              this delays resumption when ban metadata is unavailable; it does not
+    #              cap an explicit wait.
+    #
+    # Values: Go duration >= 72h.
+    #
+    # Default: 72h
+    #
+    # Required: no
+    binance_418: 72h
+
+    # Description: Fallback for Bybit HTTP 429. Must be >= 60s. All affected operations
+    #              wait; another attempt is possible only within the remaining operation
+    #              bounds.
+    #
+    # Values: Go duration >= 60s.
+    #
+    # Default: 60s
+    #
+    # Required: no
+    bybit_429: 60s
+
+    # Description: Fallback for Bybit response retCode 10006 (rate limit), including a
+    #              signal in an otherwise successful HTTP envelope. Must be >= 60s; a
+    #              valid reset timestamp can supply the explicit wait. This is distinct
+    #              from HTTP status 429 above.
+    #
+    # Values: Go duration >= 60s.
+    #
+    # Default: 60s
+    #
+    # Required: no
+    bybit_10006: 60s
+
+    # Description: Fallback for Bybit's specific access-too-frequent HTTP 403. Must be
+    #              >= 10m. That signal always requires at least a 10m pause even with a
+    #              shorter explicit wait. Unrelated 403 responses are non-retryable
+    #              errors, not this cooldown.
+    #
+    # Values: Go duration >= 10m.
+    #
+    # Default: 10m
+    #
+    # Required: no
+    bybit_403_access_too_frequent: 10m
+
+# Provider configuration. Only the fixed keys bybit and binance are supported.
+# At least one provider with at least one valid market must be enabled. Disabling
+# a provider stops its future workers; its configured values must still be valid.
+exchanges:
+  # Bybit public market data; ticker responses also supply 24h statistics.
+  bybit:
+    # Description: true enables Bybit collection and API scopes; false excludes the
+    #              provider. This does not create workers until the exchange feature
+    #              phases are implemented.
+    #
+    # Values: true or false.
+    #
+    # Default: true
+    #
+    # Required: no
     enabled: true
+
+    # Description: Unique list of supported market enums: spot (cash market) and linear
+    #              (linear derivatives). Select either or both; an enabled provider
+    #              needs a nonempty list. inverse, options, unknown values, and
+    #              duplicates are rejected. This list enables markets; page-limit
+    #              entries below do not enable them.
+    #
+    # Values: Unique list containing spot and/or linear. An enabled exchange needs at
+    #         least one market; an empty list is allowed only while that exchange is
+    #         disabled.
+    #
+    # Default: [spot, linear]
+    #
+    # Required: no
+    markets: [spot, linear]
+
+    # Current instrument catalog refresh behavior, independent of ticker updates.
+    instruments:
+      # Description: Positive pause between complete refresh cycles; the first cycle
+      #              starts immediately through admission. Longer pauses reduce metadata
+      #              traffic but delay discovery of listings/status/filter changes.
+      #              Failure keeps old data; retries/backoff/cooldown can extend the
+      #              actual time between successful updates.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 10m
+      #
+      # Required: no
+      refresh_interval: 10m
+
+    # Upstream candle page sizes, separate from the total client history bound.
+    klines:
+      # Maximum candles requested in one HTTP page for each supported market.
+      # Adapters send an explicit limit no larger than the configured value.
+      max_candles_per_request:
+        # Description: Bybit spot page cap. Smaller pages reduce each response size but
+        #              need more requests/attempts for a large range; check
+        #              upstream.lanes_per_exchange.klines.max_attempts.
+        #
+        # Values: Integer from 1 to 1000.
+        #
+        # Default: 1000
+        #
+        # Required: no
+        spot: 1000
+
+        # Description: Bybit linear page cap. Same pagination tradeoff as spot,
+        #              configured independently. This value neither enables linear
+        #              trading data nor changes max_history_candles.
+        #
+        # Values: Integer from 1 to 1000.
+        #
+        # Default: 1000
+        #
+        # Required: no
+        linear: 1000
+
+    # No market_stats.refresh_interval is supported here: Bybit shares ticker
+    # responses for statistics. Its freshness follows admitted ticker collection.
+
+  # Binance public market data with separate ticker and 24h statistics collection.
+  binance:
+    # Description: true enables Binance collection and API scopes; false excludes the
+    #              provider. At least Bybit must stay enabled if this is false, and vice
+    #              versa.
+    #
+    # Values: true or false.
+    #
+    # Default: true
+    #
+    # Required: no
+    enabled: true
+
+    # Description: Unique list using spot (cash Spot API) and/or linear (USD(S)-M
+    #              derivatives). An enabled provider needs at least one market.
+    #              Inverse/COIN-M and options are unsupported. Disabling a market does
+    #              not remove validation of its settings.
+    #
+    # Values: Unique list containing spot and/or linear. An enabled exchange needs at
+    #         least one market; an empty list is allowed only while that exchange is
+    #         disabled.
+    #
+    # Default: [spot, linear]
+    #
+    # Required: no
+    markets: [spot, linear]
+
+    # Complete instrument catalog collection and required funding metadata.
+    instruments:
+      # Description: Positive pause between catalog refresh cycles; initial work is
+      #              scheduled immediately. Larger values reduce calls but delay
+      #              metadata updates. This is independent of the ticker cadence and the
+      #              statistics interval below.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 10m
+      #
+      # Required: no
+      refresh_interval: 10m
+
+    # Binance candle page sizes; these do not change the API's total history depth.
+    klines:
+      # Each market gets its own maximum explicit upstream limit. Lowering a cap
+      # may make the configured history require more than the allowed fill attempts.
+      max_candles_per_request:
+        # Description: Binance spot page cap. Each page has weight 2; smaller pages need
+        #              more calls for the same range.
+        #
+        # Values: Integer from 1 to 1000.
+        #
+        # Default: 1000
+        #
+        # Required: no
+        spot: 1000
+
+        # Description: Binance linear page cap. Weight uses the ACTUAL sent limit: 1..99
+        #              -> 1; 100..499 -> 2; 500..1000 -> 5; 1001..1500 -> 10. Validation
+        #              must permit the most expensive page this setting allows, even
+        #              when max_history_candles is only 1000.
+        #
+        # Values: Integer from 1 to 1500.
+        #
+        # Default: 1500
+        #
+        # Required: no
+        linear: 1500
+
+    # Independent statistics worker, separate from Binance ticker collection.
+    market_stats:
+      # Description: Positive pause AFTER each statistics cycle; the first cycle runs
+      #              immediately. 30s requires capacity for two ordinary cycles per
+      #              minute in each API scope. Smaller values need more reserved
+      #              capacity and may fail validation; waits, cycle duration, retries,
+      #              and cooldown mean this is not a freshness guarantee.
+      #
+      # Values: Positive Go duration; see duration syntax at the top of this file.
+      #
+      # Default: 30s
+      #
+      # Required: no
+      refresh_interval: 30s
+
+# Transport limits for outgoing exchange HTTP requests, not incoming API requests.
+http_client:
+  # Description: Deadline for ONE HTTP attempt, including its connection/response work.
+  #              The owning cycle/fill deadline may end it earlier. A timeout can be
+  #              retried within retry.max_attempts and the operation's total
+  #              attempts/lifetime; this value does not replace klines.request_timeout
+  #              or the upstream admission wait timeout.
+  #
+  # Values: Positive Go duration; see duration syntax at the top of this file.
+  #
+  # Default: 10s
+  #
+  # Required: no
+  timeout: 10s
+
+  # Description: Maximum exchange response body size in bytes before unbounded buffering
+  #              or SDK decoding (16777216 = 16 MiB). Larger responses fail as
+  #              invalid_upstream_data. Raising this permits larger payloads and memory
+  #              use; it must be < MaxInt.
+  #
+  # Values: Positive integer in bytes; must be < MaxInt.
+  #
+  # Default: 16777216
+  #
+  # Required: no
+  max_response_bytes: 16777216
+
+  # Retries apply only to temporary transport failures, per-attempt timeouts, 429,
+  # and HTTP 500/502/503/504. Most 4xx, invalid symbols, and invalid data are not
+  # generic retries. Ban/rate signals additionally require the cooldown rules.
+  retry:
+    # Description: Maximum attempts for ONE logical HTTP request, INCLUDING the initial
+    #              attempt. Positive integer; 1 disables retries. Every attempt also
+    #              consumes the lane's cycle/fill attempt bound and common/operation
+    #              budgets; these are not additive.
+    #
+    # Values: Positive integer; 1 means one initial attempt and no retries.
+    #
+    # Default: 3
+    #
+    # Required: no
+    max_attempts: 3
+
+    # Description: Initial exponential-backoff ceiling before full jitter chooses the
+    #              actual delay. Must be positive and <= max_backoff. Larger values slow
+    #              early retries.
+    #
+    # Values: Positive Go duration; must be <= http_client.retry.max_backoff.
+    #
+    # Default: 100ms
+    #
+    # Required: no
+    initial_backoff: 100ms
+
+    # Description: Maximum exponential-backoff ceiling before jitter. Must be >=
+    #              initial_backoff. Applies to failure retry/backoff policy, not to
+    #              exchange-mandated cooldowns: a 60s rate-limit wait cannot be
+    #              shortened to this 2s value. Failed background cycles keep failure
+    #              backoff; a new cycle alone does not reset it.
+    #
+    # Values: Positive Go duration; must be >= http_client.retry.initial_backoff.
+    #
+    # Default: 2s
+    #
+    # Required: no
+    max_backoff: 2s
+
+# Optional operational diagnostics, separate from market_stats data. These options
+# are validated in phase 02 but their integrations are not implemented yet. Setting
+# an enabled flag logs that limitation; it does not activate a working integration.
+observability:
+  # Error reporting and tracing to Sentry once the integration is implemented.
+  sentry:
+    # Description: true enables the Sentry integration; false disables it. Enabling
+    #              requires a valid nonempty DSN. Error reporting and trace sampling are
+    #              separate controls.
+    #
+    # Values: true or false.
+    #
+    # Default: false
+    #
+    # Required: no
+    enabled: false
+
+    # Description: Destination for Sentry events. Supply real values through
+    #              MDS_OBSERVABILITY_SENTRY_DSN or its alias MDS_SENTRY_DSN; using both
+    #              is an error. Never commit a real DSN in this example.
+    #
+    # Values: Empty string only while Sentry is disabled; otherwise an HTTP(S) DSN such
+    #         as https://PUBLIC_KEY@HOST/PROJECT. Host, user, and project path must be
+    #         nonempty; query strings and fragments are rejected. Nonempty values are
+    #         checked even when Sentry is disabled.
+    #
+    # Default: ""
+    #
+    # Required: conditional; a nonempty value must be supplied through YAML or ENV when
+    #           observability.sentry.enabled is true. Otherwise no.
+    dsn: ""
+
+    # Description: Environment label attached to Sentry events. It does not select a
+    #              config profile, change endpoints, or load another file.
+    #
+    # Values: Nonblank string, for example local, staging, or production. This is not an
+    #         enum.
+    #
+    # Default: local
+    #
+    # Required: no
+    environment: local
+
+    # Description: Fraction of traces sent to Sentry. Higher values increase trace
+    #              volume and overhead. This does not enable Sentry or configure error
+    #              sampling.
+    #
+    # Values: Finite number from 0 to 1 inclusive: 0 samples no traces, 1 samples all
+    #         traces, and 0.1 samples about 10%.
+    #
+    # Default: 0.1
+    #
+    # Required: no
+    traces_sample_rate: 0.1
+
+  # Optional Prometheus HTTP metrics export once implemented.
+  prometheus:
+    # Description: true enables metrics export; false leaves its HTTP endpoint absent.
+    #              Prometheus export is optional even when built-in statistics are
+    #              enabled.
+    #
+    # Values: true or false.
+    #
+    # Default: false
+    #
+    # Required: no
+    enabled: false
+
+    # Description: Incoming HTTP route for Prometheus metrics. Changing it changes the
+    #              path that the metrics scraper must request.
+    #
+    # Values: Clean absolute HTTP path, such as /metrics. Must not be /, /health,
+    #         /ready, or start with /api or /debug. No query, fragment, percent escapes,
+    #         braces, whitespace, duplicate leading slashes, or path-cleaning changes
+    #         such as /a/../b. Checked even when disabled.
+    #
+    # Default: /metrics
+    #
+    # Required: no
+    path: /metrics
+
+  # In-process counters, durations, snapshot sizes, and last-success timestamps;
+  # these are diagnostics, not 24h exchange market-statistics records.
+  stats:
+    # Description: true enables built-in operational statistics collection; false
+    #              disables it. This collection can be used without Sentry or
+    #              Prometheus. Data is process-local and is not a durable history across
+    #              restarts.
+    #
+    # Values: true or false.
+    #
+    # Default: true
+    #
+    # Required: no
+    enabled: true
+
+    # Description: Positive interval between aggregate statistics log records. Smaller
+    #              values give more frequent diagnostics and more log volume. Logs
+    #              contain summaries, not every candle; the interval is still validated
+    #              when collection is disabled.
+    #
+    # Values: Positive Go duration; see duration syntax at the top of this file.
+    #
+    # Default: 1m
+    #
+    # Required: no
     log_interval: 1m
+
+    # Description: true exposes the optional GET /debug/stats diagnostics route; false
+    #              keeps it absent. This controls HTTP exposure separately from logging.
+    #              Set enabled=true above to collect the data this endpoint exposes. No
+    #              Prometheus export is needed.
+    #
+    # Values: true or false.
+    #
+    # Default: false
+    #
+    # Required: no
     endpoint_enabled: false

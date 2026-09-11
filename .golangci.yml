@@ -1,0 +1,5 @@
+version: "2"
+
+linters:
+  # Keep the upstream default set without extra linters or custom exclusions.
+  default: standard

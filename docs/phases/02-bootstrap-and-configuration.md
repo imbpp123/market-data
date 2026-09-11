@@ -1,6 +1,6 @@
 # 02 — Bootstrap and configuration
 
-Status: not started. Dependencies: relevant decisions in [01](01-specification-decisions.md). Next: [03](03-domain-and-contracts.md).
+Status: complete, September 12, 2026. Dependencies: relevant decisions in [01](01-specification-decisions.md). Next: [03](03-domain-and-contracts.md).
 
 ## Outcome
 
@@ -28,3 +28,23 @@ A buildable Go process with explicit settings, a basic HTTP lifecycle, and repea
 ## Exit criteria
 
 Build, vet, unit, race, and configured lint checks pass on the pinned toolchain. The sample config is loadable and validated. The process scaffold is runnable, but no market-data feature is declared implemented yet.
+
+## Delivery evidence
+
+- Added the Go 1.27.1 module, executable entry point, typed configuration, Koanf source merging, strict YAML/ENV input checks, and semantic validation for the complete agreed schema.
+- Added JSON logging, health/readiness routes, root cancellation, owned workers, and bounded HTTP shutdown. Repositories, market-data routes, exchange workers, and observability integrations remain assigned to later phases.
+- Added Makefile checks and a GitHub Actions workflow. Lint uses pinned golangci-lint v2.13.2 with its default `standard` set; `gofmt` runs separately. Tests use `testify/assert` and `testify/require`.
+- Verified on `go version go1.27.1 darwin/arm64`: `make check` passed (formatting, build, example validation, standard lint including govet, unit tests, race tests). CI is configured with the same toolchain; a remote CI run has not been observed.
+- The complete YAML example passed the binary's `-check-config` command and matches built-in defaults in tests.
+- A local binary smoke check returned 200 from `/health` and `/ready`; SIGTERM produced a clean exit with status 0. Lifecycle unit tests cover cancellation, worker failure, listener failure, and the configured shutdown deadline using controlled time.
+
+The configuration loader uses a library for merging and decoding. Project code checks strict input rules and service-specific bounds. It does not implement exchange admission or claim production throughput. Provider capability checks will be connected at composition when providers exist.
+
+### Changed files
+
+| Area | Files |
+| --- | --- |
+| Configuration | `internal/config/config.go`, `internal/config/load.go`, `internal/config/validate.go`, `internal/config/load_test.go`, `internal/config/validate_test.go` |
+| Process and HTTP | `cmd/market-data-service/main.go`, `cmd/market-data-service/main_test.go`, `internal/bootstrap/server.go`, `internal/bootstrap/server_test.go`, `internal/transport/http/handler.go`, `internal/transport/http/handler_test.go` |
+| Build and checks | `go.mod`, `go.sum`, `Makefile`, `.golangci.yml`, `.github/workflows/checks.yml`, `.gitignore` |
+| Rules and documentation | `AGENTS.md`, `README.md`, `docs/examples/config-v1.yaml`, `docs/phases/README.md`, `docs/phases/02-bootstrap-and-configuration.md` |

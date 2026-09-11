@@ -1,12 +1,12 @@
 # v1 development plan
 
-Status: delivery plan, September 11, 2026. Phase 01 is complete; phases 02–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
+Status: delivery plan, September 12, 2026. Phases 01–02 are complete; phases 03–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
 
 Source of requirements: [Technical specification v1](../technical-specification-v1.md). Engineering rules: [AGENTS.md](../../AGENTS.md). The specification remains authoritative; these files define delivery order, not new approved product requirements.
 
 ## Current project state
 
-The repository contains AGENTS.md, a title-only README.md, specifications, a phase plan, configuration/HTTP examples, and phase 01 discovery fixtures. There is no Go module, application code, test suite, Makefile, or deployment configuration. Section 14 reports earlier SDK checks, but their executable tests and fixtures are not present here. Those results are useful evidence, not an implemented exchange adapter or a reproducible project test suite.
+The repository contains specifications, a phase plan, configuration/HTTP examples, phase 01 discovery fixtures, and the phase 02 Go process scaffold. The pinned module, configuration loader, health HTTP lifecycle, unit tests, Makefile, and CI baseline are implemented. Domain models, repositories, exchange adapters, data APIs, and deployment packaging are not implemented. Section 14 reports earlier SDK checks; those historical results remain evidence, not executed adapter tests in this project.
 
 The initial review assessed the supplied project documentation. Phase 01 source checks are recorded in the decision register. Phase 01 includes bounded live discovery and an official release-catalog check. It does not reproduce historical SDK tests or verify deployment behavior.
 
@@ -28,7 +28,7 @@ The following decisions are recorded; implementation checks remain assigned to t
 | Public API gaps | Contract and examples define readiness for all snapshots, strict filters, aligned half-open ranges, missing slots, and errors. Implement and test them. | 06–07 and 10 |
 | Startup | Bind HTTP after local initialization and schedule independent workers immediately. Exchange availability does not determine global readiness. | 02 lifecycle and 06 |
 | Retention and memory | D13 defines a configurable 1,000-slot window for every supported interval. Calendar evidence is captured; measure total memory within 1 GB before release. | 03–04, 08, 10–12 |
-| Reproducible build | Official catalog confirms Go 1.27.1 availability. Phase 02 must install/use it; recreate pinned SDK tests in adapter phases. | 02 and 12 |
+| Reproducible build | Phase 02 build, unit, race, vet, and formatting checks pass on Go 1.27.1. Recreate pinned SDK tests in adapter phases. | 02 and 12 |
 
 The detailed rules in sections 8 and 31 qualify the simpler “closed candles are immutable” wording in section 26: data fetched before close still needs a request started after close. Sections 5–8 and 39 consistently require decimal JSON strings.
 
