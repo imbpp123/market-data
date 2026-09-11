@@ -1,0 +1,304 @@
+{
+  "fixture_kind": "synthetic_contract_examples_not_live_responses",
+  "cases": [
+    {
+      "name": "instruments ready",
+      "method": "GET",
+      "url": "/api/v1/instruments?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot is ready and contains the supplied synthetic row; clock is 2026-09-11T10:00:00Z.",
+      "expected_status": 200,
+      "expected_body": {
+        "data": [
+          {
+            "exchange": "bybit",
+            "market": "linear",
+            "symbol": "BTCUSDT",
+            "base_asset": "BTC",
+            "quote_asset": "USDT",
+            "status": "trading",
+            "price_tick": "0.1",
+            "qty_step": "0.001",
+            "min_qty": "0.001",
+            "max_qty": null,
+            "min_notional": "5",
+            "funding_interval": 28800,
+            "delisting_time": null,
+            "updated_at": "2026-09-11T10:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "instruments empty",
+      "method": "GET",
+      "url": "/api/v1/instruments?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot is ready and empty.",
+      "expected_status": 200,
+      "expected_body": {
+        "data": []
+      }
+    },
+    {
+      "name": "instruments unready",
+      "method": "GET",
+      "url": "/api/v1/instruments?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot has never been published.",
+      "expected_status": 503,
+      "expected_body": {
+        "error": {
+          "code": "data_not_ready",
+          "message": "selected data is not ready"
+        }
+      }
+    },
+    {
+      "name": "tickers ready",
+      "method": "GET",
+      "url": "/api/v1/tickers?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot is ready and contains the supplied synthetic row; clock is 2026-09-11T10:00:00Z.",
+      "expected_status": 200,
+      "expected_body": {
+        "data": [
+          {
+            "exchange": "bybit",
+            "market": "linear",
+            "symbol": "BTCUSDT",
+            "last_price": "100",
+            "bid_price": "99.9",
+            "bid_size": "1",
+            "ask_price": "100.1",
+            "ask_size": "2",
+            "funding_rate": "0.0001",
+            "next_funding_in": 21600,
+            "fetched_at": "2026-09-11T10:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tickers empty",
+      "method": "GET",
+      "url": "/api/v1/tickers?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot is ready and empty.",
+      "expected_status": 200,
+      "expected_body": {
+        "data": []
+      }
+    },
+    {
+      "name": "tickers unready",
+      "method": "GET",
+      "url": "/api/v1/tickers?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot has never been published.",
+      "expected_status": 503,
+      "expected_body": {
+        "error": {
+          "code": "data_not_ready",
+          "message": "selected data is not ready"
+        }
+      }
+    },
+    {
+      "name": "market-stats ready",
+      "method": "GET",
+      "url": "/api/v1/market-stats?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot is ready and contains the supplied synthetic row; clock is 2026-09-11T10:00:00Z.",
+      "expected_status": 200,
+      "expected_body": {
+        "data": [
+          {
+            "exchange": "bybit",
+            "market": "linear",
+            "symbol": "BTCUSDT",
+            "window": "24h",
+            "high": "105",
+            "low": "95",
+            "volume": "12",
+            "turnover": "1200",
+            "price_change": "2",
+            "trade_count": null,
+            "fetched_at": "2026-09-11T10:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "market-stats empty",
+      "method": "GET",
+      "url": "/api/v1/market-stats?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot is ready and empty.",
+      "expected_status": 200,
+      "expected_body": {
+        "data": []
+      }
+    },
+    {
+      "name": "market-stats unready",
+      "method": "GET",
+      "url": "/api/v1/market-stats?exchange=bybit&market=linear&symbol=BTCUSDT",
+      "given": "Selected snapshot has never been published.",
+      "expected_status": 503,
+      "expected_body": {
+        "error": {
+          "code": "data_not_ready",
+          "message": "selected data is not ready"
+        }
+      }
+    },
+    {
+      "name": "klines complete",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-11T10:00:00Z&to=2026-09-11T10:01:00Z",
+      "given": "Clock is 10:02 UTC, symbol exists in a ready catalog, and the complete confirmed row is cached.",
+      "expected_status": 200,
+      "expected_body": {
+        "data": [
+          {
+            "exchange": "bybit",
+            "market": "linear",
+            "symbol": "BTCUSDT",
+            "interval": "1m",
+            "open_time": "2026-09-11T10:00:00Z",
+            "close_time": "2026-09-11T10:01:00Z",
+            "open": "100",
+            "high": "101",
+            "low": "99",
+            "close": "100.5",
+            "volume": "12",
+            "turnover": "1203",
+            "trades_count": null,
+            "fetched_at": "2026-09-11T10:01:01Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "klines empty range",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-11T10:00:00Z&to=2026-09-11T10:00:00Z",
+      "given": "Clock is 10:02 UTC and symbol exists in a ready catalog; no kline upstream call.",
+      "expected_status": 200,
+      "expected_body": {
+        "data": []
+      }
+    },
+    {
+      "name": "klines incomplete",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-11T10:00:00Z&to=2026-09-11T10:01:00Z",
+      "given": "Clock is 10:02 UTC; symbol is known; upstream succeeds with no candle for the required slot.",
+      "expected_status": 502,
+      "expected_body": {
+        "error": {
+          "code": "incomplete_data",
+          "message": "requested candle range is incomplete"
+        }
+      }
+    },
+    {
+      "name": "klines overloaded",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-11T10:00:00Z&to=2026-09-11T10:01:00Z",
+      "given": "The 64 kline caller slots are occupied.",
+      "expected_status": 503,
+      "expected_body": {
+        "error": {
+          "code": "service_overloaded",
+          "message": "service capacity is exhausted"
+        }
+      }
+    },
+    {
+      "name": "klines timeout",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-11T10:00:00Z&to=2026-09-11T10:01:00Z",
+      "given": "The 30s caller deadline expires before complete data is available.",
+      "expected_status": 504,
+      "expected_body": {
+        "error": {
+          "code": "request_timeout",
+          "message": "request deadline exceeded"
+        }
+      }
+    },
+    {
+      "name": "klines unknown symbol",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-11T10:00:00Z&to=2026-09-11T10:01:00Z",
+      "given": "The ready selected instrument catalog contains no BTCUSDT.",
+      "expected_status": 404,
+      "expected_body": {
+        "error": {
+          "code": "symbol_not_found",
+          "message": "symbol is not in the current instrument catalog"
+        }
+      }
+    },
+    {
+      "name": "klines catalog unready",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-11T10:00:00Z&to=2026-09-11T10:01:00Z",
+      "given": "The selected instrument catalog has never been published.",
+      "expected_status": 503,
+      "expected_body": {
+        "error": {
+          "code": "data_not_ready",
+          "message": "selected data is not ready"
+        }
+      }
+    },
+    {
+      "name": "klines unaligned",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-11T10:00:01Z&to=2026-09-11T10:01:00Z",
+      "given": "No upstream call.",
+      "expected_status": 400,
+      "expected_body": {
+        "error": {
+          "code": "invalid_range",
+          "message": "range boundaries must align to the interval"
+        }
+      }
+    },
+    {
+      "name": "klines too old",
+      "method": "GET",
+      "url": "/api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=1m&from=2026-09-10T10:00:00Z&to=2026-09-10T10:01:00Z",
+      "given": "Clock is 2026-09-11T10:02:00Z and max_history_candles is 1000; reject before candle cache access.",
+      "expected_status": 400,
+      "expected_body": {
+        "error": {
+          "code": "range_out_of_retention",
+          "message": "requested range starts before the history boundary"
+        }
+      }
+    },
+    {
+      "name": "statistics bad window",
+      "method": "GET",
+      "url": "/api/v1/market-stats?window=1h",
+      "given": "No repository or upstream access.",
+      "expected_status": 400,
+      "expected_body": {
+        "error": {
+          "code": "unsupported_window",
+          "message": "unsupported window"
+        }
+      }
+    },
+    {
+      "name": "ticker repeated filter",
+      "method": "GET",
+      "url": "/api/v1/tickers?market=spot&market=linear",
+      "given": "No upstream access.",
+      "expected_status": 400,
+      "expected_body": {
+        "error": {
+          "code": "invalid_parameter",
+          "message": "query parameter must occur once"
+        }
+      }
+    }
+  ],
+  "default_context": "Unless a case overrides it: now is 2026-09-11T10:02:00Z, all four exchange/market pairs are enabled, max_history_candles is 1000, and BTCUSDT exists in a ready selected instrument catalog."
+}

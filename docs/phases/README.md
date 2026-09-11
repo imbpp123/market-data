@@ -1,36 +1,36 @@
 # v1 development plan
 
-Status: proposed plan, September 11, 2026. All implementation phases are not started.
+Status: delivery plan, September 11, 2026. Phase 01 is complete; phases 02–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
 
 Source of requirements: [Technical specification v1](../technical-specification-v1.md). Engineering rules: [AGENTS.md](../../AGENTS.md). The specification remains authoritative; these files define delivery order, not new approved product requirements.
 
 ## Current project state
 
-The repository contains AGENTS.md, a title-only README.md, and the specification. There is no Go module, application code, test suite, Makefile, or deployment configuration. Section 14 reports earlier SDK checks, but their executable tests and fixtures are not present here. Those results are useful evidence, not an implemented exchange adapter or a reproducible project test suite.
+The repository contains AGENTS.md, a title-only README.md, specifications, a phase plan, configuration/HTTP examples, and phase 01 discovery fixtures. There is no Go module, application code, test suite, Makefile, or deployment configuration. Section 14 reports earlier SDK checks, but their executable tests and fixtures are not present here. Those results are useful evidence, not an implemented exchange adapter or a reproducible project test suite.
 
-This review assesses the supplied project documentation. It does not independently verify live exchange behavior, external release versions, or the historical SDK test results.
+The initial review assessed the supplied project documentation. Phase 01 source checks are recorded in the decision register. Phase 01 includes bounded live discovery and an official release-catalog check. It does not reproduce historical SDK tests or verify deployment behavior.
 
 ## Technical assessment
 
-The specification is strong enough to plan implementation. It is not yet a complete implementation contract. Its strongest parts are exact decimal handling, field mappings and null semantics, independent snapshot publication, candle finalization, and explicit concurrency failure cases. Consumer-owned interfaces and memory-only storage keep v1 reasonably contained.
+Phase 01 provides an implementable [contract](../implementation-contract-v1.md) and complete configuration defaults. Its strongest parts are exact decimal handling, field mappings and null semantics, independent snapshot publication, candle finalization, and explicit concurrency failure cases. Consumer-owned interfaces and memory-only storage keep v1 reasonably contained.
 
 The main complexity is in request admission and candle cache fills. A single requests-per-second limiter cannot satisfy the specified weighted sliding windows, operation shares, cooldowns, queues, and attempt limits. Likewise, singleflight alone cannot implement overlapping-range reuse, independent caller cancellation, or open-candle finalization. These need isolated logic and deterministic tests before full service integration.
 
-The following items need explicit decisions or clarification. They are not silently resolved by this plan.
+The following decisions are recorded; implementation checks remain assigned to their phases.
 
 | Item | Assessment and required action | Delivery gate |
 | --- | --- | --- |
-| Budgets and configuration | Sections 32–33 and 42–44 lack numeric budgets, queue/concurrency bounds, cooldown fallbacks, bootstrap limits, and restart policy. Define them for the deployment topology. The header calls no-borrowing budgets a proposal while section 32 specifies them as v1 behavior; reconcile that status. | 02 configuration and 05 admission |
-| Deployment scope | One instance with a dedicated outgoing IP is only a working assumption. A local limiter cannot account for other processes sharing that IP. Confirm the assumption; do not add distributed coordination by default. | 05 and release |
-| Binance metadata | Funding interval fallback is proposed; the delisting source is unconfirmed. Keep the specified null behavior until evidence supports a change. | 06 |
-| Candle alignment | Weekly and multi-day anchor fixtures remain open. Duration alone cannot define valid slots. | 03 alignment completion, 08–09 |
-| Binance Spot statistics | Section 14 records a documentation conflict about bulk 24hr requests. SDK tests do not prove production behavior. Resolve bulk access or a complete bounded batching path. | 07 |
-| Public API gaps | Instruments, tickers, and klines lack some response, filter, and error details. Kline timestamp input format, unaligned/future ranges, missing historical slots, and errors for incomplete data need a written contract. MarketStats already has explicit readiness semantics; do not copy them to other APIs without a decision. | 06–07 and 10 |
-| Startup | Section 54 lists initial instruments before workers and HTTP, while section 6 says missing instrument data must not block ticker. Define initial-load failure and waiting behavior without making exchange availability a global readiness condition. | 02 lifecycle and 06 |
-| Retention and memory | Retention does not by itself bound memory across all requested series. Define the deletion boundary and treatment of requests older than retention; measure memory for the expected workload before release. New eviction policies need a specification change. | 04, 10–12 |
-| Reproducible build | The specification pins Go 1.27.1; prior SDK checks used Go 1.26.0. Verify toolchain availability and rebuild the relevant tests with pinned dependencies. Do not silently switch versions. | 02 and 12 |
+| Budgets and configuration | 20% margin, common ceilings, reserved shares, pacing, finite queues/deadlines, and in-memory restart behavior are defined in the contract. Test expensive-call feasibility and admission. | 02 configuration and 05 admission |
+| Deployment scope | One instance is confirmed. The working interpretation is that no other exchange clients share its outgoing IP; verify that condition at deployment. A local limiter cannot account for other processes. See D01. | 05 and release |
+| Binance metadata | Explicit fundingInfo interval or null on absence; failed sources retain the prior snapshot. Binance delisting_time stays null. Replay captured and synthetic cases. | 06 |
+| Candle alignment | Twelve captured examples fix weekly and Binance 3d anchors. Test the calendar and replay normalized rows offline. | 03 alignment completion, 08–09 |
+| Binance Spot statistics | The official REST API source resolves the documentation conflict in favor of FULL bulk access (decision D11). Adapter contract tests and deployment access verification remain required. | 07 and release |
+| Public API gaps | Contract and examples define readiness for all snapshots, strict filters, aligned half-open ranges, missing slots, and errors. Implement and test them. | 06–07 and 10 |
+| Startup | Bind HTTP after local initialization and schedule independent workers immediately. Exchange availability does not determine global readiness. | 02 lifecycle and 06 |
+| Retention and memory | D13 defines a configurable 1,000-slot window for every supported interval. Calendar evidence is captured; measure total memory within 1 GB before release. | 03–04, 08, 10–12 |
+| Reproducible build | Official catalog confirms Go 1.27.1 availability. Phase 02 must install/use it; recreate pinned SDK tests in adapter phases. | 02 and 12 |
 
-The detailed rules in sections 8 and 31 qualify the simpler “closed candles are immutable” wording in section 26: data fetched before close still needs a request started after close. Sections 5–8 require decimal JSON strings even though section 39 uses softer recommendation wording. Keep these rules consistent when updating the specification.
+The detailed rules in sections 8 and 31 qualify the simpler “closed candles are immutable” wording in section 26: data fetched before close still needs a request started after close. Sections 5–8 and 39 consistently require decimal JSON strings.
 
 ## Phase order
 
@@ -81,4 +81,4 @@ For Go changes, run gofmt and focused tests, then the configured build, vet, uni
 
 No phase adds orders, accounts, trading strategies, MCP, WebSocket ingestion, Redis, PostgreSQL, ticker/statistics history, or statistics windows other than 24h. Future extensibility is provided by real boundaries, not unused implementations.
 
-Calendar estimates are intentionally absent: staffing, deployment constraints, and the open decisions are not fixed. The highest uncertainty is in phases 01, 05, and 08–10. Estimate implementation dates after phase 01, using the acceptance cases below as the work breakdown.
+Calendar estimates are intentionally absent: staffing and deployment constraints are not fixed. The highest implementation uncertainty is in phases 05 and 08–10. Estimate implementation dates after phase 01, using the acceptance cases below as the work breakdown.

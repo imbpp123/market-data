@@ -21,7 +21,7 @@ The first complete data path: Binance/Bybit instrument response → normalizatio
 - Every specified status mapping plus missing/unknown values; unknown values remain unknown and invalid API status filters return 400 invalid_status.
 - Decimal precision, missing/invalid/negative limits, zero or negative required steps, conflicting min/max, and filter ordering.
 - Limit versus market/post-only values; Binance spot minimum-notional selection; no deprecated Bybit spot fields or precision metadata substitutions.
-- Funding minutes/hours → domain duration → integer JSON seconds; perpetual versus expiry/spot, zero delivery time, and the approved Binance fallback cases.
+- Funding minutes/hours → domain duration → integer JSON seconds; perpetual versus expiry/spot, zero delivery time, and explicit Binance intervals, missing-symbol nulls, and failed-source preservation.
 - Failed pagination, required-source fetch, normalization, or repository write preserves the previous snapshot and UpdatedAt. Successful replacement removes absent instruments.
 - Controlled-clock immediate refresh and configured wait; cancellation, retry backoff, and one exchange failing while the other publishes.
 - httptest.Server → real adapter → repository → HTTP verifies string decimals, explicit null, UTC timestamps, filters, and zero upstream requests caused by reads.

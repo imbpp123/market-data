@@ -8,7 +8,7 @@ Complete cleanup, optional observability, and verify the lifecycle of the assemb
 
 ## Work
 
-- Add a retention worker using the configured cutoff and cleanup interval. Delete only historical klines under the agreed comparison rule. Do not apply retention to instruments, tickers, or statistics snapshots.
+- Add a retention worker using the shared klines.max_history_candles setting and configured cleanup interval. Compute calendar cutoffs per exchange/market/interval from one clock value per pass. Delete OpenTime strictly before the cutoff, complement pruning during fill merges, and release unused empty series. Do not apply retention to instruments, tickers, or statistics snapshots.
 - Complete built-in concurrent counters, durations, snapshot sizes, candle count, and last-success times from section 49. Publication success means a published snapshot, not just a successful HTTP response.
 - Add periodic aggregate structured logging. Keep operational statistics separate from MarketStats market data. Do not log entire candle arrays or secrets.
 - Add optional Prometheus and Sentry adapters behind appropriate boundaries. Metrics endpoints must be absent when disabled; built-in statistics must work without Prometheus. Keep statistics labels scoped by exchange/market/window without symbol cardinality.

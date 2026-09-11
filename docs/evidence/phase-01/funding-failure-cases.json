@@ -1,0 +1,27 @@
+{
+  "fixture_kind": "synthetic_failure_cases_not_live_responses",
+  "cases": [
+    {
+      "name": "request failure",
+      "http_status": 500,
+      "expected": "Preserve previous snapshot and its UpdatedAt; no fallback and no new null publication."
+    },
+    {
+      "name": "invalid interval",
+      "http_status": 200,
+      "raw_response": [
+        {
+          "symbol": "BTCUSDT",
+          "fundingIntervalHours": 0
+        }
+      ],
+      "expected": "Normalization failure; preserve previous snapshot."
+    },
+    {
+      "name": "successful empty",
+      "http_status": 200,
+      "raw_response": [],
+      "expected": "For known perpetual symbols, funding_interval is null; this is distinct from request failure."
+    }
+  ]
+}

@@ -14,7 +14,7 @@ A reproducible, operable v1 release that meets the specification's Definition of
 - Add single-service compose.yaml using memory storage and a read-only config mount. Do not add Redis/PostgreSQL containers or Testcontainers.
 - Complete make docker-build, docker-up, and docker-down alongside the build/run/test/test-race/lint targets. Ensure CI and local commands use consistent dependencies and toolchain versions.
 - Replace the title-only project README with setup, config/ENV precedence, enabled markets, API examples, checks, Docker/Compose usage, graceful shutdown, and diagnosis of stale or unready data.
-- Document restart cache loss, IP/topology assumptions, budget/cooldown behavior, retention policy, clock synchronization needs, and the post-close stability assumption. Keep unsupported v1 features explicit.
+- Document restart cache and limiter-state loss, the absence of persistence and automatic restart waits, IP/topology assumptions, budget/cooldown behavior, retention policy, clock synchronization needs, and the post-close stability assumption. Keep unsupported v1 features explicit.
 - Measure representative concurrent reads, cache fills, many-series retention load, and shutdown against the workload and finite bounds agreed in phase 01. Record memory/latency/attempt observations; do not invent an SLA or an unrequested eviction design.
 
 ## Required checks

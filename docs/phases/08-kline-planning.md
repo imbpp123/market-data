@@ -8,7 +8,7 @@ A pure planner that covers missing and refresh-required slots with the fewest re
 
 ## Work
 
-- Validate the canonical interval and selected market's support before cache lookup. Validate time ranges and total slot bounds before allocating all slots or building a plan.
+- Validate the canonical interval and selected market's support before cache lookup. Enforce the configured N-slot lookback from the latest close and the N-slot request bound before allocating all slots or building a plan. Calendar slots, not available row count, define depth.
 - Detect missing slots, open candles needing an update, and cached intermediate candles requiring a post-close confirmation. Use internal request-start evidence, not FetchedAt alone.
 - Implement the greedy range merge rule: start at the earliest required slot and cover as far right as allowed, including already cached slots when that reduces request count. Continue until all required slots are covered.
 - Accept now, cached data/finalization metadata, and the final configured exchange/market limit as inputs. Keep I/O, retries, rate limiting, and configuration loading outside the planner.

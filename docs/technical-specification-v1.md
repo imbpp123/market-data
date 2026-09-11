@@ -1,10 +1,12 @@
 # Market Data Service — Technical Specification v1
 
-> **Status:** working draft for discussion, September 11, 2026.
+> **Status:** implementation specification with phase 01 decisions recorded, September 11, 2026. Application implementation and verification remain in phases 02–12.
 >
-> This document keeps the content of the original 60 sections. Timeframe, MarketStats, and Market statistics API now have separate sections, with 65 sections in total. It includes Go 1.27.1 and the proposed request limits, with matching changes in related sections.
+> This document keeps the content of the original 60 sections. Timeframe, MarketStats, and Market statistics API now have separate sections, with 65 sections in total. It includes Go 1.27.1 and request admission requirements, with matching changes in related sections.
 >
-> **Open:** budget values and the full config schema. Section 14 lists the remaining API and deployment questions. SDK source checks and local contract tests are complete; their results are in that section. Separate budgets without borrowing are still a proposal in this draft.
+> **Decision contract:** [Implementation decisions](implementation-contract-v1.md), [complete configuration](examples/config-v1.yaml), and [evidence](evidence/phase-01/README.md) close the phase 01 implementation choices. The [decision register](specification-decisions-v1.md) distinguishes user requirements, engineering defaults, and future verification gates.
+
+Current decision status, evidence, and implementation gates are recorded in the [v1 decision register](specification-decisions-v1.md). Historical SDK checks reported below are not a reproducible test suite in this repository.
 
 ## 1. Service goals
 
@@ -22,6 +24,14 @@ Main goals:
 3. Hide exchange SDK and API details from service clients.
 4. Allow new exchanges and storage implementations without changes to business logic.
 5. Provide a reliable market data source for a trading bot, MCP server, and other consumers.
+
+Default enabled markets: `spot` and `linear` on both Binance and Bybit, confirmed on September 11, 2026. Binance `linear` means USDⓈ-M. Exchange and market settings may disable individual scopes.
+
+Expected v1 workload, confirmed on September 11, 2026: 3–4 clients, up to 50 symbols, and three requested history windows: 1h candles for up to 20 days, 5m candles for 2 days, and 1m candles for 8 hours. These clients need only closed candles; the current open candle is not needed for this workload. This describes client demand, not a restriction on supported intervals, an instrument filter, or a retention policy. The [decision register](specification-decisions-v1.md#workload-calculation) records sizing assumptions and remaining load questions.
+
+Clients may request after a new candle closes or repeat reads at other times. No fixed polling schedule is required. If the requested closed-candle range is complete and confirmed in cache, return it without upstream requests. Fetch missing or unconfirmed data through the existing planner and cache-fill coordination. Cache reads still use local resources and remain subject to applicable request bounds.
+
+The service RAM limit is 1 GB, confirmed on September 11, 2026. Size conservatively against 1,000,000,000 bytes for the whole process. Verify memory suitability with sustained cache occupancy and concurrent operations before release. Sections 38 and 41 define the shared history depth of 1,000 candle slots per series; this limit alone does not prove that all requested series fit in memory.
 
 Main data in v1:
 
@@ -373,11 +383,11 @@ Source: [Bybit Instruments Info](https://bybit-exchange.github.io/docs/v5/market
 
 `GET /fapi/v1/fundingInfo` provides `fundingIntervalHours` for symbols with changed funding settings. Convert hours to a domain duration, then to seconds in the HTTP API. This response is not a full instrument catalog. Join it with `exchangeInfo` by symbol.
 
-Binance describes the base interval of 8 hours outside the API. Proposed adapter rule: after a successful full `fundingInfo` fetch, use the interval from the response. For a perpetual symbol not in the response, use the documented default of `28800` seconds. Confirm this rule for joining sources in a technical spike. A failed request is not the same as a missing symbol and must not trigger the default. The interval can change and is refreshed with instruments.
+Phase 01 decision: use a valid explicit interval from the successful full `fundingInfo` response. A perpetual symbol absent from that response gets `null`; do not infer an eight-hour interval from the general FAQ. The FAQ base interval is not a current per-symbol guarantee, especially for inactive instruments. A failed or malformed response fails the refresh and preserves the previous snapshot instead of publishing new nulls or defaults. Unknown contract types and expiry futures have no inferred fallback. The interval can change and is refreshed with instruments. Captured explicit values and synthetic failure cases are in the [phase 01 evidence](evidence/phase-01/README.md).
 
 Sources: [Binance Funding Rate Info](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data#get-funding-rate-info), [Binance Funding Rates — default and interval changes](https://www.binance.com/en/support/faq/detail/360033525031).
 
-`GET /fapi/v1/exchangeInfo` has a `deliveryDate` field. The checked documentation calls it Delivery Date and shows `4133404800000` for a perpetual contract. A nonzero timestamp alone does not confirm a scheduled delisting. Keep Binance `delisting_time` as `null` until the rules for this field are confirmed. Do not assume that any future date means delisting. The separate `Delist-Schedule` page did not provide a current API description during the check. Its source and rules remain an open spike item.
+`GET /fapi/v1/exchangeInfo` has a `deliveryDate` field. The checked documentation calls it Delivery Date and shows `4133404800000` for a perpetual contract. A nonzero timestamp alone does not confirm a scheduled delisting. Keep Binance `delisting_time` as `null` until the rules for this field are confirmed. Do not assume that any future date means delisting. The separate `Delist-Schedule` page did not provide a current API description during the check. No authoritative source was confirmed in phase 01. Keeping this field null is the v1 decision; a later non-null mapping requires new source evidence.
 
 Source: [Binance Exchange Information](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data#exchange-information).
 
@@ -398,7 +408,7 @@ For identity, filters, and statuses, add table-driven unit tests without network
 - a page or parsing error keeps the previous snapshot and its `UpdatedAt`;
 - an unknown HTTP status filter returns `400 invalid_status`.
 
-Unit and integration tests must cover minutes and hours converted to seconds, `null` for fields that do not apply, `deliveryTime="0"`, perpetual versus expiry futures, and explicit `null` in JSON. Check that a fundingInfo error does not trigger the default. After the Binance mapping is confirmed, add cases for a symbol missing from a successful fundingInfo response and for the special perpetual placeholder date.
+Unit and integration tests must cover minutes and hours converted to seconds, `null` for fields that do not apply, `deliveryTime="0"`, perpetual versus expiry futures, and explicit `null` in JSON. Check that a fundingInfo error does not trigger the default. Cover a symbol missing from a successful fundingInfo response (null), a successful empty response, and the special perpetual placeholder date (delisting_time remains null).
 
 ---
 
@@ -810,7 +820,7 @@ We do not fix the Timeframe functions and methods now. Define them during implem
 
 All intervals except 1M have fixed durations. 1d, 3d, and 1w are 24, 72, and 168 hours in UTC. A monthly candle starts on the first day of the month at 00:00:00 UTC and ends at the start of the next calendar month. Do not replace a month with 30 days.
 
-Boundary calculation must follow the selected exchange calendar and interval. The 3d/1w duration alone does not define an anchor date. Confirm planner alignment for these series with upstream fixtures during the technical spike. Until then, do not invent missing slots from an arbitrary anchor. Invalid input or time calculation overflow must not silently produce a corrected result.
+Boundary calculation follows the selected exchange calendar and interval. Phase 01 live fixtures confirm Monday 00:00 UTC for 1w on all four supported exchange/market pairs. Binance Spot and USDⓈ-M 3d starts follow the congruence anchored at 1970-01-02T00:00:00Z (not Unix epoch modulo 72 hours). This anchor is an inference from consecutive BTCUSDT/ETHUSDT rows across the 2025/2026 year boundary; use it with the saved [raw responses and expected UTC boundaries](evidence/phase-01/README.md). Do not round upstream OpenTime to hide a mismatch. Invalid input or time calculation overflow must not silently produce a corrected result. Adapter tests must replay these fixtures before those intervals ship.
 
 ### Exchange interval mapping
 
@@ -950,6 +960,9 @@ type KlineRepository interface {
 
     DeleteBefore(
         ctx context.Context,
+        exchange domain.Exchange,
+        market domain.Market,
+        interval domain.Timeframe,
         before time.Time,
     ) error
 }
@@ -1151,7 +1164,7 @@ Binance: use the IP scope and applicable windows from rateLimits in the relevant
 
 Bybit: the documented common default limit is 600 HTTP requests / 5 seconds / IP. For 403 access too frequent, the documentation requires stopping HTTP sessions and waiting at least 10 minutes. This is not a normal retry after 2s. Handle X-Bapi-Limit, X-Bapi-Limit-Status, and X-Bapi-Limit-Reset-Timestamp when present, within their scope. Do not apply UID limits from trading endpoint tables to public market-data requests. Missing headers do not mean there is no IP limit. Source: [Bybit rate limits](https://bybit-exchange.github.io/docs/v5/rate-limit).
 
-### Executed checks and remaining decisions
+### Evidence and implementation gates
 
 Local SDK tests passed on Go 1.26.0 darwin/arm64 with source at the listed commits and a fake HTTP server. They made no production exchange requests. Checks covered:
 
@@ -1163,13 +1176,14 @@ Local SDK tests passed on Go 1.26.0 darwin/arm64 with source at the listed commi
 
 The SDK check does not test adapters that have not been written yet. It also does not confirm live API access from the future deployment. The project Go version stays as listed in section 2. Builds and integration tests on that version are part of implementation and CI. The checked go.mod files require Go 1.25.0 for Binance modules and Go 1.21 for Bybit. No incompatibility with local Go 1.26.0 was found.
 
-These decisions remain open. Do not hide them behind a general task to check the SDK:
+Phase 01 dispositions are now recorded in the [decision register](specification-decisions-v1.md) and [implementation contract](implementation-contract-v1.md):
 
-- budget values, burst, concurrency/queue limits, and the full config schema — sections 32–33;
-- deployment IP and number of instances — section 32;
-- confirmation of the Binance funding interval fallback and delisting source — section 5;
-- live alignment fixtures for multi-day/weekly candles — section 9;
-- Binance Spot 24hr documentation has a conflict: the weight table allows a request without symbol, but the parameter text requires symbol/symbols. The SDK allows a bulk request, and a local test confirms this. That test does not establish the production endpoint's actual behavior. Until the conflict is resolved, keep the full bounded fetch condition from section 7.
+- Absolute ceilings and service allowances use captured exchangeInfo limits and a 20% margin; shares, pacing, queues, attempts, deadlines, bootstrap, and in-memory restart behavior are specified.
+- One instance is confirmed; the deployment must verify no other clients and no outstanding ban on its egress IP.
+- Binance funding uses explicit intervals only, with null for an absent symbol in a successful response. Request failure preserves the previous snapshot. Binance delisting stays null.
+- Twelve captured calendar cases cover 3d/1w alignment, both symbols, and year boundaries, with raw responses and expected normalized rows.
+- Binance Spot FULL 24hr was verified with a successful live array response without symbol filters. Its [capture context](evidence/phase-01/binance-spot-full-statistics.json) is evidence for this environment, not future deployment access.
+- The official release catalog confirms Go 1.27.1 availability. Phase 02 must install/use it; local Go remains 1.26.0. Earlier SDK checks still need recreation as project adapter tests in phases 06–09.
 
 ---
 
@@ -1322,6 +1336,12 @@ type InstrumentRepository interface {
         ctx context.Context,
         filter InstrumentFilter,
     ) ([]domain.Instrument, error)
+
+    HasSnapshot(
+        ctx context.Context,
+        exchange domain.Exchange,
+        market domain.Market,
+    ) (bool, error)
 }
 ```
 
@@ -1421,6 +1441,12 @@ type TickerRepository interface {
         ctx context.Context,
         filter TickerFilter,
     ) ([]domain.Ticker, error)
+
+    HasSnapshot(
+        ctx context.Context,
+        exchange domain.Exchange,
+        market domain.Market,
+    ) (bool, error)
 }
 ```
 
@@ -1506,7 +1532,7 @@ return
 
 ## 26. Closed vs open klines
 
-A closed kline is immutable.
+A closed kline is reusable as immutable only after the post-close fetch required by section 8.
 
 For example:
 
@@ -1514,7 +1540,7 @@ For example:
 10:00–10:05
 ```
 
-It must not change after `10:05`.
+At `10:05`, the time slot has ended. Cached values fetched before close still need a successful request started after close. Local time passing, or a pre-close request arriving after close, does not finalize those values.
 
 The current candle is mutable.
 
@@ -1535,7 +1561,7 @@ closed candle
 current/open candle
 ```
 
-Closed candles can be reused from cache without an exchange request.
+Closed candles confirmed by that post-close fetch can be reused from cache without another exchange request. v1 does not track later exchange corrections.
 
 Refresh the current/open candle when needed.
 
@@ -1849,9 +1875,25 @@ A limit has a scope, a unit, a time window, and an allowed usage amount. For exa
 
 For each applicable scope, define a common service budget and assigned budgets for `tickers`, `instruments`, `klines`, and `market_stats`. The common budget may be stricter than the exchange limit. The sum of assigned budgets must not exceed the common budget in the same unit and window. In v1, unused budget from one operation type is not passed to another.
 
-Example for explanation only, not config values: out of 1000 weight units per minute, assign 300 to tickers, 100 to instruments, 400 to klines, and 200 to market_stats. After spending its 300, ticker waits for its own budget to become available, even if no klines have run. The continuous ticker cycle cannot take the klines share. A common exchange cooldown still stops all affected operations, regardless of their remaining shares.
+Confirmed by the user on September 11, 2026: fixed default shares of each common service budget, with no borrowing:
 
-The shared Bybit ticker/stats request belongs to `tickers` and counts once. Do not create a separate `market_stats` budget for it. Funding metadata requests during instrument refresh belong to `instruments`. Extra pages and retries keep the original operation type.
+| Operation | Default share |
+| --- | --- |
+| tickers | 60% |
+| klines | 30% |
+| instruments | 5% |
+| market_stats | 5% |
+
+The shares sum to 100%. They divide the service budget after its safety margin, not necessarily the exchange's full limit. Binance shares are weight units where the common limit uses weight, not percentages of HTTP request counts. Bybit's common request-count budget uses request counts. Apply shares independently to the relevant Binance Spot, Binance USDⓈ-M, and shared Bybit scopes. Never sum different units or combine the two Binance catalogs.
+
+Use `upstream.operation_share_percent` for configurable integer percentages, with the table as built-in defaults. Merge missing entries from defaults. For each common allocation window with integer service allowance B, the operation allowance is `floor(B * percent / 100)` using checked integer arithmetic. Fractional remainders stay unused; rounding must never increase the total budget. Shares are caps, not a promise of refresh latency or a reservation of HTTP concurrency slots. Extra smoothing, concurrency, and endpoint-family limits remain separate requirements.
+
+For a provider with `MarketStatsWithTicker=true`, combine the configured tickers and market_stats percentages at composition, before deriving integer allowances. Thus Bybit uses a fixed 65% share for the shared ticker/statistics path, 30% for klines, and 5% for instruments. Charge the shared HTTP request once to tickers; do not create an independent market_stats worker or admission budget. This is a fixed allocation for a joint operation, not runtime borrowing or two charges for one request. Binance retains separate 60% ticker and 5% statistics shares. An operation disabled without a shared collection path leaves its share unused. This provider-specific combination is the engineering recommendation requested by the user after specifying the base percentages.
+
+Funding metadata requests during instrument refresh belong to `instruments`. Extra pages and retries keep the original operation type. Endpoint-family limits, such as Binance fundingInfo's separate request-count cap, are additional checks; they are not a second common pool to split between unrelated operations. A fundingInfo request must still fit its instruments share in any applicable common request-count allocation.
+
+Spending all of the tickers share stops further ticker requests in that allocation window even if the klines allowance is idle. A common exchange cooldown still stops all affected operations. No-borrowing is confirmed v1 behavior, not a remaining proposal.
+
 
 All workers and enabled markets share budgets within the relevant scope. Creating a new SDK client does not create a new budget. Limit Binance and Bybit independently. Binance Spot and USDⓈ-M scopes follow their API rules. The same outgoing IP alone does not mean their limit catalogs can be merged or used in place of each other.
 
@@ -1888,7 +1930,7 @@ Cooldown is the time until which no new requests are sent within the affected sc
 | Binance HTTP 429 or 418 | Set a common cooldown in the affected scope. Follow Retry-After when present. max_backoff does not cap the blocked period. |
 | Bybit HTTP 403 with reason access too frequent | Stop HTTP sessions in the affected IP scope and stop new requests for at least 10 minutes. Do not treat every 403 as this error. |
 | Bybit retCode=10006, including HTTP 200 | Handle it as a rate-limit error. Use a valid reset time when present. No Go error alone does not mean success. |
-| Missing or invalid wait time on a rate-limit error | Use an explicitly configured fallback cooldown for this signal. No immediate retry. Define fallback values in the config before implementation. |
+| Missing or invalid wait time on a rate-limit error | Use an explicitly configured fallback cooldown for this signal. No immediate retry. Fallback defaults are fixed in the complete configuration example. |
 
 Bybit X-Bapi-Limit-Reset-Timestamp in a successful response may mean the current time. The header being present does not allow a budget reset. Do not apply trading endpoint UID limits to public market-data APIs. Sources: [Bybit rate limits](https://bybit-exchange.github.io/docs/v5/rate-limit), [Binance Spot limits](https://developers.binance.com/en/docs/products/spot/rest-api#limits), [Binance USDⓈ-M limits](https://developers.binance.com/en/docs/products/derivatives-trading-usds-futures/general-info#limits).
 
@@ -1896,21 +1938,15 @@ An operation whose deadline comes before the allowed send time ends with an erro
 
 ### Deployment assumption
 
-Working assumption for v1: one service instance with a dedicated outgoing IP for exchange requests.
+v1 uses one service instance, confirmed by the user on September 11, 2026. The working interpretation is that no other exchange clients share its outgoing IP; verify that condition at deployment. Dedicated IP ownership itself is not confirmed. See decision D01 in the [decision register](specification-decisions-v1.md).
 
 Several instances or other clients behind one outgoing IP need a coordinated common budget. A local limiter in one process does not track usage by other processes. Distributed limit coordination is outside the current v1 scope.
 
-### Decisions still needed before implementation
+### Default profile and restart policy
 
-The algorithm above defines behavior, but this section is not yet a complete limiter configuration. Sections 42–44 must define:
+The [implementation contract](implementation-contract-v1.md) and [configuration example](examples/config-v1.yaml) define the complete phase 01 profile. A 20% safety margin gives Spot 4,800 weight/minute, USDⓈ-M 1,920 weight/minute, and Bybit 480 requests/5s, plus the applicable raw-request and funding-family windows. Derive operation shares from those common allowances. Pacing is separate from window allocation.
 
-- exact config keys, initial exchange windows and limits, a common service budget with a safety margin, and operation shares for each scope;
-- fallback cooldown values and any extra smoothing parameters;
-- initial limits before the first Binance exchangeInfo and rules for applying updated rateLimits; exchangeInfo itself also needs admission;
-- restart behavior: losing local history does not mean the exchange window or ban has ended; define state persistence or a conservative wait;
-- numeric bounds from section 33 and validation, including enough budget for the most expensive allowed request.
-
-Do not use the explanation example numbers as defaults. Add these decisions explicitly to the specification. The implementation must not guess them.
+The contract also defines finite lanes, attempts, deadlines, cooldown fallbacks, and catalog updates. User decision: all market data and admission state remain in memory in v1. Restart loses local usage, discovered limits, and cooldowns, uses configured bootstrap ceilings, and adds no automatic quiet period. Exchange-side limits may still apply. Persistence is deferred; implementation and restart tests belong to phase 05.
 
 ### Test scenarios
 
@@ -1946,15 +1982,19 @@ Concurrency and queue limits must leave room for each operation type. Ticker can
 
 When the queue is full, the API returns HTTP `503` with code `service_overloaded`.
 
-A request above the allowed size returns HTTP `400` with code `request_too_large`. Check range size before building a fetch plan or allocating memory for all candle slots.
+A request above `klines.max_history_candles` slots returns HTTP `400` with code `request_too_large`. The default is `1000`. This setting also limits how far back a request may start, as described in section 38. Check size and lookback before cache access, building a fetch plan, or allocating memory for all candle slots. Count calendar slots, not the number of rows an exchange happens to return.
 
 When the deadline or attempt budget is reached, the operation ends with an error. Do not return an incomplete result as complete. Successfully fetched candles may stay in cache.
 
-Exact limit values and their config schema remain open in this draft. Define them before implementation.
+The total kline caller timeout is configured by `klines.request_timeout`, with a confirmed default of `30s`. Start the deadline when the HTTP handler begins processing. It includes validation, cache reads, queue and shared-fill waits, awaited upstream work, retries, and the final completeness check. Return immediately when the data is ready. Pages, retries, and coordination loops do not reset the deadline. Earlier caller deadlines and cancellation take precedence. Preserve the independent shared-fill lifetime from section 31: a caller timeout must not cancel work still awaited by others. An expired service deadline returns HTTP `504` with code `request_timeout` if the connection is still writable, without a successful partial result. This setting is separate from the timeout for one upstream HTTP attempt.
+
+The remaining numeric bounds and ownership scopes are fixed in the [implementation contract](implementation-contract-v1.md#resource-ownership-and-finite-bounds) and configuration example. These are configurable engineering defaults, not guarantees that all concurrent cold loads complete in 30 seconds.
 
 ---
 
 ## 34. HTTP API
+
+The [HTTP implementation contract](implementation-contract-v1.md#http-contract) defines envelopes, validation order, filters, readiness, timestamp/range behavior, and stable status/error mappings for sections 35–40. [Synthetic HTTP examples](examples/http-contract-v1.json) provide expected responses for future tests.
 
 Base:
 
@@ -1985,7 +2025,7 @@ Example:
 GET /api/v1/instruments?exchange=bybit&market=linear
 ```
 
-The API reads only the repository.
+The API reads only the repository. Return `{"data":[...]}` sorted by exchange, market, symbol. Filters are optional. As with statistics, every selected scope must have a first successful snapshot; otherwise return `503 data_not_ready`. A ready empty snapshot or absent symbol returns `200` with `data: []`. Failed refreshes keep the prior snapshot and timestamps. The common query rules are in the HTTP implementation contract.
 
 ---
 
@@ -2009,7 +2049,7 @@ Example:
 GET /api/v1/tickers?exchange=bybit&market=linear&symbol=BTCUSDT
 ```
 
-The API reads only the repository.
+The API reads only the repository. Return `{"data":[...]}` sorted by exchange, market, symbol. Filters are optional. As with statistics, every selected scope must have a first successful snapshot; otherwise return `503 data_not_ready`. A ready empty snapshot or absent symbol returns `200` with `data: []`. Failed refreshes keep the prior snapshot and timestamps. The common query rules are in the HTTP implementation contract.
 
 The API never starts an exchange ticker fetch.
 
@@ -2088,11 +2128,35 @@ GET /api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=5m&from=
 
 The Kline application service may start an exchange fetch only for missing/stale ranges.
 
+History depth is configured by `klines.max_history_candles`, default `1000`, for every supported exchange/market/interval. This replaces the earlier retention durations. It defines the most recent N closed candle slots relative to now, not N arbitrarily old candles and not N stored rows. It does not cause automatic preloading or restrict support to the three intervals in the workload example.
+
+Use the selected exchange/market calendar from section 9:
+
+1. Capture an injected UTC clock value. Let `C` be the latest slot boundary at or before now: the current slot starts at C and the latest closed slot ends at C.
+2. Calculate `cutoff` by moving N slots backwards from C using calendar operations. For `1M`, move by calendar months; never multiply by 30 days. Weekly and multi-day anchors require the evidence in D10. Missing upstream candles do not shift cutoff backwards.
+3. After validating query values, count requested slots with bounded arithmetic. More than N slots returns `400 request_too_large`. Otherwise, `from < cutoff` returns `400 range_out_of_retention`. Reject before reading candle storage, joining a fill, or calling the exchange. Do not trim the range or serve expired rows awaiting cleanup. `from == cutoff` passes the depth check.
+4. `[cutoff, C)` contains exactly N closed slots. The current open slot is not included in these N historical slots and cannot move cutoff backwards. Its API inclusion follows the HTTP implementation contract; any returned open slot also counts toward the N-slot request size limit.
+
+For example, at `2026-09-11T12:00:30Z`, the default minute-candle window is `[2026-09-10T19:20:00Z, 2026-09-11T12:00:00Z)`. All 1,000 closed slots fit. A request for a single older slot still fails the depth check, even though its size is below 1,000:
+
+```json
+{
+  "error": {
+    "code": "range_out_of_retention",
+    "message": "requested range starts before the history boundary"
+  }
+}
+```
+
+Use checked calendar arithmetic, including when the mathematical cutoff precedes the earliest valid API timestamp. Existing timestamp validation still applies; this does not permit negative upstream timestamps or guarantee data before listing. A nonempty requested range with missing historical or pre-listing slots returns incomplete_data as defined in the HTTP implementation contract; the empty-range case is separate.
+
+Recheck the window before another planning pass or the final repository read after waiting. A range that expires when a new candle closes returns the same depth error; it must not cause a repeated fetch/cleanup loop. A complete snapshot read while the range is valid may finish serialization even if the boundary advances afterwards.
+
 ---
 
 ## 39. Decimal JSON representation
 
-We recommend returning decimal values as JSON strings so the API does not introduce another precision problem.
+All decimal market values must be returned as JSON strings so the API does not introduce another precision problem. This is required by the model contracts in sections 5–8.
 
 For example:
 
@@ -2117,6 +2181,8 @@ This lets consumers explicitly choose their decimal representation.
 ---
 
 ## 40. API errors
+
+The complete [status/code table](implementation-contract-v1.md#stable-errors) is authoritative. Unknown/disabled filters, empty/unready snapshots, range expiry, overload, incomplete data, and deadlines have explicit mappings. Exchange error payloads are not public messages.
 
 Unified errors:
 
@@ -2147,131 +2213,45 @@ HTTP error mapper
 
 ## 41. Data retention
 
-Delete historical data older than the configured retention period.
-
-v1:
-
-```text
-klines
-```
-
-Config:
+Use the same N-slot history window as the API in section 38. `klines.max_history_candles` defaults to `1000` and applies to every supported timeframe. There is one setting for API depth, request slot count, and candle retention; do not add an independent per-interval duration map. The user's latest decision replaces the earlier 21d/3d/12h defaults and the original 30d example.
 
 ```yaml
-storage:
-  retention:
-    klines: 30d
+klines:
+  max_history_candles: 1000
 
+storage:
   cleanup_interval: 1h
 ```
 
-Cleanup:
+For each cached exchange/market/interval, compute cutoff by stepping N slots backwards from the most recent boundary at or before the cleanup clock value. Delete when `OpenTime < cutoff` and keep equality. Do not compare `FetchedAt`, extend lifetime on reads, or keep older slots merely because recent slots are missing. The limit is on calendar positions, not a last-N-existing-rows algorithm. Capture one clock value per cleanup pass; calendar rules may differ by exchange/market, so scope deletion by exchange, market, and interval.
 
-```text
-timer
-  ↓
-DeleteBefore(now - retention)
-```
+Prune expired rows when merging a fill into a series, using the same current history boundary, and run periodic cleanup for idle series. A series contains at most N distinct closed-slot records after a merge, plus at most one current open record if that behavior is used. Do not prefetch missing slots to fill this capacity. Periodic cleanup lag can leave expired records in idle series, but neither increases their row count nor extends API access to older data.
 
-Current ticker and MarketStats snapshots need no retention cleanup. They store only the latest state per scope, without history.
+Reads return safe snapshots during concurrent cleanup. A concurrent or late fill must not reinsert rows older than a cutoff already applied to its scope; skip those expired rows while preserving valid rows. Applied cleanup cutoffs must not move backwards. If cleanup removes data needed by a waiting caller, the history recheck from section 38 terminates an expired request instead of refetching it.
 
-This mechanism does not clean up instruments either.
+Current ticker and MarketStats snapshots store only the latest state per scope, without history. This cleanup does not apply to these snapshots or instruments. Empty candle series and their per-series bookkeeping must be released after no read/fill owns them; retention does not authorize unlimited metadata growth for historical symbol requests.
 
 ---
 
 ## 42. Configuration
 
-Main config:
+Main config is YAML, with explicit MDS_ environment overrides. The [complete v1 configuration example](examples/config-v1.yaml) defines the phase 01 field/default inventory. The [implementation contract](implementation-contract-v1.md) explains units, scopes, capability handling, limits, restart behavior, and validation. Phase 02 implements and tests the loader; a YAML example is not an application implementation.
 
-```text
-YAML
-```
-
-Deployment override:
-
-```text
-environment variables
-```
-
-The example below shows current settings. It is not yet a full runnable config. Add the common and operation budgets, queues, and concurrency schema from sections 32–33 after choosing service budget values. Section 14 already records SDK and exchange limit checks. `requests_per_second: 5` is an example of an extra limit, not a confirmed safe exchange limit.
+The user-confirmed core defaults are:
 
 ```yaml
-server:
-  host: "0.0.0.0"
-  port: 8080
-
-storage:
-  driver: memory
-
-  retention:
-    klines: 30d
-
-  cleanup_interval: 1h
-
-market_stats:
-  windows:
-    - 24h
-
-exchanges:
-  bybit:
-    enabled: true
-    requests_per_second: 5
-
-    markets:
-      - linear
-
-    instruments:
-      refresh_interval: 10m
-
-    klines:
-      max_candles_per_request:
-        spot: 1000
-        linear: 1000
-
-  binance:
-    enabled: true
-    requests_per_second: 5
-
-    markets:
-      - linear
-
-    instruments:
-      refresh_interval: 10m
-
-    klines:
-      max_candles_per_request:
-        spot: 1000
-        linear: 1500
-
-    market_stats:
-      refresh_interval: 30s
-
-http_client:
-  timeout: 10s
-
-  retry:
-    max_attempts: 3
-    initial_backoff: 100ms
-    max_backoff: 2s
-
-observability:
-  sentry:
-    enabled: false
-    dsn: ""
-    environment: "local"
-    traces_sample_rate: 0.1
-
-  prometheus:
-    enabled: false
-    path: "/metrics"
-
-  stats:
-    enabled: true
-    log_interval: 1m
-    endpoint_enabled: false
+klines:
+  request_timeout: 30s
+  max_history_candles: 1000
+upstream:
+  operation_share_percent:
+    tickers: 60
+    klines: 30
+    instruments: 5
+    market_stats: 5
 ```
 
-Default MarketStats windows: `[24h]`. v1 supports no other sets. For Binance, `exchanges.binance.market_stats.refresh_interval` defaults to `30s`. Bybit has no separate stats interval: data updates with ticker. These are service settings, not exchange requirements.
+Default statistics windows remain [24h]. Binance statistics refresh defaults to 30s after each cycle; Bybit uses shared ticker responses. Instruments default to 10m refresh. HTTP attempt timeout remains separate from the total caller timeout. Percentage shares use common allowances after the configured safety margin. The old requests_per_second example is replaced by explicit window budgets and minimum dispatch spacing.
 
 ---
 
@@ -2282,7 +2262,13 @@ Example:
 ```text
 MDS_SERVER_PORT=8081
 MDS_STORAGE_DRIVER=memory
-MDS_EXCHANGES_BYBIT_REQUESTS_PER_SECOND=10
+MDS_KLINES_REQUEST_TIMEOUT=30s
+MDS_KLINES_MAX_HISTORY_CANDLES=1000
+MDS_UPSTREAM_OPERATION_SHARE_PERCENT_TICKERS=60
+MDS_UPSTREAM_OPERATION_SHARE_PERCENT_KLINES=30
+MDS_UPSTREAM_OPERATION_SHARE_PERCENT_INSTRUMENTS=5
+MDS_UPSTREAM_OPERATION_SHARE_PERCENT_MARKET_STATS=5
+MDS_UPSTREAM_LIMITS_BYBIT_MIN_REQUEST_SPACING=10ms
 MDS_EXCHANGES_BINANCE_MARKET_STATS_REFRESH_INTERVAL=30s
 MDS_EXCHANGES_BINANCE_KLINES_MAX_CANDLES_PER_REQUEST_LINEAR=1000
 
@@ -2290,6 +2276,8 @@ MDS_SENTRY_DSN=...
 ```
 
 Environment values override YAML.
+
+`MDS_KLINES_MAX_HISTORY_CANDLES` overrides the YAML integer `klines.max_history_candles`. The default is `1000` when neither source specifies it. No per-interval environment map is needed; the setting applies uniformly to all supported intervals.
 
 Do not store secrets in committed YAML.
 
@@ -2299,17 +2287,25 @@ Do not store secrets in committed YAML.
 
 Klines: validate max_candles_per_request per exchange/market using section 30, after defaults and ENV overrides. The value must be an integer from 1 to the documented maximum.
 
+`klines.request_timeout` must be a positive, finite duration representable by `time.Duration`. Omission uses `30s`; explicit empty, zero, negative, malformed, and overflowing values are configuration errors. Apply YAML and then `MDS_KLINES_REQUEST_TIMEOUT` before validation. Do not replace invalid values with the default.
+
+`klines.max_history_candles` must be a positive integer representable by the implementation's checked slot-count type. Omission uses `1000`. Reject explicit null, empty, zero, negative, fractional, boolean, malformed, and overflowing values; YAML must contain an integer, while the environment value is its base-10 integer text. Apply defaults, YAML, then `MDS_KLINES_MAX_HISTORY_CANDLES`. Reject the superseded `storage.retention.klines` setting instead of silently ignoring it. Changes to the count do not alter the upstream page limits in section 30. Calendar subtraction and request slot counting must remain bounded and detect overflow.
+
 The application fails fast on invalid config. For each enabled exchange, instruments.refresh_interval must be a positive duration. A missing setting uses the default 10m.
 
 MarketStats: windows must be exactly `[24h]` and supported by all enabled providers' capabilities. The independent stats worker's refresh_interval must be positive. Reject a separate stats refresh_interval for a provider with MarketStatsWithTicker=true, so the config does not promise a schedule that does not exist.
+
+`upstream.operation_share_percent` contains exactly `tickers`, `klines`, `instruments`, and `market_stats` after applying defaults, YAML, and the corresponding `MDS_UPSTREAM_OPERATION_SHARE_PERCENT_<OPERATION>` overrides. Each value must be an integer from 1 through 100 and their sum must be exactly 100. Reject unknown or duplicate keys, nulls, empty values, booleans, fractions, malformed integers, and invalid sums. A missing map, empty map, or missing entry keeps the corresponding default; a partial override must still produce a valid final sum. Apply the provider capability rule in section 32 before deriving effective allowances: a shared ticker/statistics path combines those percentages, while other disabled paths leave their share idle. The configured base percentages must still total 100.
+
+Validate derived integer allowances for every applicable common allocation window against the most expensive permitted request for each independent operation. Reject a zero allowance or any allowance smaller than a single allowed request; do not round it up or let admission wait forever. Keep a short smoothing limit distinct from an allocation window: splitting a tiny requests-per-second allowance into 5% portions can make instrument loading impossible. Pages and retries must all consume budget, but the percentages do not guarantee that an entire multi-page/retry operation finishes within its deadline. Absolute windows, pacing, and resource bounds are fixed in the implementation contract and complete configuration example.
 
 Also check positive finite queue, concurrency, time, and request size limits. Check that common and operation budgets fit together, including burst, and that at least one valid request can run for every enabled operation type.
 
 Examples:
 
 ```text
-requests_per_second <= 0
-retention <= 0
+min_request_spacing <= 0
+max_history_candles <= 0
 invalid duration
 unknown exchange
 unknown market
@@ -2586,39 +2582,9 @@ Exchange data freshness can be checked separately through statistics.
 
 ## 54. Startup
 
-Startup:
+Load defaults/YAML/environment, validate config, initialize optional observability and local statistics/storage, construct providers and admission. Then bind HTTP and start owned instrument/ticker/independent statistics/retention workers without waiting for exchange success.
 
-```text
-load YAML
-   ↓
-apply ENV overrides
-   ↓
-validate config
-   ↓
-initialize Sentry if enabled
-   ↓
-initialize statistics
-   ↓
-create storage
-   ↓
-create exchange providers
-   ↓
-create shared limits and operation budgets
-   ↓
-initial instruments load
-   ↓
-start ticker loops
-   ↓
-start independent market stats workers
-   ↓
-start retention worker
-   ↓
-start HTTP server
-```
-
-The initial instrument fetch starts immediately.
-
-Ticker loops also start immediately. Start independent MarketStats workers based on capabilities, with an immediate fetch. Do not create a separate stats worker for Bybit. The endpoint handles stats scope readiness as described in section 37. It does not block HTTP server startup.
+First data cycles are scheduled immediately, subject to cooldown and admission. They run independently per enabled exchange/market; instrument readiness does not block ticker. Bybit has no independent statistics worker. The three snapshot APIs return data_not_ready for uninitialized selected scopes, and klines requires a ready instrument catalog for symbol validation. An exchange outage does not turn local readiness into a global failure. See the [startup contract](implementation-contract-v1.md#startup-and-metadata).
 
 ---
 
@@ -2959,7 +2925,7 @@ Storage:
 memory
 ```
 
-Config mounted read-only.
+Config mounted read-only. Market data and limiter state are memory-only in v1; no persistent state mount or initialization command is required. Restart loses local counters and cooldowns without resetting exchange-side limits.
 
 Future:
 

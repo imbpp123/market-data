@@ -1,0 +1,96 @@
+# Phase 01 implementation contract. The loader and its tests will be implemented in phase 02.
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_header_timeout: 5s
+  idle_timeout: 60s
+  shutdown_timeout: 35s
+  max_header_bytes: 32768
+  max_query_bytes: 8192
+  max_snapshot_requests: 64
+  snapshot_timeout: 5s
+storage:
+  driver: memory
+  cleanup_interval: 1h
+klines:
+  request_timeout: 30s
+  max_history_candles: 1000
+  max_callers: 64
+  max_active_fills: 12
+  max_active_fills_per_exchange: 6
+  fill_timeout: 30s
+market_stats:
+  windows: [24h]
+upstream:
+  safety_margin_percent: 20
+  operation_share_percent:
+    tickers: 60
+    klines: 30
+    instruments: 5
+    market_stats: 5
+  max_http_inflight: 24
+  max_admission_waiters: 56
+  admission_timeout: 10s
+  lanes_per_exchange:
+    tickers: {http_slots: 2, waiters: 4, cycle_timeout: 15s, max_attempts: 9}
+    instruments: {http_slots: 2, waiters: 4, cycle_timeout: 60s, max_attempts: 100}
+    klines: {http_slots: 6, waiters: 16, max_attempts: 12}
+    market_stats: {http_slots: 2, waiters: 4, cycle_timeout: 15s, max_attempts: 3}
+  limits:
+    binance_spot:
+      min_request_spacing: 20ms
+      windows:
+        request_weight_1m: {unit: weight, window: 1m, limit: 6000, split_operations: true}
+        raw_requests_5m: {unit: requests, window: 5m, limit: 300000, split_operations: true}
+    binance_linear:
+      min_request_spacing: 20ms
+      windows:
+        request_weight_1m: {unit: weight, window: 1m, limit: 2400, split_operations: true}
+        funding_requests_5m: {unit: requests, window: 5m, limit: 500, split_operations: false}
+    bybit:
+      min_request_spacing: 10ms
+      windows:
+        http_requests_5s: {unit: requests, window: 5s, limit: 600, split_operations: true}
+  cooldown:
+    binance_429: 60s
+    binance_418: 72h
+    bybit_429: 60s
+    bybit_10006: 60s
+    bybit_403_access_too_frequent: 10m
+exchanges:
+  bybit:
+    enabled: true
+    markets: [spot, linear]
+    instruments:
+      refresh_interval: 10m
+    klines:
+      max_candles_per_request: {spot: 1000, linear: 1000}
+  binance:
+    enabled: true
+    markets: [spot, linear]
+    instruments:
+      refresh_interval: 10m
+    klines:
+      max_candles_per_request: {spot: 1000, linear: 1500}
+    market_stats:
+      refresh_interval: 30s
+http_client:
+  timeout: 10s
+  max_response_bytes: 16777216
+  retry:
+    max_attempts: 3
+    initial_backoff: 100ms
+    max_backoff: 2s
+observability:
+  sentry:
+    enabled: false
+    dsn: ""
+    environment: local
+    traces_sample_rate: 0.1
+  prometheus:
+    enabled: false
+    path: /metrics
+  stats:
+    enabled: true
+    log_interval: 1m
+    endpoint_enabled: false

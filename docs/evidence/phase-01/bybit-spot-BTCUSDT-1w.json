@@ -1,0 +1,151 @@
+{
+  "source": "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&interval=W&start=1765756800000&end=1768435199999&limit=20",
+  "captured_at": "2026-09-11T21:29:27.523488+00:00",
+  "exchange": "bybit",
+  "market": "spot",
+  "interval": "1w",
+  "http_status": 200,
+  "raw_response": {
+    "retCode": 0,
+    "retMsg": "OK",
+    "result": {
+      "category": "spot",
+      "symbol": "BTCUSDT",
+      "list": [
+        [
+          "1768176000000",
+          "91004",
+          "97950",
+          "90119.5",
+          "93660.6",
+          "52490.872466",
+          "4965505337.27622294"
+        ],
+        [
+          "1767571200000",
+          "91531.2",
+          "94774",
+          "89307.5",
+          "91004",
+          "57303.608454",
+          "5268850586.08802623"
+        ],
+        [
+          "1766966400000",
+          "87950.9",
+          "91806.4",
+          "86806.4",
+          "91531.2",
+          "58828.881811",
+          "5229127609.38788858"
+        ],
+        [
+          "1766361600000",
+          "88660.8",
+          "90599.9",
+          "86412.6",
+          "87950.9",
+          "42077.383193",
+          "3705063512.12860455"
+        ],
+        [
+          "1765756800000",
+          "88159.8",
+          "90364.4",
+          "84450.5",
+          "88660.8",
+          "52961.196061",
+          "4625719158.46685154"
+        ]
+      ]
+    },
+    "retExtInfo": {},
+    "time": 1789162167694
+  },
+  "observed_open_times_utc": [
+    "2026-01-12T00:00:00+00:00",
+    "2026-01-05T00:00:00+00:00",
+    "2025-12-29T00:00:00+00:00",
+    "2025-12-22T00:00:00+00:00",
+    "2025-12-15T00:00:00+00:00"
+  ],
+  "fixture_kind": "live_public_response_with_expected_normalization",
+  "expected_rows": [
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "BTCUSDT",
+      "interval": "1w",
+      "open_time": "2025-12-15T00:00:00Z",
+      "close_time": "2025-12-22T00:00:00Z",
+      "open": "88159.8",
+      "high": "90364.4",
+      "low": "84450.5",
+      "close": "88660.8",
+      "volume": "52961.196061",
+      "turnover": "4625719158.46685154",
+      "trades_count": null
+    },
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "BTCUSDT",
+      "interval": "1w",
+      "open_time": "2025-12-22T00:00:00Z",
+      "close_time": "2025-12-29T00:00:00Z",
+      "open": "88660.8",
+      "high": "90599.9",
+      "low": "86412.6",
+      "close": "87950.9",
+      "volume": "42077.383193",
+      "turnover": "3705063512.12860455",
+      "trades_count": null
+    },
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "BTCUSDT",
+      "interval": "1w",
+      "open_time": "2025-12-29T00:00:00Z",
+      "close_time": "2026-01-05T00:00:00Z",
+      "open": "87950.9",
+      "high": "91806.4",
+      "low": "86806.4",
+      "close": "91531.2",
+      "volume": "58828.881811",
+      "turnover": "5229127609.38788858",
+      "trades_count": null
+    },
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "BTCUSDT",
+      "interval": "1w",
+      "open_time": "2026-01-05T00:00:00Z",
+      "close_time": "2026-01-12T00:00:00Z",
+      "open": "91531.2",
+      "high": "94774",
+      "low": "89307.5",
+      "close": "91004",
+      "volume": "57303.608454",
+      "turnover": "5268850586.08802623",
+      "trades_count": null
+    },
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "BTCUSDT",
+      "interval": "1w",
+      "open_time": "2026-01-12T00:00:00Z",
+      "close_time": "2026-01-19T00:00:00Z",
+      "open": "91004",
+      "high": "97950",
+      "low": "90119.5",
+      "close": "93660.6",
+      "volume": "52490.872466",
+      "turnover": "4965505337.27622294",
+      "trades_count": null
+    }
+  ],
+  "expected_fetched_at_rule": "Use a separately injected response-receipt clock in adapter tests. captured_at records the discovery request start, not an expected FetchedAt."
+}

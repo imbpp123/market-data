@@ -26,6 +26,7 @@ GET /api/v1/klines returns the requested complete range through bounded cache-as
 - Shared fetch failure does not cause a retry burst. Earlier pages stay cached; incomplete results fail. Empty/no-progress upstream responses terminate within bounds.
 - Open-candle sharing refreshes once for that request; a new request may refresh again. Test a close boundary crossed during a fill and prevent stale upserts.
 - HTTP validates filters, timestamps, interval support, and range policy before upstream work. Verify decimal strings, explicit null, UTC/exclusive boundaries, sorted output, and stable errors without SDK details.
+- History: enforce klines.max_history_candles (default 1000) relative to the latest closed-slot boundary. Reject more than N requested slots with 400 request_too_large and an older start with 400 range_out_of_retention before cache/fill access, including old rows awaiting cleanup. Equality passes the depth check. Cover expiration during waiting, calendar intervals, and gaps without widening the window.
 - Run all concurrency tests with controlled event order and go test -race.
 
 ## Exit criteria

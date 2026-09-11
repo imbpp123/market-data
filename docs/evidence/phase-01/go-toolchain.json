@@ -1,0 +1,28 @@
+{
+  "url": "https://go.dev/dl/?mode=json&include=all",
+  "captured_at": "2026-09-11T21:28:27.893590+00:00",
+  "status": 200,
+  "matches": [
+    {
+      "version": "go1.27.1",
+      "stable": true,
+      "files": [
+        {
+          "filename": "go1.27.1.darwin-arm64.tar.gz",
+          "sha256": "ee215d57e0ec269c60cc9ceca68e6bda321ba9ee5afe24f4b0988703c2d87d12"
+        },
+        {
+          "filename": "go1.27.1.darwin-arm64.pkg",
+          "sha256": "81aee79ea3bd85f00624c216e9105674fa72626dd0479fc85a632939d6c5986b"
+        }
+      ]
+    }
+  ],
+  "latest": [
+    "go1.27.1",
+    "go1.27.0",
+    "go1.27rc3"
+  ],
+  "full_catalog_sha256": "1ed915f72633d0a72eaa2f462740153db4fe347cb56f7d1e25ec44868568f13e",
+  "local_toolchain_observed": "go version go1.26.0 darwin/arm64"
+}

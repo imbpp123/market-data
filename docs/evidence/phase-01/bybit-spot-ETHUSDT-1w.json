@@ -1,0 +1,151 @@
+{
+  "source": "https://api.bybit.com/v5/market/kline?category=spot&symbol=ETHUSDT&interval=W&start=1765756800000&end=1768435199999&limit=20",
+  "captured_at": "2026-09-11T21:29:27.768148+00:00",
+  "exchange": "bybit",
+  "market": "spot",
+  "interval": "1w",
+  "http_status": 200,
+  "raw_response": {
+    "retCode": 0,
+    "retMsg": "OK",
+    "result": {
+      "category": "spot",
+      "symbol": "ETHUSDT",
+      "list": [
+        [
+          "1768176000000",
+          "3123.53",
+          "3403.81",
+          "3065.71",
+          "3284.4",
+          "650989.05981",
+          "2125484258.4258558"
+        ],
+        [
+          "1767571200000",
+          "3144.71",
+          "3308.58",
+          "3054.37",
+          "3123.53",
+          "610633.50815",
+          "1933080026.6759261"
+        ],
+        [
+          "1766966400000",
+          "2950.94",
+          "3167.64",
+          "2910.25",
+          "3144.71",
+          "566576.15193",
+          "1714718815.3753355"
+        ],
+        [
+          "1766361600000",
+          "3002.28",
+          "3077",
+          "2888.04",
+          "2950.94",
+          "563953.54043",
+          "1670342388.5789537"
+        ],
+        [
+          "1765756800000",
+          "3063.46",
+          "3178.33",
+          "2774.93",
+          "3002.28",
+          "904849.63654",
+          "2662868680.7773319"
+        ]
+      ]
+    },
+    "retExtInfo": {},
+    "time": 1789162167941
+  },
+  "observed_open_times_utc": [
+    "2026-01-12T00:00:00+00:00",
+    "2026-01-05T00:00:00+00:00",
+    "2025-12-29T00:00:00+00:00",
+    "2025-12-22T00:00:00+00:00",
+    "2025-12-15T00:00:00+00:00"
+  ],
+  "fixture_kind": "live_public_response_with_expected_normalization",
+  "expected_rows": [
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "ETHUSDT",
+      "interval": "1w",
+      "open_time": "2025-12-15T00:00:00Z",
+      "close_time": "2025-12-22T00:00:00Z",
+      "open": "3063.46",
+      "high": "3178.33",
+      "low": "2774.93",
+      "close": "3002.28",
+      "volume": "904849.63654",
+      "turnover": "2662868680.7773319",
+      "trades_count": null
+    },
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "ETHUSDT",
+      "interval": "1w",
+      "open_time": "2025-12-22T00:00:00Z",
+      "close_time": "2025-12-29T00:00:00Z",
+      "open": "3002.28",
+      "high": "3077",
+      "low": "2888.04",
+      "close": "2950.94",
+      "volume": "563953.54043",
+      "turnover": "1670342388.5789537",
+      "trades_count": null
+    },
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "ETHUSDT",
+      "interval": "1w",
+      "open_time": "2025-12-29T00:00:00Z",
+      "close_time": "2026-01-05T00:00:00Z",
+      "open": "2950.94",
+      "high": "3167.64",
+      "low": "2910.25",
+      "close": "3144.71",
+      "volume": "566576.15193",
+      "turnover": "1714718815.3753355",
+      "trades_count": null
+    },
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "ETHUSDT",
+      "interval": "1w",
+      "open_time": "2026-01-05T00:00:00Z",
+      "close_time": "2026-01-12T00:00:00Z",
+      "open": "3144.71",
+      "high": "3308.58",
+      "low": "3054.37",
+      "close": "3123.53",
+      "volume": "610633.50815",
+      "turnover": "1933080026.6759261",
+      "trades_count": null
+    },
+    {
+      "exchange": "bybit",
+      "market": "spot",
+      "symbol": "ETHUSDT",
+      "interval": "1w",
+      "open_time": "2026-01-12T00:00:00Z",
+      "close_time": "2026-01-19T00:00:00Z",
+      "open": "3123.53",
+      "high": "3403.81",
+      "low": "3065.71",
+      "close": "3284.4",
+      "volume": "650989.05981",
+      "turnover": "2125484258.4258558",
+      "trades_count": null
+    }
+  ],
+  "expected_fetched_at_rule": "Use a separately injected response-receipt clock in adapter tests. captured_at records the discovery request start, not an expected FetchedAt."
+}
