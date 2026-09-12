@@ -34,6 +34,7 @@ func run(ctx context.Context, args, environment []string, output io.Writer, logg
 	flags.SetOutput(output)
 	path := flags.String("config", "", "YAML configuration file (optional)")
 	check := flags.Bool("check-config", false, "Validate configuration and exit")
+	health := flags.Bool("healthcheck", false, "Check local HTTP health and exit")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return nil
@@ -44,6 +45,10 @@ func run(ctx context.Context, args, environment []string, output io.Writer, logg
 
 	if flags.NArg() != 0 {
 		return errors.New("unexpected positional arguments")
+	}
+
+	if *check && *health {
+		return errors.New("check-config and healthcheck cannot be combined")
 	}
 
 	var source io.Reader
@@ -66,6 +71,10 @@ func run(ctx context.Context, args, environment []string, output io.Writer, logg
 		logger.Info("Configuration is valid")
 
 		return nil
+	}
+
+	if *health {
+		return checkHealth(ctx, cfg.Server.Host, cfg.Server.Port)
 	}
 
 	return start(ctx, cfg, logger)

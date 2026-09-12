@@ -1,0 +1,6 @@
+market-data/internal/domain: [errors github.com/shopspring/decimal time]
+market-data/internal/application: [context market-data/internal/domain time unicode unicode/utf8]
+market-data/internal/application/instrument: [context fmt market-data/internal/application market-data/internal/domain slices time]
+market-data/internal/application/kline: [context errors fmt golang.org/x/sync/singleflight maps market-data/internal/application market-data/internal/application/instrument market-data/internal/domain slices strings sync time]
+market-data/internal/application/marketstats: [context market-data/internal/application market-data/internal/domain slices time]
+market-data/internal/application/ticker: [context errors github.com/shopspring/decimal market-data/internal/application market-data/internal/application/marketstats market-data/internal/domain slices time]

@@ -26,13 +26,14 @@ func TestRunValidatesBeforeStartup(t *testing.T) {
 		{"unknown env", nil, []string{"MDS_UNKNOWN=1"}, true},
 		{"missing file", []string{"-config", filepath.Join(t.TempDir(), "missing.yaml")}, nil, true},
 		{"unknown flag", []string{"-missing"}, nil, true},
+		{"conflicting checks", []string{"-check-config", "-healthcheck"}, nil, true},
 		{"positional argument", []string{"argument"}, nil, true},
 		{"check only", []string{"-check-config"}, nil, false},
 		{"help", []string{"-help"}, nil, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			started := false
-			err := run(context.Background(), tc.args, tc.env, io.Discard, slog.New(slog.NewJSONHandler(io.Discard, nil)), func(context.Context, config.Config, *slog.Logger) error {
+			err := run(t.Context(), tc.args, tc.env, io.Discard, slog.New(slog.NewJSONHandler(io.Discard, nil)), func(context.Context, config.Config, *slog.Logger) error {
 				started = true
 
 				return errors.New("startup must not be called")

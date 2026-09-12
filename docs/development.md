@@ -12,7 +12,7 @@ make build
 make run
 ```
 
-Without `-config`, the process uses built-in defaults and environment overrides. `-check-config` validates settings and exits without opening HTTP or starting workers. Logs are JSON on stderr. SIGINT and SIGTERM cancel root work, close the HTTP listener, and wait for owned workers within `server.shutdown_timeout`.
+`-healthcheck` checks `/health` on the configured local listener with a two-second timeout and exits without starting the service. It cannot be combined with `-check-config`. Without `-config`, the process uses built-in defaults and environment overrides. `-check-config` validates settings and exits without opening HTTP or starting workers. Logs are JSON on stderr. SIGINT and SIGTERM cancel root work, close the HTTP listener, and wait for owned workers within `server.shutdown_timeout`.
 
 The service serves `GET /health`, `GET /ready`, `GET /api/v1/instruments`, `GET /api/v1/tickers`, `GET /api/v1/market-stats`, and `GET /api/v1/klines`. Health means the process is alive. Readiness means local bootstrap initialization has finished; no exchange request is required. Bootstrap creates the four memory repositories before binding HTTP. Instrument, ticker, and independent statistics workers start immediately after HTTP bind, independently per enabled exchange/market. Local readiness does not imply that any exchange snapshot is available. Unknown routes return 404; unsupported health methods return 405.
 
@@ -127,7 +127,7 @@ The Makefile pins golangci-lint to **v2.13.2**. `make lint` and `make check` ins
 
 The [linter configuration](../.golangci.yml) selects the upstream defaults without additional linters or custom exclusions. CI runs the same `make check`, including linter installation and example validation, without a second lint or configuration pass.
 
-Other targets include `make run`. Docker targets will be added with packaging in phase 12.
+Other targets include `make run`, `make docker-build`, `make docker-up`, `make docker-down`, `make docker-verify`, and `make release-load`. See the [packaging and operating guide](../README.md) and [release audit](release-verification-v1.md) for container checks, memory measurements, and deployment gates.
 
 Tests use `testify/require` for prerequisites and `testify/assert` for independent checks. They use no credentials or exchange access. Lifecycle tests exercise the real HTTP server over in-memory connections with `testing/synctest` for deterministic cancellation and deadline checks.
 

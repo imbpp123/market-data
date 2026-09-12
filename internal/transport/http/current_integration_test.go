@@ -1,6 +1,7 @@
 package httptransport
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -29,34 +30,53 @@ func TestCurrentAdaptersPublishSeparateCacheOnlyAPIs(t *testing.T) {
 		market   domain.Market
 		scope    upstream.Scope
 		attempts int
+		failing  string
 	}{
-		{domain.ExchangeBinance, domain.MarketSpot, upstream.BinanceSpot, 3},
-		{domain.ExchangeBinance, domain.MarketLinear, upstream.BinanceLinear, 4},
-		{domain.ExchangeBybit, domain.MarketSpot, upstream.Bybit, 1},
-		{domain.ExchangeBybit, domain.MarketLinear, upstream.Bybit, 1},
+		{domain.ExchangeBinance, domain.MarketSpot, upstream.BinanceSpot, 3, "ticker"},
+		{domain.ExchangeBinance, domain.MarketSpot, upstream.BinanceSpot, 3, "statistics"},
+		{domain.ExchangeBinance, domain.MarketLinear, upstream.BinanceLinear, 4, "ticker"},
+		{domain.ExchangeBinance, domain.MarketLinear, upstream.BinanceLinear, 4, "statistics"},
+		{domain.ExchangeBybit, domain.MarketSpot, upstream.Bybit, 1, "ticker"},
+		{domain.ExchangeBybit, domain.MarketSpot, upstream.Bybit, 1, "statistics"},
+		{domain.ExchangeBybit, domain.MarketLinear, upstream.Bybit, 1, "ticker"},
+		{domain.ExchangeBybit, domain.MarketLinear, upstream.Bybit, 1, "statistics"},
 	}
 
 	for _, tt := range cases {
-		t.Run(string(tt.exchange)+"/"+string(tt.market), func(t *testing.T) {
+		t.Run(string(tt.exchange)+"/"+string(tt.market)+"/"+tt.failing, func(t *testing.T) {
 			var requests atomic.Int64
+			var failed atomic.Bool
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				requests.Add(1)
 				w.Header().Set("Content-Type", "application/json")
 				assert.Empty(t, r.URL.Query().Get("symbol"))
 				assert.Empty(t, r.URL.Query().Get("symbols"))
+				price, volume, quote := "105.25", "3", ""
+				if failed.Load() {
+					price, volume = "106.25", "5"
+					if tt.failing == "statistics" {
+						volume = "bad"
+					} else {
+						quote = `,"bid1Price":"bad","bid1Size":"1"`
+					}
+				}
 				switch {
 				case r.URL.Path == "/v5/market/tickers":
-					_, _ = io.WriteString(w, `{"retCode":0,"result":{"category":"`+string(tt.market)+`","list":[{"symbol":"A","lastPrice":"105.25","highPrice24h":"110","lowPrice24h":"90","volume24h":"3","turnover24h":"305.1234567890123456789","prevPrice24h":"100"}]}}`)
+					_, _ = fmt.Fprintf(w, `{"retCode":0,"result":{"category":"%s","list":[{"symbol":"A","lastPrice":"%s","highPrice24h":"110","lowPrice24h":"90","volume24h":"%s","turnover24h":"305.1234567890123456789","prevPrice24h":"100"%s}]}}`, tt.market, price, volume, quote)
 				case strings.HasSuffix(r.URL.Path, "/price"):
-					_, _ = io.WriteString(w, `[{"symbol":"A","price":"105.25"}]`)
+					_, _ = fmt.Fprintf(w, `[{"symbol":"A","price":"%s"}]`, price)
 				case strings.HasSuffix(r.URL.Path, "/bookTicker"), strings.HasSuffix(r.URL.Path, "/premiumIndex"):
-					_, _ = io.WriteString(w, `[]`)
+					if failed.Load() && tt.failing == "ticker" && strings.HasSuffix(r.URL.Path, "/bookTicker") {
+						_, _ = io.WriteString(w, `[{"symbol":"A","bidPrice":"bad","bidQty":"1"}]`)
+					} else {
+						_, _ = io.WriteString(w, `[]`)
+					}
 				case strings.HasSuffix(r.URL.Path, "/24hr"):
 					if tt.market == domain.MarketSpot {
 						assert.Equal(t, "FULL", r.URL.Query().Get("type"))
 					}
 
-					_, _ = io.WriteString(w, `[{"symbol":"A","highPrice":"110","lowPrice":"90","volume":"3","quoteVolume":"305.1234567890123456789","priceChange":"5.25"}]`)
+					_, _ = fmt.Fprintf(w, `[{"symbol":"A","highPrice":"110","lowPrice":"90","volume":"%s","quoteVolume":"305.1234567890123456789","priceChange":"5.25"}]`, volume)
 				default:
 					t.Errorf("unexpected upstream path: %s", r.URL.Path)
 					w.WriteHeader(400)
@@ -119,6 +139,45 @@ func TestCurrentAdaptersPublishSeparateCacheOnlyAPIs(t *testing.T) {
 			}
 
 			assert.Equal(t, int64(tt.attempts), requests.Load(), "cache reads must not fetch upstream")
+			read := func(path string) string {
+				response := httptest.NewRecorder()
+				handler.ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", path, nil))
+				require.Equal(t, 200, response.Code)
+				return response.Body.String()
+			}
+			oldTicker, oldStats := read("/api/v1/tickers"), read("/api/v1/market-stats")
+			failed.Store(true)
+			next, stop, err := controller.Begin(t.Context(), tt.scope, upstream.Tickers)
+			require.NoError(t, err)
+			defer stop()
+			tickerError := refresh.Refresh(next)
+			if provider.Capabilities().MarketStatsWithTicker || tt.failing == "ticker" {
+				require.ErrorIs(t, tickerError, application.ErrInvalidUpstreamData)
+			} else {
+				require.NoError(t, tickerError)
+			}
+			if !provider.Capabilities().MarketStatsWithTicker {
+				nextStats, stopStats, err := controller.Begin(t.Context(), tt.scope, upstream.MarketStats)
+				require.NoError(t, err)
+				defer stopStats()
+				statsError := marketstats.NewRefresher(provider, scope, stats, time.Now, nil).Refresh(nextStats)
+				if tt.failing == "statistics" {
+					require.ErrorIs(t, statsError, application.ErrInvalidUpstreamData)
+				} else {
+					require.NoError(t, statsError)
+				}
+			}
+			count := requests.Load()
+			newTicker, newStats := read("/api/v1/tickers"), read("/api/v1/market-stats")
+			if tt.failing == "ticker" {
+				assert.JSONEq(t, oldTicker, newTicker, "failed refresh must preserve values and fetched_at")
+				assert.Contains(t, newStats, `"volume":"5"`)
+			} else {
+				assert.JSONEq(t, oldStats, newStats, "failed refresh must preserve values and fetched_at")
+				assert.Contains(t, newTicker, `"last_price":"106.25"`)
+			}
+			assert.Equal(t, count, requests.Load(), "reads after a failed refresh stay cache-only")
+
 		})
 	}
 }

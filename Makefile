@@ -5,7 +5,7 @@ GOLANGCI_LINT_VERSION := v2.13.2
 GOLANGCI_LINT_DIR := $(CURDIR)/bin/golangci-lint/$(GOLANGCI_LINT_VERSION)
 GOLANGCI_LINT := $(GOLANGCI_LINT_DIR)/golangci-lint
 
-.PHONY: build run fmt-check check-config test test-race vet install-lint lint check
+.PHONY: build run fmt-check check-config test test-race vet install-lint lint check docker-build docker-up docker-down docker-verify release-load
 build:
 	$(GO) build -o bin/market-data-service ./cmd/market-data-service
 
@@ -30,6 +30,22 @@ test-race:
 
 vet:
 	$(GO) vet ./...
+
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up -d --wait
+
+docker-down:
+	docker compose down
+
+docker-verify:
+	CGO_ENABLED=0 GOOS=linux $(GO) test -c -o bin/release-probe ./internal/bootstrap
+	python3 scripts/verify-container.py
+
+release-load:
+	MDS_RELEASE_LOAD=main GOMEMLIMIT=700MiB $(GO) test ./internal/bootstrap -run '^TestReleaseLoad$$' -count=1 -v -timeout=15m
 
 install-lint: $(GOLANGCI_LINT)
 

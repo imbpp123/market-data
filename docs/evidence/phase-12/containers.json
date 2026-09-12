@@ -1,0 +1,18 @@
+[
+  {
+    "name": "/market-data-release-load-final-checked",
+    "Status": "exited",
+    "ExitCode": 0,
+    "OOMKilled": false,
+    "StartedAt": "2026-09-12T22:08:53.649359667Z",
+    "FinishedAt": "2026-09-12T22:09:25.391162418Z"
+  },
+  {
+    "name": "/market-data-release-load-broad-final",
+    "Status": "exited",
+    "ExitCode": 137,
+    "OOMKilled": true,
+    "StartedAt": "2026-09-12T22:09:53.478010875Z",
+    "FinishedAt": "2026-09-12T22:10:33.229978796Z"
+  }
+]

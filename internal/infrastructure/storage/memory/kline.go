@@ -10,6 +10,8 @@ import (
 	"market-data/internal/application"
 	"market-data/internal/application/kline"
 	"market-data/internal/domain"
+
+	"github.com/shopspring/decimal"
 )
 
 var _ kline.Repository = (*klineRepository)(nil)
@@ -19,9 +21,32 @@ type candleScope struct {
 	Interval domain.Timeframe
 }
 
+// Series identity and open time live in the map keys, once per series and slot.
+type storedCandle struct {
+	CloseTime        time.Time
+	FetchedAt        time.Time
+	RequestStartedAt time.Time
+	Open             decimal.Decimal
+	High             decimal.Decimal
+	Low              decimal.Decimal
+	Close            decimal.Decimal
+	Volume           decimal.Decimal
+	Turnover         decimal.Decimal
+	TradesCount      *int64
+}
+
+func (row storedCandle) candle(series kline.Series, open time.Time) domain.Kline {
+	return copyKline(domain.Kline{
+		Exchange: series.Exchange, Market: series.Market, Symbol: series.Symbol, Interval: series.Interval,
+		OpenTime: open, CloseTime: row.CloseTime, FetchedAt: row.FetchedAt,
+		Open: row.Open, High: row.High, Low: row.Low, Close: row.Close, Volume: row.Volume, Turnover: row.Turnover,
+		TradesCount: row.TradesCount,
+	})
+}
+
 type klineRepository struct {
 	mu             sync.RWMutex
-	series         map[kline.Series]map[time.Time]kline.Stored
+	series         map[kline.Series]map[time.Time]storedCandle
 	cutoffs        map[candleScope]time.Time
 	historyCandles int64
 	now            func() time.Time
@@ -34,7 +59,7 @@ func NewKlineRepository(historyCandles int64, now func() time.Time) (kline.Repos
 		return nil, fmt.Errorf("positive history size and clock are required: %w", application.ErrInvalidParameter)
 	}
 	return &klineRepository{
-		series:         make(map[kline.Series]map[time.Time]kline.Stored),
+		series:         make(map[kline.Series]map[time.Time]storedCandle),
 		cutoffs:        make(map[candleScope]time.Time),
 		historyCandles: historyCandles,
 		now:            now,
@@ -70,8 +95,7 @@ func (r *klineRepository) GetRange(ctx context.Context, query kline.Query) ([]kl
 			return nil, err
 		}
 		if !open.Before(query.From) && open.Before(query.To) {
-			row.Candle = copyKline(row.Candle)
-			result = append(result, row)
+			result = append(result, kline.Stored{Candle: row.candle(query.Series, open), RequestStartedAt: row.RequestStartedAt})
 		}
 	}
 	slices.SortFunc(result, func(a, b kline.Stored) int {
@@ -90,7 +114,7 @@ func (r *klineRepository) UpsertMany(ctx context.Context, rows []kline.Stored) e
 
 	// Stage the whole batch before touching rows or retention watermarks.
 	now := r.now()
-	pending := make(map[kline.Series]map[time.Time]kline.Stored)
+	pending := make(map[kline.Series]map[time.Time]storedCandle)
 	cutoffs := make(map[candleScope]time.Time)
 	for _, row := range rows {
 		if err := ctx.Err(); err != nil {
@@ -126,12 +150,16 @@ func (r *klineRepository) UpsertMany(ctx context.Context, rows []kline.Stored) e
 		row.Candle.OpenTime = row.Candle.OpenTime.UTC()
 		row.Candle.CloseTime = row.Candle.CloseTime.UTC()
 		if pending[series] == nil {
-			pending[series] = make(map[time.Time]kline.Stored)
+			pending[series] = make(map[time.Time]storedCandle)
 		}
 		if _, exists := pending[series][row.Candle.OpenTime]; exists {
 			return fmt.Errorf("duplicate candle key: %w", application.ErrInvalidUpstreamData)
 		}
-		pending[series][row.Candle.OpenTime] = row
+		pending[series][row.Candle.OpenTime] = storedCandle{
+			CloseTime: row.Candle.CloseTime, FetchedAt: row.Candle.FetchedAt, RequestStartedAt: row.RequestStartedAt,
+			Open: row.Candle.Open, High: row.Candle.High, Low: row.Candle.Low, Close: row.Candle.Close,
+			Volume: row.Candle.Volume, Turnover: row.Candle.Turnover, TradesCount: row.Candle.TradesCount,
+		}
 	}
 
 	r.mu.Lock()
@@ -156,7 +184,7 @@ func (r *klineRepository) UpsertMany(ctx context.Context, rows []kline.Stored) e
 				continue
 			}
 			if r.series[series] == nil {
-				r.series[series] = make(map[time.Time]kline.Stored)
+				r.series[series] = make(map[time.Time]storedCandle)
 			}
 			r.series[series][open] = row
 		}
@@ -227,15 +255,15 @@ func seriesCalendar(series kline.Series) (domain.Calendar, error) {
 	return calendar, nil
 }
 
-func replacesCandle(stored, incoming kline.Stored) bool {
-	if !stored.RequestStartedAt.Before(stored.Candle.CloseTime) {
+func replacesCandle(stored, incoming storedCandle) bool {
+	if !stored.RequestStartedAt.Before(stored.CloseTime) {
 		return false
 	}
-	if !incoming.RequestStartedAt.Before(incoming.Candle.CloseTime) {
+	if !incoming.RequestStartedAt.Before(incoming.CloseTime) {
 		return true
 	}
 	return incoming.RequestStartedAt.After(stored.RequestStartedAt) ||
-		(incoming.RequestStartedAt.Equal(stored.RequestStartedAt) && incoming.Candle.FetchedAt.After(stored.Candle.FetchedAt))
+		(incoming.RequestStartedAt.Equal(stored.RequestStartedAt) && incoming.FetchedAt.After(stored.FetchedAt))
 }
 
 func (r *klineRepository) CandleCounts(ctx context.Context) (map[application.Scope]int, error) {

@@ -1,6 +1,6 @@
 # 12 — Release verification and packaging
 
-Status: not started. Dependencies: [01](01-specification-decisions.md) through [11](11-retention-and-operations.md).
+Status: complete, September 13, 2026. The user confirmed one running instance per outgoing IP and deployment-host access; current-host live compatibility checks also pass. See the [41-item audit and capacity report](../release-verification-v1.md). Dependencies: [01](01-specification-decisions.md) through [11](11-retention-and-operations.md).
 
 ## Outcome
 
@@ -28,3 +28,12 @@ A reproducible, operable v1 release that meets the specification's Definition of
 ## Exit criteria
 
 Every required item in section 65 has passing evidence, the image and Compose setup are verified, and all release-blocking decisions are closed. There are no hidden public-network test dependencies or unapproved scope additions. Packaging a runnable service does not itself authorize deployment to an external environment.
+
+## Delivered evidence
+
+- Digest-pinned multi-stage Dockerfile, static non-root runtime with certificates and local health probe, read-only single-service Compose setup, Docker Make targets, and CI lifecycle verification.
+- Expanded current-data integration tests for failures in either branch on both exchanges/markets; health probe tests; compact candle storage with full-field ownership regression tests.
+- Four-client capacity measurement at 600,000 retained candles, broad-interval capacity failure, automatic Linux peak-RSS target check, and isolated container SIGTERM verification.
+- Full operating README and a [section 65 acceptance matrix](../release-verification-v1.md), with [raw run evidence](../evidence/phase-12/README.md).
+
+D01 is recorded as a user-confirmed deployment invariant. This computer passes the separate live exchange checks, including Binance Spot FULL. The user also confirmed access from their deployment hosts; unspecified future hosts were not tested here. Broad interval demand exceeds the confirmed 1 GB workload envelope. This capacity limitation does not introduce a new eviction policy or expand the approved workload. No external deployment was performed.

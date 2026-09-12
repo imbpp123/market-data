@@ -1,0 +1,18 @@
+=== RUN   TestReleaseLoad
+    release_load_test.go:83: profile=main series=600 preloaded_rows=599400 snapshots_per_type=20000 populate=1.087769001s
+    release_load_test.go:84: stage=retained heap_alloc=557890760 runtime_sys=682778024
+    release_load_test.go:84: VmHWM:	  672204 kB
+    release_load_test.go:84: VmRSS:	  672204 kB
+    release_load_test.go:127: pass=partial fills requests=2400 attempts=600 p50=25.17275ms p95=41.671208ms max=167.816042ms
+    release_load_test.go:127: pass=warm reads requests=2400 attempts=0 p50=11.327958ms p95=29.486541ms max=79.027709ms
+    release_load_test.go:141: stage=after reads and fills heap_alloc=559040176 runtime_sys=959741416
+    release_load_test.go:141: VmHWM:	  834660 kB
+    release_load_test.go:141: VmRSS:	  689900 kB
+    release_load_test.go:146: rolling_cleanup=8.021292ms
+    release_load_test.go:157: idle_cleanup_and_late_write=51.226875ms
+    release_load_test.go:161: fill_shutdown=12.416µs
+    release_load_test.go:162: stage=after cleanup heap_alloc=43549472 runtime_sys=959741416
+    release_load_test.go:162: VmHWM:	  834660 kB
+    release_load_test.go:162: VmRSS:	  689900 kB
+--- PASS: TestReleaseLoad (43.80s)
+PASS

@@ -1,0 +1,46 @@
+[
+  {
+    "exchange": "binance",
+    "market": "spot",
+    "url": "https://api.binance.com/api/v3/ticker/24hr?type=FULL",
+    "checked_at": "2026-09-12T22:09:36.279402+00:00",
+    "status": 200,
+    "bytes": 1894453,
+    "sha256": "19ab348956a139913e8e3210bf58412aef308c222c7047e605561995d9c80d08",
+    "rows": 3701,
+    "required_fields_present": true
+  },
+  {
+    "exchange": "binance",
+    "market": "linear",
+    "url": "https://fapi.binance.com/fapi/v1/ticker/24hr",
+    "checked_at": "2026-09-12T22:09:36.761853+00:00",
+    "status": 200,
+    "bytes": 283613,
+    "sha256": "626637c49456744184931231090b8ed662dba7a6cea9d6b1ebd5cee2f004ad42",
+    "rows": 766,
+    "required_fields_present": true
+  },
+  {
+    "exchange": "bybit",
+    "market": "spot",
+    "url": "https://api.bybit.com/v5/market/tickers?category=spot",
+    "checked_at": "2026-09-12T22:09:37.124057+00:00",
+    "status": 200,
+    "bytes": 162803,
+    "sha256": "423ce17234f1fa4716b6bf7c999305c8465ea3cbda3b84295ad8b7cdd7a9c80e",
+    "rows": 538,
+    "required_fields_present": true
+  },
+  {
+    "exchange": "bybit",
+    "market": "linear",
+    "url": "https://api.bybit.com/v5/market/tickers?category=linear",
+    "checked_at": "2026-09-12T22:09:37.409768+00:00",
+    "status": 200,
+    "bytes": 649216,
+    "sha256": "e742053cfe8f2cd8e14173ba84d643173057bb61ba6f55b8ae65b0038d207dc3",
+    "rows": 873,
+    "required_fields_present": true
+  }
+]

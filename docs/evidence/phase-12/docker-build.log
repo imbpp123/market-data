@@ -1,0 +1,63 @@
+docker compose build
+ Image market-data-service:v1 Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 581B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 864B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/golang:1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 110B done
+#4 DONE 0.0s
+
+#5 [build 1/7] FROM docker.io/library/golang:1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125
+#5 resolve docker.io/library/golang:1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125 done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 15.82kB done
+#6 DONE 0.0s
+
+#7 [build 2/7] WORKDIR /src
+#7 CACHED
+
+#8 [build 3/7] COPY go.mod go.sum ./
+#8 CACHED
+
+#9 [build 4/7] RUN go mod download && go mod verify
+#9 CACHED
+
+#10 [build 5/7] COPY cmd ./cmd
+#10 DONE 0.0s
+
+#11 [build 6/7] COPY internal ./internal
+#11 DONE 0.0s
+
+#12 [build 7/7] RUN go build -trimpath -buildvcs=false -ldflags="-s -w" -o /out/market-data-service ./cmd/market-data-service
+#12 DONE 9.4s
+
+#13 [stage-1 1/2] COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+#13 CACHED
+
+#14 [stage-1 2/2] COPY --from=build /out/market-data-service /market-data-service
+#14 DONE 0.0s
+
+#15 exporting to image
+#15 exporting layers
+#15 exporting layers 0.3s done
+#15 exporting manifest sha256:44f3ece8907a57224580966da8e819d99f18779996dfcb7d13a6965940390638 done
+#15 exporting config sha256:4beae51a08c6f433ff4bce393133b6c1dfe259a504fe8701bfd862c7eb188490 done
+#15 exporting attestation manifest sha256:cf2498db077d5e6f6cd442275561e5a9d7a1ace1d9324373bb7aadea6aaae768 done
+#15 exporting manifest list sha256:093c32c5b755e7d14c76aefbed762ecff0d282e26b01c3a3662ff4e21670a6ab done
+#15 naming to docker.io/library/market-data-service:v1 done
+#15 unpacking to docker.io/library/market-data-service:v1 0.0s done
+#15 DONE 0.4s
+
+#16 resolving provenance for metadata file
+#16 DONE 0.0s
+ Image market-data-service:v1 Built 

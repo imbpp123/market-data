@@ -15,3 +15,7 @@ jobs:
           cache: true
       - name: Check formatting, build, config, lint, tests, and race
         run: make check
+      - name: Build release image
+        run: make docker-build
+      - name: Verify isolated Compose lifecycle
+        run: make docker-verify

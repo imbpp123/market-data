@@ -1,0 +1,23 @@
+services:
+  market-data-service:
+    image: market-data-service:v1
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - type: bind
+        source: ./docs/examples/config-v1.yaml
+        target: /etc/market-data/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      MDS_STORAGE_DRIVER: memory
+      GOMEMLIMIT: 700MiB
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1000000000
+    memswap_limit: 1000000000
+    stop_grace_period: 40s
+    restart: "no"
