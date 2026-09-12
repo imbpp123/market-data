@@ -1,12 +1,12 @@
 # v1 development plan
 
-Status: delivery plan, September 12, 2026. Phases 01–02 are complete; phases 03–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
+Status: delivery plan, September 12, 2026. Phases 01–03 are complete; phases 04–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
 
 Source of requirements: [Technical specification v1](../technical-specification-v1.md). Engineering rules: [AGENTS.md](../../AGENTS.md). The specification remains authoritative; these files define delivery order, not new approved product requirements.
 
 ## Current project state
 
-The repository contains specifications, a phase plan, configuration/HTTP examples, phase 01 discovery fixtures, and the phase 02 Go process scaffold. The pinned module, configuration loader, health HTTP lifecycle, unit tests, Makefile, and CI baseline are implemented. Domain models, repositories, exchange adapters, data APIs, and deployment packaging are not implemented. Section 14 reports earlier SDK checks; those historical results remain evidence, not executed adapter tests in this project.
+The repository contains specifications, a phase plan, configuration/HTTP examples, phase 01 discovery fixtures, and the phase 02 Go process scaffold. The pinned module, configuration loader, health HTTP lifecycle, unit tests, Makefile, and CI baseline are implemented. Phase 03 adds exact domain models, tested UTC calendars, funding read models, and consumer-owned application contracts. Repositories, exchange adapters, data APIs, and deployment packaging are not implemented. Section 14 reports earlier SDK checks; those historical results remain evidence, not executed adapter tests in this project.
 
 The initial review assessed the supplied project documentation. Phase 01 source checks are recorded in the decision register. Phase 01 includes bounded live discovery and an official release-catalog check. It does not reproduce historical SDK tests or verify deployment behavior.
 
@@ -23,7 +23,7 @@ The following decisions are recorded; implementation checks remain assigned to t
 | Budgets and configuration | 20% margin, common ceilings, reserved shares, pacing, finite queues/deadlines, and in-memory restart behavior are defined in the contract. Test expensive-call feasibility and admission. | 02 configuration and 05 admission |
 | Deployment scope | One instance is confirmed. The working interpretation is that no other exchange clients share its outgoing IP; verify that condition at deployment. A local limiter cannot account for other processes. See D01. | 05 and release |
 | Binance metadata | Explicit fundingInfo interval or null on absence; failed sources retain the prior snapshot. Binance delisting_time stays null. Replay captured and synthetic cases. | 06 |
-| Candle alignment | Twelve captured examples fix weekly and Binance 3d anchors. Test the calendar and replay normalized rows offline. | 03 alignment completion, 08–09 |
+| Candle alignment | Domain tests replay expected boundaries from all twelve captured examples for weekly and Binance 3d anchors. Raw adapter normalization remains to be verified. | 08–09 |
 | Binance Spot statistics | The official REST API source resolves the documentation conflict in favor of FULL bulk access (decision D11). Adapter contract tests and deployment access verification remain required. | 07 and release |
 | Public API gaps | Contract and examples define readiness for all snapshots, strict filters, aligned half-open ranges, missing slots, and errors. Implement and test them. | 06–07 and 10 |
 | Startup | Bind HTTP after local initialization and schedule independent workers immediately. Exchange availability does not determine global readiness. | 02 lifecycle and 06 |

@@ -4,7 +4,7 @@ A Go service for a common crypto market data API. It is designed to give trading
 
 v1 targets Binance and Bybit spot and linear markets, with instruments, tickers, 24-hour market statistics, and candlesticks.
 
-**Status:** Early development. Configuration loading, health endpoints, and graceful shutdown are implemented. Exchange integrations and market-data endpoints are not available yet.
+**Status:** Early development. Configuration loading, health endpoints, graceful shutdown, domain models, UTC candle calendars, funding read models, and application contracts are implemented. Repositories, exchange integrations, and market-data endpoints are not available yet.
 
 ## Documentation
 

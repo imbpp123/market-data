@@ -1,6 +1,6 @@
 # 03 — Domain and application contracts
 
-Status: not started. Dependencies: [02](02-bootstrap-and-configuration.md), calendar decisions from [01](01-specification-decisions.md). Next: [04](04-memory-repositories.md).
+Status: complete, September 12, 2026. Dependencies: [02](02-bootstrap-and-configuration.md), calendar decisions from [01](01-specification-decisions.md). Next: [04](04-memory-repositories.md).
 
 ## Outcome
 
@@ -26,3 +26,16 @@ Define exact market values, calendar rules, and the boundaries consumed by use c
 ## Exit criteria
 
 Domain rules are deterministic and tested. Contracts cover real use cases without generic repositories or unused layers. Unsupported calendar alignment remains explicitly gated rather than approximated.
+
+## Implementation
+
+- `internal/domain/market.go` defines exact models and canonical enums using shopspring/decimal v1.4.0. Models have no transport tags or exchange SDK types.
+- `internal/domain/timeframe.go` defines exact parsing, UTC floor/boundary validation, signed slot shifts, bounded counting, and the common history cutoff. Monthly arithmetic uses calendar month indexes. Calendar calculations accept years 1–9999, including pre-epoch retention cutoffs; public request validation must still reject pre-epoch input. Arithmetic outside this range fails explicitly. Calendar alignment does not enable an endpoint interval: application support checks must use provider capabilities. Unknown scopes and unconfirmed Bybit 3d alignment fail.
+- Consumer-owned contracts live in `internal/application/{instrument,ticker,marketstats,kline}`. Snapshot filters carry explicit enabled scopes; an empty scope list selects nothing. Repository lists check every selected scope's readiness before row filters. Context cancellation, atomic replacement, independent branch publication, and safe ownership are part of each contract.
+- `kline.Stored` carries successful HTTP attempt start time alongside the domain candle. Storage and planning share this metadata. Final evidence requires request start at or after close. Intermediate writes order by request start and then receipt time; ties preserve the stored row. Confirmed final rows stay immutable. The planner and fill coordinator are deferred to phases 08 and 10.
+- `ticker.ReadModelBuilder` takes an injected clock and reads it once per response. It returns owned optional values and a duration countdown without modifying cached timestamps or depending on instruments. HTTP DTOs and integer-second serialization are phase 07 work.
+- Stable application errors support wrapping and code lookup. Route/method errors and HTTP status mapping remain transport concerns. Providers translate upstream failures into application errors; cancellation preserves context error identity.
+
+Verification covers exact enums/timeframes, fixed and calendar slots, all twelve saved calendar fixtures' expected boundaries, leap years, UTC offsets, invalid alignment, overflow, 1,000/1,001-slot bounds, history cutoff movement, and funding read behavior. Fixture replay here verifies calendar rules only; raw exchange normalization still needs phase 09 adapter tests. Interface behavior is specified here and will be exercised against concrete repositories/providers in their implementation phases.
+
+Executed checks: `make check` passed on the pinned Go 1.27.1 toolchain (formatting, build, example configuration, standard lint including govet, unit tests, and race tests). Import inspection found only the standard library, decimal, and inward project dependencies in production domain/application code. `git diff --check` passed.

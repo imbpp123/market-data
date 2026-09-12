@@ -1,6 +1,6 @@
 # Development guide
 
-Run all commands from the repository root. The current build includes configuration loading and the process scaffold. Exchange adapters, repositories, market-data endpoints, and observability integrations are not implemented yet.
+Run all commands from the repository root. The current build includes configuration loading, the process scaffold, exact domain models, UTC candle calendars, funding read models, and application contracts. Exchange adapters, repositories, market-data endpoints, and observability integrations are not implemented yet.
 
 ## Run
 
