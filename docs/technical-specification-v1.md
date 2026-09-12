@@ -982,18 +982,22 @@ It simply implements this interface.
 
 ## 12. Exchange facade
 
-The application layer works only with our interface.
+The application layer works only with consumer-owned interfaces. Instrument providers are bound to one exchange/market pair at construction:
 
-For example:
+```go
+type InstrumentProvider interface {
+    Scope() application.Scope
+    GetInstruments(ctx context.Context) ([]domain.Instrument, error)
+}
+```
+
+Binance spot, Binance linear, Bybit spot, and Bybit linear use separate implementations. Each owns its endpoint selection and market rules. Bootstrap chooses the implementation for each enabled scope. The application refresher obtains the scope from the provider; it does not pass a second market selector. Common parsing and transport admission remain shared. Binance's two SDK adapters implement a common raw client interface; Bybit's market providers share its unified SDK client.
+
+The following broader facade is illustrative for the remaining features, not a requirement to combine their concrete market implementations:
 
 ```go
 type MarketDataProvider interface {
     Exchange() domain.Exchange
-
-    GetInstruments(
-        ctx context.Context,
-        market domain.Market,
-    ) ([]domain.Instrument, error)
 
     GetTickers(
         ctx context.Context,

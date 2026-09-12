@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"market-data/internal/application/instrument"
 	"market-data/internal/config"
 	"market-data/internal/infrastructure/exchange/upstream"
 	httptransport "market-data/internal/transport/http"
@@ -46,6 +47,14 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, workers ..
 		return fmt.Errorf("initialize exchange clients: %w", err)
 	}
 
+	instrumentWorkers, err := state.instrumentWorkers(cfg, logger, upstream.SystemClock{}, func(ceiling time.Duration) time.Duration {
+		return time.Duration(rand.Int64N(int64(ceiling)))
+	})
+	if err != nil {
+		return err
+	}
+	workers = append(workers, instrumentWorkers...)
+
 	var listenConfig net.ListenConfig
 	listener, err := listenConfig.Listen(ctx, "tcp", net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)))
 	if err != nil {
@@ -60,7 +69,9 @@ func (state *localState) serve(ctx context.Context, cfg config.Config, logger *s
 	defer cancel()
 
 	server := &http.Server{
-		Handler:           httptransport.NewHandler(state.ready.Load, cfg.Server.MaxQueryBytes),
+		Handler: httptransport.NewAPIHandler(state.ready.Load, cfg.Server.MaxQueryBytes, map[string]http.Handler{
+			"/api/v1/instruments": httptransport.NewInstrumentsHandler(instrument.NewReader(state.instruments, enabledScopes(cfg)), cfg.Server.SnapshotTimeout, cfg.Server.MaxSnapshotRequests),
+		}),
 		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
 		IdleTimeout:       cfg.Server.IdleTimeout,
 		WriteTimeout:      cfg.WriteTimeout(),

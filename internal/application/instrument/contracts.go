@@ -25,8 +25,8 @@ type Repository interface {
 }
 
 // Provider returns a complete owned catalog or an error, never a partial
-// successful catalog. All blocking work must honor ctx.
+// successful catalog for its fixed scope. All blocking work must honor ctx.
 type Provider interface {
-	Exchange() domain.Exchange
-	GetInstruments(ctx context.Context, market domain.Market) ([]domain.Instrument, error)
+	Scope() application.Scope
+	GetInstruments(ctx context.Context) ([]domain.Instrument, error)
 }

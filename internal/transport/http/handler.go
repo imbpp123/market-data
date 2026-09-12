@@ -5,11 +5,16 @@ import (
 	"net/http"
 )
 
-// NewHandler exposes only local health routes during bootstrap.
+// NewHandler exposes local health routes.
 func NewHandler(ready func() bool, maxQueryBytes int) http.Handler {
+	return NewAPIHandler(ready, maxQueryBytes, nil)
+}
+
+func NewAPIHandler(ready func() bool, maxQueryBytes int, routes map[string]http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path != "/health" && r.URL.Path != "/ready" {
+		route := routes[r.URL.Path]
+		if r.URL.Path != "/health" && r.URL.Path != "/ready" && route == nil {
 			writeError(w, http.StatusNotFound, "not_found", "Route not found")
 
 			return
@@ -31,6 +36,11 @@ func NewHandler(ready func() bool, maxQueryBytes int) http.Handler {
 		if r.ContentLength != 0 || len(r.TransferEncoding) > 0 {
 			writeError(w, http.StatusBadRequest, "invalid_parameter", "GET body is not allowed")
 
+			return
+		}
+
+		if route != nil {
+			route.ServeHTTP(w, r)
 			return
 		}
 

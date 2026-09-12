@@ -3,29 +3,41 @@ package binance
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 
-	futuresapi "github.com/binance/binance-connector-go/clients/derivativestradingusdsfutures/src/restapi"
-	spotapi "github.com/binance/binance-connector-go/clients/spot/src/restapi"
 	"github.com/binance/binance-connector-go/common/v2/common"
 
 	"market-data/internal/infrastructure/exchange/upstream"
 )
 
-// Client is the bounded raw-data foundation for feature-specific normalization.
-type Client struct {
-	scope  upstream.Scope
-	config *common.ConfigurationRestAPI
+// Client keeps the raw response boundary shared by the two Binance SDK adapters.
+type Client interface {
+	Fetch(context.Context, string, url.Values) (upstream.Response, error)
 }
 
-func NewClient(scope upstream.Scope, baseURL string, transport *upstream.Transport) (*Client, error) {
+func NewClient(scope upstream.Scope, baseURL string, transport *upstream.Transport) (Client, error) {
+	cfg, err := clientConfiguration(baseURL, transport)
+	if err != nil {
+		return nil, err
+	}
+
+	switch scope {
+	case upstream.BinanceSpot:
+		return &spotClient{config: cfg}, nil
+	case upstream.BinanceLinear:
+		return &linearClient{config: cfg}, nil
+	default:
+		return nil, fmt.Errorf("invalid Binance client scope")
+	}
+}
+
+func clientConfiguration(baseURL string, transport *upstream.Transport) (*common.ConfigurationRestAPI, error) {
 	u, err := url.Parse(baseURL)
-	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.RawQuery != "" || u.Fragment != "" || u.User != nil || transport == nil || (scope != upstream.BinanceSpot && scope != upstream.BinanceLinear) {
+	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.RawQuery != "" || u.Fragment != "" || u.User != nil || transport == nil {
 		return nil, fmt.Errorf("invalid Binance client settings")
 	}
+
 	cfg := common.NewConfigurationRestAPI()
 	cfg.BasePath = baseURL
 	cfg.HTTPSAgent = transport
@@ -33,19 +45,5 @@ func NewClient(scope upstream.Scope, baseURL string, transport *upstream.Transpo
 	// Admission and operation deadlines are separate from HTTP attempt timeout.
 	cfg.Timeout = 0
 	cfg.Compression = false
-	return &Client{scope: scope, config: cfg}, nil
-}
-
-func (c *Client) Fetch(ctx context.Context, path string, parameters url.Values) (upstream.Response, error) {
-	return upstream.Execute(ctx, func(ctx context.Context) error {
-		endpoint := c.config.BasePath + path
-		// RawMessage retains exact source fields for normalization. The SDK still
-		// owns request construction and processing, behind our accounted transport.
-		if c.scope == upstream.BinanceSpot {
-			_, err := spotapi.SendRequest[json.RawMessage](ctx, endpoint, http.MethodGet, parameters, nil, c.config, false)
-			return err
-		}
-		_, err := futuresapi.SendRequest[json.RawMessage](ctx, endpoint, http.MethodGet, parameters, nil, c.config, false)
-		return err
-	})
+	return cfg, nil
 }

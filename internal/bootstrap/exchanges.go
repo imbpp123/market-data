@@ -13,7 +13,7 @@ import (
 // All clients share one controller. Creating a client never creates new budgets.
 type exchangeClients struct {
 	admission *upstream.Controller
-	binance   map[upstream.Scope]*binance.Client
+	binance   map[upstream.Scope]binance.Client
 	bybit     *bybit.Client
 }
 
@@ -36,8 +36,8 @@ func newExchangeClients(cfg config.Config, base http.RoundTripper, clock upstrea
 	return &exchangeClients{admission: admission, binance: binanceClients, bybit: bybitClient}, nil
 }
 
-func newBinanceExchangeClients(cfg config.Config, admission *upstream.Controller, base http.RoundTripper, jitter upstream.Jitter, observe upstream.Observer) (map[upstream.Scope]*binance.Client, error) {
-	clients := make(map[upstream.Scope]*binance.Client)
+func newBinanceExchangeClients(cfg config.Config, admission *upstream.Controller, base http.RoundTripper, jitter upstream.Jitter, observe upstream.Observer) (map[upstream.Scope]binance.Client, error) {
+	clients := make(map[upstream.Scope]binance.Client)
 	if !cfg.Exchanges.Binance.Enabled {
 		return clients, nil
 	}
