@@ -68,9 +68,5 @@ func run(ctx context.Context, args, environment []string, output io.Writer, logg
 		return nil
 	}
 
-	if cfg.Observability.Sentry.Enabled || cfg.Observability.Prometheus.Enabled || cfg.Observability.Stats.Enabled || cfg.Observability.Stats.EndpointEnabled {
-		logger.Warn("Observability integrations are not implemented in the bootstrap phase")
-	}
-
 	return start(ctx, cfg, logger)
 }

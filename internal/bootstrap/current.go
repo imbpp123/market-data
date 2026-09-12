@@ -12,6 +12,7 @@ import (
 	"market-data/internal/infrastructure/exchange/binance"
 	"market-data/internal/infrastructure/exchange/bybit"
 	"market-data/internal/infrastructure/exchange/upstream"
+	"market-data/internal/infrastructure/observability"
 )
 
 type currentProvider interface {
@@ -26,9 +27,16 @@ func (s *localState) currentWorkers(cfg config.Config, logger *slog.Logger, cloc
 	}
 
 	observe := func(event application.RefreshEvent) {
-		s.currentMetrics.Observe(event)
+		if collectStatistics(cfg) {
+			s.currentMetrics.Observe(event)
+		}
+		operation := "tickers"
+		if event.Window != 0 {
+			operation = "market_stats"
+		}
+		s.telemetry.Report(event.Error, map[string]string{"operation": operation, "exchange": string(event.Scope.Exchange), "market": string(event.Scope.Market), "window": event.Window.String()})
 		if event.Error != nil {
-			logger.Warn("Current data refresh failed", "exchange", event.Scope.Exchange, "market", event.Scope.Market, "window", event.Window, "error", event.Error)
+			logger.Warn("Current data refresh failed", "exchange", event.Scope.Exchange, "market", event.Scope.Market, "window", event.Window, "error", observability.ErrorCode(event.Error))
 		}
 	}
 

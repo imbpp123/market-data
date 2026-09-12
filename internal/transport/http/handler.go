@@ -55,6 +55,13 @@ func NewAPIHandler(ready func() bool, maxQueryBytes int, routes map[string]http.
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
+	writeErrorWithCause(w, status, code, message, nil)
+}
+
+func writeErrorWithCause(w http.ResponseWriter, status int, code, message string, cause error) {
+	if observer, ok := w.(errorObserver); ok {
+		observer.ObserveHTTPError(code, cause)
+	}
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]string{"code": code, "message": message}})
 }

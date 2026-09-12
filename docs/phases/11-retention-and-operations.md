@@ -1,6 +1,6 @@
 # 11 — Retention and operations
 
-Status: not started. Dependencies: [06](06-instruments.md), [07](07-tickers-and-market-statistics.md), [10](10-kline-cache-and-api.md). Next: [12](12-release-verification.md).
+Status: implemented. Dependencies: [06](06-instruments.md), [07](07-tickers-and-market-statistics.md), [10](10-kline-cache-and-api.md). Next: [12](12-release-verification.md).
 
 ## Outcome
 
@@ -28,3 +28,13 @@ Complete cleanup, optional observability, and verify the lifecycle of the assemb
 ## Exit criteria
 
 The assembled service cleans up historical data, reports its state without external monitoring dependencies, and shuts down predictably. Feature phases already own their cancellation paths; this phase verifies them together rather than adding cancellation at the end.
+
+## Implementation and verification
+
+- The application retention use case captures one clock per pass. Bootstrap derives scopes from provider interval tables and schedules immediate cleanup and completion-based waits. Memory inventory counts retained rows without copying payloads; cleanup and inventory honor cancellation.
+- The existing publication counters retain their success semantics. Exchange attempts count once per dispatched request, including shared Bybit responses. Candle fills now report completion durations. Aggregate logs and optional Prometheus/debug handlers read the same race-safe counters without symbol labels.
+- A private Sentry SDK adapter reports sanitized errors, panics, HTTP/exchange/fill/retention traces, and flushes within the remaining shutdown deadline. SDK types stay outside application/domain. A panic cannot retain an upstream HTTP slot.
+- Tests cover minute/month/week/three-day retention cutoffs, equality, storage failure isolation, cancellation, calendar overflow, concurrent inventory/cleanup, current snapshot preservation, optional route combinations, Bybit branch counters, fake telemetry payloads and sampling, HTTP/worker/fill panics, cooldown readiness, and bounded flush after worker completion. Regression tests also cover instrument fetch/write panics before and after a successful publication, HTTP failure codes, expected cancellation, and unready snapshot telemetry. Existing tests cover shared-fill cancellation and active HTTP closure.
+- Release packaging, real deployment access, resource measurements, and container signal checks remain in phase 12.
+
+Verification: `make check` passed (format, build, example configuration, golangci-lint, unit tests, and race tests). `git diff --check` passed.

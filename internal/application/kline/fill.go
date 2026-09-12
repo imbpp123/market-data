@@ -58,9 +58,11 @@ func (s *Service) join(ctx context.Context, query Query, refreshed refreshes, bu
 	result := s.group.DoChan(key, func() (any, error) {
 		ctx, cancel := context.WithTimeout(s.root, s.settings.FillTimeout)
 		defer cancel()
+		started := s.now()
 		err := s.operations.Run(ctx, query.Scope, func() { s.attempt(query, f) }, func(ctx context.Context) error {
 			return s.load(ctx, query, f)
 		})
+		s.emit(Event{Scope: query.Scope, Symbol: query.Symbol, Interval: query.Interval, Completed: true, Duration: max(0, s.now().Sub(started)), Error: err})
 		return nil, err
 	})
 	go func() {

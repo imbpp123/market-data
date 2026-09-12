@@ -190,6 +190,9 @@ func (r *klineRepository) DeleteBefore(ctx context.Context, scope application.Sc
 	}
 	r.cutoffs[key] = before.UTC()
 	for series := range r.series {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if series.Scope == scope && series.Interval == interval {
 			r.prune(series, before)
 		}
@@ -233,4 +236,20 @@ func replacesCandle(stored, incoming kline.Stored) bool {
 	}
 	return incoming.RequestStartedAt.After(stored.RequestStartedAt) ||
 		(incoming.RequestStartedAt.Equal(stored.RequestStartedAt) && incoming.Candle.FetchedAt.After(stored.Candle.FetchedAt))
+}
+
+func (r *klineRepository) CandleCounts(ctx context.Context) (map[application.Scope]int, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	counts := make(map[application.Scope]int)
+	for series, rows := range r.series {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		counts[series.Scope] += len(rows)
+	}
+	return counts, nil
 }

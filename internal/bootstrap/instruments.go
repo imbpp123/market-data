@@ -12,6 +12,7 @@ import (
 	"market-data/internal/infrastructure/exchange/binance"
 	"market-data/internal/infrastructure/exchange/bybit"
 	"market-data/internal/infrastructure/exchange/upstream"
+	"market-data/internal/infrastructure/observability"
 )
 
 func enabledScopes(cfg config.Config) []application.Scope {
@@ -55,9 +56,12 @@ func (s *localState) instrumentWorkers(cfg config.Config, logger *slog.Logger, c
 
 		cycles := upstream.NewBoundedCycle(gate, s.exchanges.admission, transportScope, upstream.Instruments)
 		refresher := instrument.NewRefresher(provider, s.instruments, clock.Now, func(event instrument.RefreshEvent) {
-			s.instrumentMetrics.Observe(event)
+			if collectStatistics(cfg) {
+				s.instrumentMetrics.Observe(event)
+			}
+			s.telemetry.Report(event.Error, map[string]string{"operation": "instruments", "exchange": string(event.Scope.Exchange), "market": string(event.Scope.Market)})
 			if event.Error != nil {
-				logger.Warn("Instrument refresh failed", "exchange", event.Scope.Exchange, "market", event.Scope.Market, "error", event.Error)
+				logger.Warn("Instrument refresh failed", "exchange", event.Scope.Exchange, "market", event.Scope.Market, "error", observability.ErrorCode(event.Error))
 			} else {
 				logger.Info("Instrument snapshot published", "exchange", event.Scope.Exchange, "market", event.Scope.Market, "size", event.Size, "updated_at", event.UpdatedAt)
 			}

@@ -43,6 +43,11 @@ type Event struct {
 	SharedWait  bool
 	Attempts    int
 	Downloaded  int
+	Completed   bool
+	Duration    time.Duration
+	Symbol      string
+	Interval    domain.Timeframe
+	Error       error
 }
 
 type serviceScope struct {

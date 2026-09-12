@@ -14,6 +14,7 @@ type KlineStats struct {
 	SharedWaits uint64
 	Attempts    uint64
 	Downloaded  uint64
+	Duration    DurationStats
 }
 
 type Klines struct {
@@ -44,6 +45,9 @@ func (s *Klines) Observe(event kline.Event) {
 	}
 	stats.Attempts += uint64(event.Attempts)
 	stats.Downloaded += uint64(event.Downloaded)
+	if event.Completed {
+		stats.Duration.add(event.Duration)
+	}
 	s.scopes[event.Scope] = stats
 }
 

@@ -82,8 +82,13 @@ func NewRefresher(provider Provider, repository Repository, now func() time.Time
 
 func (s *Refresher) Refresh(ctx context.Context) (err error) {
 	event := RefreshEvent{Scope: s.provider.Scope()}
+	published := false
 	defer func() {
 		event.Error = err
+		// A panic unwinds this observer before the worker recovers it.
+		if !published && event.Error == nil {
+			event.Error = application.ErrInternal
+		}
 		if s.observe != nil {
 			s.observe(event)
 		}
@@ -107,6 +112,7 @@ func (s *Refresher) Refresh(ctx context.Context) (err error) {
 		return fmt.Errorf("publish instruments: %w", err)
 	}
 
+	published = true
 	event.UpdatedAt = updatedAt
 	event.Size = len(rows)
 	return nil

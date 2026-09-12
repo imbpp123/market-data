@@ -8,6 +8,12 @@ import (
 	"market-data/internal/application"
 )
 
+// The response observer receives the public code and original cause separately.
+// This keeps cancellation identity without exposing errors in the response body.
+type errorObserver interface {
+	ObserveHTTPError(code string, cause error)
+}
+
 func writeApplicationError(w http.ResponseWriter, err error) {
 	failure := application.ErrInternal
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
@@ -37,5 +43,5 @@ func writeApplicationError(w http.ResponseWriter, err error) {
 		failure = application.ErrInternal
 	}
 
-	writeError(w, status, failure.Code(), failure.Error())
+	writeErrorWithCause(w, status, failure.Code(), failure.Error(), err)
 }

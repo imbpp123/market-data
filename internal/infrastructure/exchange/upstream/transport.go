@@ -14,12 +14,14 @@ import (
 
 	"market-data/internal/application"
 	"market-data/internal/config"
+	"market-data/internal/domain"
 )
 
 // Event is immutable request-local metadata. Observers must be concurrency safe.
 // Bodies and raw error strings are deliberately excluded from statistics events.
 type Event struct {
 	Scope     Scope
+	Market    domain.Market
 	Operation Operation
 	Path      string
 	StartedAt time.Time
@@ -136,8 +138,19 @@ func (t *Transport) RoundTrip(request *http.Request) (result *http.Response, fai
 			return nil, err
 		}
 		observeAttempt(request.Context())
-		response, body, event, retryable := t.attempt(request, cost, started)
-		t.controller.release(t.scope, cost.operation)
+		response, body, event, retryable := func() (*http.Response, []byte, Event, bool) {
+			defer t.controller.release(t.scope, cost.operation)
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					if t.observe != nil {
+						t.observe(Event{Scope: t.scope, Market: domain.Market(market), Operation: cost.operation,
+							Path: request.URL.Path, StartedAt: started, Duration: max(0, t.clock.Now().Sub(started)), Error: application.ErrInternal})
+					}
+					panic(recovered)
+				}
+			}()
+			return t.attempt(request, cost, started)
+		}()
 		if t.observe != nil {
 			t.observe(event)
 		}
@@ -160,6 +173,9 @@ func (t *Transport) RoundTrip(request *http.Request) (result *http.Response, fai
 
 func (t *Transport) attempt(request *http.Request, cost cost, started time.Time) (*http.Response, []byte, Event, bool) {
 	event := Event{Scope: t.scope, Operation: cost.operation, Path: request.URL.Path, StartedAt: started}
+	if t.scope == Bybit {
+		event.Market = domain.Market(request.URL.Query().Get("category"))
+	}
 	ctx, cancel := context.WithTimeout(request.Context(), t.settings.Timeout)
 	defer cancel()
 

@@ -55,7 +55,7 @@ func TestRunPassesFinalSettingsAndPreservesStartupError(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(&logs, nil))
 	expected := errors.New("listen failed")
 	var received config.Config
-	err := run(context.Background(), []string{"-config", path}, []string{"MDS_SERVER_PORT=8083"}, io.Discard, logger, func(_ context.Context, cfg config.Config, _ *slog.Logger) error {
+	err := run(t.Context(), []string{"-config", path}, []string{"MDS_SERVER_PORT=8083"}, io.Discard, logger, func(_ context.Context, cfg config.Config, _ *slog.Logger) error {
 		received = cfg
 
 		return expected
@@ -63,5 +63,5 @@ func TestRunPassesFinalSettingsAndPreservesStartupError(t *testing.T) {
 	assert.ErrorIs(t, err, expected)
 	assert.Equal(t, 8083, received.Server.Port)
 
-	assert.Contains(t, logs.String(), "bootstrap phase")
+	assert.NotContains(t, logs.String(), "not implemented")
 }

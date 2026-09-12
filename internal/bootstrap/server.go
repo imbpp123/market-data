@@ -18,6 +18,7 @@ import (
 	"market-data/internal/application/ticker"
 	"market-data/internal/config"
 	"market-data/internal/infrastructure/exchange/upstream"
+	"market-data/internal/infrastructure/observability"
 	httptransport "market-data/internal/transport/http"
 )
 
@@ -38,11 +39,21 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, workers ..
 		return err
 	}
 
+	state.telemetry, err = observability.NewSentry(cfg.Observability.Sentry)
+	if err != nil {
+		return err
+	}
+	defer state.telemetry.Close()
+
 	state.exchanges, err = newExchangeClients(cfg, http.DefaultTransport, upstream.SystemClock{}, func(ceiling time.Duration) time.Duration {
 		return time.Duration(rand.Int64N(int64(ceiling)))
 	}, func(event upstream.Event) {
+		if collectStatistics(cfg) {
+			state.exchangeMetrics.Observe(event)
+		}
+		state.telemetry.ObserveExchange(event)
 		if event.Error != nil {
-			logger.Warn("Upstream attempt failed", "scope", event.Scope, "path", event.Path, "status", event.Status, "code", event.Code, "error", event.Error)
+			logger.Warn("Upstream attempt failed", "scope", event.Scope, "path", event.Path, "status", event.Status, "code", event.Code, "error", observability.ErrorCode(event.Error))
 		}
 	})
 	if err != nil {
@@ -94,8 +105,15 @@ func (state *localState) serve(ctx context.Context, cfg config.Config, logger *s
 		return nil
 	})
 
+	operationWorkers, err := state.operationWorkers(cfg, logger, routes, time.Now)
+	if err != nil {
+		_ = listener.Close()
+		return err
+	}
+	workers = append(workers, operationWorkers...)
+
 	server := &http.Server{
-		Handler:           httptransport.NewAPIHandler(state.ready.Load, cfg.Server.MaxQueryBytes, routes),
+		Handler:           state.telemetry.HTTP(httptransport.NewAPIHandler(state.ready.Load, cfg.Server.MaxQueryBytes, routes), routes, logger),
 		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
 		IdleTimeout:       cfg.Server.IdleTimeout,
 		WriteTimeout:      cfg.WriteTimeout(),
@@ -119,7 +137,7 @@ func (state *localState) serve(ctx context.Context, cfg config.Config, logger *s
 		go func() {
 			defer owned.Done()
 
-			if err := worker(root); err != nil && (root.Err() == nil || !errors.Is(err, root.Err())) {
+			if err := state.runWorker(root, worker); err != nil && (root.Err() == nil || !errors.Is(err, root.Err())) {
 				failures <- fmt.Errorf("worker failed: %w", err)
 			}
 		}()
@@ -160,6 +178,9 @@ func (state *localState) serve(ctx context.Context, cfg config.Config, logger *s
 	}
 
 	result = errors.Join(result, server.Close())
+	if !state.telemetry.Flush(shutdown) {
+		logger.Warn("Telemetry flush did not complete before shutdown deadline")
+	}
 	logger.Info("HTTP server stopped")
 
 	return result

@@ -26,14 +26,10 @@
 # Counts and byte limits are positive integers that fit Go int; additional bounds
 # and relationships are documented below. Zero does not mean unlimited or disabled.
 #
-# Implementation status after phase 02:
-# - Loading, validation, server binding, health routes, HTTP server timeouts,
-#   header limits, health query limits, and process shutdown are implemented.
-# - Snapshot request limits, storage, kline handling, exchange collection,
-#   upstream admission/retries, and observability integrations are future work.
-#   Their comments describe the agreed v1 behavior, not features already running.
-# - Kline/snapshot request timeouts already determine the HTTP write deadline and
-#   the required shutdown timeout, even before data handlers are implemented.
+# Implementation status after phase 11:
+# - Data APIs, memory storage, upstream admission/retries, periodic retention,
+#   health/readiness, graceful shutdown, and optional observability are implemented.
+# - Release verification and packaging remain phase 12 work.
 # See ../implementation-contract-v1.md and ../technical-specification-v1.md.
 
 # Incoming HTTP listener, request bounds, and process shutdown.
@@ -1148,7 +1144,7 @@ http_client:
 # are validated in phase 02 but their integrations are not implemented yet. Setting
 # an enabled flag logs that limitation; it does not activate a working integration.
 observability:
-  # Error reporting and tracing to Sentry once the integration is implemented.
+  # Optional error reporting and sampled tracing to Sentry.
   sentry:
     # Description: true enables the Sentry integration; false disables it. Enabling
     #              requires a valid nonempty DSN. Error reporting and trace sampling are
@@ -1199,7 +1195,7 @@ observability:
     # Required: no
     traces_sample_rate: 0.1
 
-  # Optional Prometheus HTTP metrics export once implemented.
+  # Optional Prometheus HTTP metrics export.
   prometheus:
     # Description: true enables metrics export; false leaves its HTTP endpoint absent.
     #              Prometheus export is optional even when built-in statistics are
@@ -1228,10 +1224,10 @@ observability:
   # In-process counters, durations, snapshot sizes, and last-success timestamps;
   # these are diagnostics, not 24h exchange market-statistics records.
   stats:
-    # Description: true enables built-in operational statistics collection; false
-    #              disables it. This collection can be used without Sentry or
-    #              Prometheus. Data is process-local and is not a durable history across
-    #              restarts.
+    # Description: true enables standalone operational statistics collection and
+    #              aggregate logging. Prometheus or the debug endpoint can request
+    #              collection independently when this is false. Sentry is independent.
+    #              Counters are process-local and reset on restart.
     #
     # Values: true or false.
     #
@@ -1254,8 +1250,8 @@ observability:
 
     # Description: true exposes the optional GET /debug/stats diagnostics route; false
     #              keeps it absent. This controls HTTP exposure separately from logging.
-    #              Set enabled=true above to collect the data this endpoint exposes. No
-    #              Prometheus export is needed.
+    #              This endpoint requests collection even when standalone logging is
+    #              disabled. No Prometheus export is needed.
     #
     # Values: true or false.
     #
