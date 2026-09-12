@@ -2480,23 +2480,9 @@ without a full histogram implementation.
 
 ## 50. Statistics logging
 
-Write an aggregated snapshot to the structured log at regular intervals.
+Do not write periodic operational statistics snapshots to logs. Collect counters in memory and expose them on request through optional Prometheus or `/debug/stats` endpoints.
 
-For example, once a minute:
-
-```json
-{
-  "message": "market data statistics",
-  "exchange": "bybit",
-  "requests": 284,
-  "errors": 1,
-  "kline_cache_hits": 153,
-  "kline_cache_misses": 7,
-  "ticker_age_ms": 83
-}
-```
-
-This provides basic monitoring even without Prometheus.
+`observability.stats.enabled` controls standalone collection. Either endpoint also enables collection independently. The statistics logging worker and `observability.stats.log_interval` setting are removed; reject the obsolete YAML key and `MDS_OBSERVABILITY_STATS_LOG_INTERVAL` environment variable as unknown settings.
 
 ---
 

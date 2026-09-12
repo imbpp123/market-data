@@ -179,9 +179,8 @@ type Prometheus struct {
 }
 
 type Stats struct {
-	Enabled         bool          `yaml:"enabled"`
-	LogInterval     time.Duration `yaml:"log_interval"`
-	EndpointEnabled bool          `yaml:"endpoint_enabled"`
+	Enabled         bool `yaml:"enabled"`
+	EndpointEnabled bool `yaml:"endpoint_enabled"`
 }
 
 func (c Config) WriteTimeout() time.Duration {
@@ -276,7 +275,7 @@ func Defaults() Config {
 		Observability: Observability{
 			Sentry:     Sentry{Environment: "local", TracesSampleRate: 0.1},
 			Prometheus: Prometheus{Path: "/metrics"},
-			Stats:      Stats{Enabled: true, LogInterval: time.Minute},
+			Stats:      Stats{Enabled: true},
 		},
 	}
 }

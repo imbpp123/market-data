@@ -61,12 +61,11 @@ func TestOperationRoutesAreIndependentAndDisabledByDefault(t *testing.T) {
 	}
 }
 
-func TestRetentionAndLoggingWorkersPreserveSnapshotsAndStop(t *testing.T) {
+func TestRetentionWorkerPreservesSnapshotsAndStopsWithoutStatisticsLogs(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		cfg := config.Defaults()
 		cfg.Klines.MaxHistoryCandles = 1
 		cfg.Storage.CleanupInterval = time.Minute
-		cfg.Observability.Stats.LogInterval = 30 * time.Second
 		state, err := newLocalState(1, time.Now)
 		require.NoError(t, err)
 		scope := application.Scope{Exchange: domain.ExchangeBybit, Market: domain.MarketLinear}
@@ -90,7 +89,7 @@ func TestRetentionAndLoggingWorkersPreserveSnapshotsAndStop(t *testing.T) {
 		logger := slog.New(slog.NewJSONHandler(&logs, nil))
 		workers, err := state.operationWorkers(cfg, logger, map[string]http.Handler{}, time.Now)
 		require.NoError(t, err)
-		require.Len(t, workers, 2)
+		require.Len(t, workers, 1)
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		done := make(chan error, len(workers))
@@ -122,8 +121,9 @@ func TestRetentionAndLoggingWorkersPreserveSnapshotsAndStop(t *testing.T) {
 		savedStats, err := state.marketStats.List(t.Context(), marketstats.Filter{SnapshotFilter: filter, Window: 24 * time.Hour})
 		require.NoError(t, err)
 		assert.Equal(t, stats, savedStats)
-		assert.Contains(t, logs.String(), "Market data statistics")
-		assert.Contains(t, logs.String(), "kline_count")
+		assert.Contains(t, logs.String(), "Candle cleanup completed")
+		assert.NotContains(t, logs.String(), "Market data statistics")
+		assert.NotContains(t, logs.String(), "kline_count")
 		assert.NotContains(t, logs.String(), "BTCUSDT")
 	})
 }

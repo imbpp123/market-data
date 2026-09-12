@@ -10,11 +10,11 @@ Complete cleanup, optional observability, and verify the lifecycle of the assemb
 
 - Add a retention worker using the shared klines.max_history_candles setting and configured cleanup interval. Compute calendar cutoffs per exchange/market/interval from one clock value per pass. Delete OpenTime strictly before the cutoff, complement pruning during fill merges, and release unused empty series. Do not apply retention to instruments, tickers, or statistics snapshots.
 - Complete built-in concurrent counters, durations, snapshot sizes, candle count, and last-success times from section 49. Publication success means a published snapshot, not just a successful HTTP response.
-- Add periodic aggregate structured logging. Keep operational statistics separate from MarketStats market data. Do not log entire candle arrays or secrets.
+- Keep operational statistics snapshots out of periodic logs. Keep operational statistics separate from MarketStats market data. Do not log entire candle arrays or secrets.
 - Add optional Prometheus and Sentry adapters behind appropriate boundaries. Metrics endpoints must be absent when disabled; built-in statistics must work without Prometheus. Keep statistics labels scoped by exchange/market/window without symbol cardinality.
 - Add the optional debug statistics endpoint, disabled by default. Implement Sentry error/panic/trace integration and bounded flush without leaking SDKs into domain/application.
 - Finish startup wiring under the phase 01 policy: immediate instrument/ticker/independent statistics work, no extra Bybit statistics worker, and readiness based on initialized API/storage rather than exchange freshness.
-- Verify SIGINT/SIGTERM handling for all workers, active HTTP requests, admission queues, shared fills, retention, and statistics logging. Cancel root work, stop accepting requests, wait within configured bounds, and flush telemetry.
+- Verify SIGINT/SIGTERM handling for all workers, active HTTP requests, admission queues, shared fills, and retention. Cancel root work, stop accepting requests, wait within configured bounds, and flush telemetry.
 
 ## Tests and checks
 
@@ -32,7 +32,7 @@ The assembled service cleans up historical data, reports its state without exter
 ## Implementation and verification
 
 - The application retention use case captures one clock per pass. Bootstrap derives scopes from provider interval tables and schedules immediate cleanup and completion-based waits. Memory inventory counts retained rows without copying payloads; cleanup and inventory honor cancellation.
-- The existing publication counters retain their success semantics. Exchange attempts count once per dispatched request, including shared Bybit responses. Candle fills now report completion durations. Aggregate logs and optional Prometheus/debug handlers read the same race-safe counters without symbol labels.
+- The existing publication counters retain their success semantics. Exchange attempts count once per dispatched request, including shared Bybit responses. Candle fills now report completion durations. Optional Prometheus/debug handlers read the same race-safe counters without symbol labels.
 - A private Sentry SDK adapter reports sanitized errors, panics, HTTP/exchange/fill/retention traces, and flushes within the remaining shutdown deadline. SDK types stay outside application/domain. A panic cannot retain an upstream HTTP slot.
 - Tests cover minute/month/week/three-day retention cutoffs, equality, storage failure isolation, cancellation, calendar overflow, concurrent inventory/cleanup, current snapshot preservation, optional route combinations, Bybit branch counters, fake telemetry payloads and sampling, HTTP/worker/fill panics, cooldown readiness, and bounded flush after worker completion. Regression tests also cover instrument fetch/write panics before and after a successful publication, HTTP failure codes, expected cancellation, and unready snapshot telemetry. Existing tests cover shared-fill cancellation and active HTTP closure.
 - Release packaging, real deployment access, resource measurements, and container signal checks remain in phase 12.

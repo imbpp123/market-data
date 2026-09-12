@@ -122,6 +122,8 @@ func TestInvalidConfigurationSources(t *testing.T) {
 		{"numeric key", "server: {1: 2}", nil},
 		{"null section", "server: null", nil},
 		{"obsolete retention", "storage: {retention: {klines: {1m: 24h}}}", nil},
+		{"obsolete statistics log interval", "observability: {stats: {log_interval: 1m}}", nil},
+		{"obsolete statistics log interval env", "", []string{"MDS_OBSERVABILITY_STATS_LOG_INTERVAL=1m"}},
 		{"bybit schedule", "exchanges: {bybit: {market_stats: {refresh_interval: 30s}}}", nil},
 		{"unknown env", "", []string{"MDS_UNKNOWN=1"}},
 		{"bad env shape", "", []string{"MDS_SERVER_PORT"}},

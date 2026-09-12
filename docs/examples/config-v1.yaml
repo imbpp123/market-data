@@ -1224,9 +1224,9 @@ observability:
   # In-process counters, durations, snapshot sizes, and last-success timestamps;
   # these are diagnostics, not 24h exchange market-statistics records.
   stats:
-    # Description: true enables standalone operational statistics collection and
-    #              aggregate logging. Prometheus or the debug endpoint can request
-    #              collection independently when this is false. Sentry is independent.
+    # Description: true enables standalone operational statistics collection.
+    #              Prometheus or the debug endpoint can request collection independently
+    #              when this is false. Sentry is independent.
     #              Counters are process-local and reset on restart.
     #
     # Values: true or false.
@@ -1236,21 +1236,9 @@ observability:
     # Required: no
     enabled: true
 
-    # Description: Positive interval between aggregate statistics log records. Smaller
-    #              values give more frequent diagnostics and more log volume. Logs
-    #              contain summaries, not every candle; the interval is still validated
-    #              when collection is disabled.
-    #
-    # Values: Positive Go duration; see duration syntax at the top of this file.
-    #
-    # Default: 1m
-    #
-    # Required: no
-    log_interval: 1m
-
     # Description: true exposes the optional GET /debug/stats diagnostics route; false
-    #              keeps it absent. This controls HTTP exposure separately from logging.
-    #              This endpoint requests collection even when standalone logging is
+    #              keeps it absent. This controls HTTP exposure separately from stats.enabled.
+    #              This endpoint requests collection even when standalone collection is
     #              disabled. No Prometheus export is needed.
     #
     # Values: true or false.

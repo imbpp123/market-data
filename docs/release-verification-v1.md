@@ -51,7 +51,7 @@ Raw run evidence is in [phase 12 evidence](evidence/phase-12/README.md). CI now 
 | 20 | Private optional Sentry client | `internal/infrastructure/observability/sentry_test.go`; lifecycle flush and panic tests | Pass; no production telemetry sent |
 | 21 | Optional Prometheus exporter | `TestOperationRoutesAreIndependentAndDisabledByDefault`, statistics exporter tests | Pass |
 | 22 | Built-in statistics independent of exporters | `TestKlineCountersNeedStandaloneStatsOrAnExporter`; observability tests | Pass |
-| 23 | JSON structured logs with aggregate statistics | Bootstrap operational tests and observability sanitization tests; container process logs | Pass |
+| 23 | JSON structured operation logs | Bootstrap operational tests and observability sanitization tests; container process logs | Pass |
 | 24 | Local health/readiness endpoints | HTTP handler tests, process lifecycle tests, `TestReleaseContainerProbe` | Pass; not an exchange readiness guarantee |
 | 25 | Owned work cancels and shutdown waits are bounded | `TestServeExposesKlinesAndCancelsOwnedFill`, `TestExchangeCooldownDoesNotBlockReadinessOrShutdown`, `TestServeFlushUsesRemainingShutdownTimeAfterWorkersStop`, Compose SIGTERM | Pass |
 | 26 | Behavioral unit tests | `make test`; focused regression tests for compact storage and health probe | Pass |

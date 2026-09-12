@@ -56,19 +56,6 @@ func (s *localState) operationWorkers(cfg config.Config, logger *slog.Logger, ro
 			logger.Info("Candle cleanup completed", "operation", "retention", "duration", now().Sub(started))
 		})
 	}}
-	if cfg.Observability.Stats.Enabled {
-		workers = append(workers, func(ctx context.Context) error {
-			return periodic(ctx, cfg.Observability.Stats.LogInterval, false, func(ctx context.Context) {
-				snapshot, err := statistics.Snapshot(ctx)
-				if err != nil {
-					logger.Warn("Statistics read failed", "operation", "statistics", "error", observability.ErrorCode(err))
-					s.telemetry.Report(err, map[string]string{"operation": "statistics"})
-					return
-				}
-				logger.Info("Market data statistics", "statistics", snapshot)
-			})
-		})
-	}
 	return workers, nil
 }
 
@@ -105,7 +92,7 @@ func (s *localState) runWorker(ctx context.Context, worker Worker) (err error) {
 	return err
 }
 
-// Exporters can use the same counters without enabling periodic logging.
+// Exporters can request counters even when standalone collection is disabled.
 func collectStatistics(cfg config.Config) bool {
 	return cfg.Observability.Stats.Enabled || cfg.Observability.Stats.EndpointEnabled || cfg.Observability.Prometheus.Enabled
 }
