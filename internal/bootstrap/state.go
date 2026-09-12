@@ -17,6 +17,7 @@ import (
 type localState struct {
 	instrumentMetrics *observability.Instruments
 	currentMetrics    *observability.Current
+	klineMetrics      *observability.Klines
 	ready             atomic.Bool
 	exchanges         *exchangeClients
 	instruments       instrument.Repository
@@ -33,6 +34,7 @@ func newLocalState(historyCandles int64, now func() time.Time) (*localState, err
 	return &localState{
 		instruments:       memory.NewInstrumentRepository(),
 		currentMetrics:    observability.NewCurrent(),
+		klineMetrics:      observability.NewKlines(),
 		instrumentMetrics: observability.NewInstruments(),
 		tickers:           memory.NewTickerRepository(),
 		marketStats:       memory.NewMarketStatsRepository(),

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"market-data/internal/config"
+	"market-data/internal/infrastructure/exchange/upstream"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ func TestServeBecomesReadyAfterLocalInitialization(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		cfg := config.Defaults()
-		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		state, err := newServerState(t, cfg)
 		require.NoError(t, err)
 		listener := newPipeListener()
 		result := make(chan error, 1)
@@ -55,7 +56,7 @@ func TestServeCancelsAndWaitsForWorkers(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		cfg := config.Defaults()
-		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		state, err := newServerState(t, cfg)
 		require.NoError(t, err)
 		listener := newPipeListener()
 		started := make(chan struct{})
@@ -83,7 +84,7 @@ func TestServeCancelsAndWaitsForWorkers(t *testing.T) {
 func TestWorkerFailureStopsServer(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		cfg := config.Defaults()
-		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		state, err := newServerState(t, cfg)
 		require.NoError(t, err)
 		listener := newPipeListener()
 		expected := errors.New("worker unavailable")
@@ -103,7 +104,7 @@ func TestShutdownStopsWaitingAtTheDeadline(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		cfg := config.Defaults()
-		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		state, err := newServerState(t, cfg)
 		require.NoError(t, err)
 		listener := newPipeListener()
 		started := make(chan struct{})
@@ -157,7 +158,7 @@ func TestRunRejectsCanceledContext(t *testing.T) {
 func TestServeReturnsListenerFailure(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		cfg := config.Defaults()
-		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		state, err := newServerState(t, cfg)
 		require.NoError(t, err)
 		listener := newPipeListener()
 		require.NoError(t, listener.Close())
@@ -173,7 +174,7 @@ func TestWorkerShutdownFailureIsPreserved(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		cfg := config.Defaults()
-		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		state, err := newServerState(t, cfg)
 		require.NoError(t, err)
 		listener := newPipeListener()
 		expected := errors.New("worker cleanup failed")
@@ -200,7 +201,7 @@ func TestShutdownClosesAnIdleConnection(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		cfg := config.Defaults()
-		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		state, err := newServerState(t, cfg)
 		require.NoError(t, err)
 		listener := newPipeListener()
 		result := make(chan error, 1)
@@ -277,4 +278,15 @@ func channelClosed(channel <-chan struct{}) bool {
 	default:
 		return false
 	}
+}
+
+func newServerState(t *testing.T, cfg config.Config) (*localState, error) {
+	t.Helper()
+	state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+	if err != nil {
+		return nil, err
+	}
+
+	state.exchanges, err = newExchangeClients(cfg, noExchangeCalls{t}, upstream.SystemClock{}, func(time.Duration) time.Duration { return 0 }, nil)
+	return state, err
 }

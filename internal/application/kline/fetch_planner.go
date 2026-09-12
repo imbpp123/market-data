@@ -113,6 +113,10 @@ func (p *Planner) validate(query Query, now time.Time) (domain.Calendar, int64, 
 // Repository.GetRange's contract, except that their order does not matter.
 // Every non-final row requires a refresh, even after its local close boundary.
 func (p *Planner) Plan(query Query, cached []Stored, now time.Time) ([]Request, error) {
+	return p.plan(query, cached, now, nil)
+}
+
+func (p *Planner) plan(query Query, cached []Stored, now time.Time, refreshed refreshes) ([]Request, error) {
 	calendar, count, err := p.validate(query, now)
 	if err != nil {
 		return nil, err
@@ -121,6 +125,12 @@ func (p *Planner) Plan(query Query, cached []Stored, now time.Time) ([]Request, 
 	final, err := finalSlots(query, calendar, count, cached, now)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, row := range cached {
+		if refreshed.accepts(row, now) {
+			final[row.Candle.OpenTime.UTC()] = true
+		}
 	}
 
 	requests := make([]Request, 0)

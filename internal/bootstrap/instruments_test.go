@@ -80,7 +80,7 @@ func TestInstrumentWorkersKeepExchangeFailuresIndependent(t *testing.T) {
 func TestServeExposesInstrumentReadinessSeparately(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		cfg := config.Defaults()
-		state, err := newLocalState(1000, time.Now)
+		state, err := newServerState(t, cfg)
 		require.NoError(t, err)
 		listener := newPipeListener()
 		ctx, cancel := context.WithCancel(t.Context())

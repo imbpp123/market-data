@@ -135,6 +135,7 @@ func (t *Transport) RoundTrip(request *http.Request) (result *http.Response, fai
 			t.controller.rollback(t.scope, cost.operation, operation, started)
 			return nil, err
 		}
+		observeAttempt(request.Context())
 		response, body, event, retryable := t.attempt(request, cost, started)
 		t.controller.release(t.scope, cost.operation)
 		if t.observe != nil {

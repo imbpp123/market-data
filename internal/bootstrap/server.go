@@ -77,12 +77,25 @@ func (state *localState) serve(ctx context.Context, cfg config.Config, logger *s
 	root, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	routes := httptransport.NewSnapshotHandlers(
+		instrument.NewReader(state.instruments, enabledScopes(cfg)),
+		ticker.NewReader(state.tickers, enabledScopes(cfg), time.Now),
+		marketstats.NewReader(state.marketStats, enabledScopes(cfg)),
+		cfg.Server.SnapshotTimeout, cfg.Server.MaxSnapshotRequests)
+	service, err := state.klineService(root, cfg, time.Now)
+	if err != nil {
+		_ = listener.Close()
+		return err
+	}
+	routes["/api/v1/klines"] = httptransport.NewKlinesHandler(service, cfg.Klines.RequestTimeout, cfg.Klines.MaxCallers)
+	workers = append(workers, func(ctx context.Context) error {
+		<-ctx.Done()
+		service.Wait()
+		return nil
+	})
+
 	server := &http.Server{
-		Handler: httptransport.NewAPIHandler(state.ready.Load, cfg.Server.MaxQueryBytes, httptransport.NewSnapshotHandlers(
-			instrument.NewReader(state.instruments, enabledScopes(cfg)),
-			ticker.NewReader(state.tickers, enabledScopes(cfg), time.Now),
-			marketstats.NewReader(state.marketStats, enabledScopes(cfg)),
-			cfg.Server.SnapshotTimeout, cfg.Server.MaxSnapshotRequests)),
+		Handler:           httptransport.NewAPIHandler(state.ready.Load, cfg.Server.MaxQueryBytes, routes),
 		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
 		IdleTimeout:       cfg.Server.IdleTimeout,
 		WriteTimeout:      cfg.WriteTimeout(),
