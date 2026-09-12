@@ -1,6 +1,6 @@
 # Development guide
 
-Run all commands from the repository root. The current build includes configuration loading, the process scaffold, exact domain models, UTC candle calendars, funding read models, and application contracts. Exchange adapters, repositories, market-data endpoints, and observability integrations are not implemented yet.
+Run all commands from the repository root. The current build includes configuration loading, the process scaffold, exact domain models, UTC candle calendars, funding read models, application contracts, and in-memory repositories. Exchange adapters, market-data endpoints, and observability integrations are not implemented yet.
 
 ## Run
 
@@ -14,7 +14,9 @@ make run
 
 Without `-config`, the process uses built-in defaults and environment overrides. `-check-config` validates settings and exits without opening HTTP or starting workers. Logs are JSON on stderr. SIGINT and SIGTERM cancel root work, close the HTTP listener, and wait for owned workers within `server.shutdown_timeout`.
 
-The scaffold serves `GET /health` and `GET /ready`. Health means the process is alive. Readiness means local bootstrap initialization has finished; no exchange request is required. Phase 04 must initialize the actual memory repositories before starting the server, and feature phases must wire data routes and workers. Readiness in this scaffold is not evidence that market data is available. Unknown routes return 404; unsupported health methods return 405.
+The scaffold serves `GET /health` and `GET /ready`. Health means the process is alive. Readiness means local bootstrap initialization has finished; no exchange request is required. Bootstrap creates the four memory repositories before binding HTTP. Feature phases must wire data routes and workers. Readiness in this scaffold is not evidence that market data is available. Unknown routes return 404; unsupported health methods return 405.
+
+Storage lives in `internal/infrastructure/storage/memory` behind application interfaces. Instrument, ticker, and statistics snapshots publish independently and keep scope readiness separate from empty data. Candle merges use `klines.max_history_candles`, an injected clock, and the domain history calendar; cleanup cutoffs cannot move backwards. Post-close confirmation uses internal successful-attempt start metadata. Periodic cleanup scheduling is phase 11 work; merge-time pruning is already active.
 
 ## Configuration
 

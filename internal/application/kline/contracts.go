@@ -47,7 +47,9 @@ type Stored struct {
 // stored row. An older result must never overwrite a newer open value.
 // DeleteBefore removes OpenTime strictly below the scoped cutoff for all
 // symbols, records a monotonic cutoff, and prevents late writes below it.
-// Merges prune against the applied cutoff. Missing rows are not cached as data.
+// Merges use the shared configured history size and one captured clock value,
+// pruning against the later of the current history cutoff and the applied one.
+// Missing rows are not cached as data.
 type Repository interface {
 	GetRange(ctx context.Context, query Query) ([]Stored, error)
 	UpsertMany(ctx context.Context, rows []Stored) error

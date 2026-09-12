@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"sync/atomic"
+	"time"
 
 	"market-data/internal/config"
 	httptransport "market-data/internal/transport/http"
@@ -28,22 +28,26 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, workers ..
 		return err
 	}
 
+	state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+	if err != nil {
+		return err
+	}
+
 	var listenConfig net.ListenConfig
 	listener, err := listenConfig.Listen(ctx, "tcp", net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)))
 	if err != nil {
 		return fmt.Errorf("listen HTTP: %w", err)
 	}
 
-	return serve(ctx, cfg, logger, listener, workers...)
+	return state.serve(ctx, cfg, logger, listener, workers...)
 }
 
-func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, listener net.Listener, workers ...Worker) error {
+func (state *localState) serve(ctx context.Context, cfg config.Config, logger *slog.Logger, listener net.Listener, workers ...Worker) error {
 	root, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	var ready atomic.Bool
 	server := &http.Server{
-		Handler:           httptransport.NewHandler(ready.Load, cfg.Server.MaxQueryBytes),
+		Handler:           httptransport.NewHandler(state.ready.Load, cfg.Server.MaxQueryBytes),
 		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
 		IdleTimeout:       cfg.Server.IdleTimeout,
 		WriteTimeout:      cfg.WriteTimeout(),
@@ -73,8 +77,8 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, listener
 		}()
 	}
 
-	// Local routes are initialized before readiness; data repositories arrive in phase 04.
-	ready.Store(true)
+	// Local storage and routes are initialized; upstream snapshots may be unready.
+	state.ready.Store(true)
 	logger.Info("HTTP server started", "address", listener.Addr().String(), "phase", "bootstrap")
 	logger.Warn("Admission state is memory-only; exchange usage and cooldowns can survive a restart")
 
@@ -85,7 +89,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, listener
 	case result = <-failures:
 	}
 
-	ready.Store(false)
+	state.ready.Store(false)
 	cancel()
 	shutdown, stop := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
 	defer stop()

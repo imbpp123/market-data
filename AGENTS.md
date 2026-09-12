@@ -55,6 +55,8 @@ Separate calculations from I/O. Keep business rules and validation directly test
 
 Unit tests are required for every non-trivial logic change. Bug fixes need a regression test that demonstrates the failure. Test observable inputs, outputs, state changes, invariants, and errors.
 
+- Keep tests simple and easy to read. Repeated code in tests is acceptable; prefer clear, self-contained scenarios over abstractions added only to remove duplication. Keep helpers small and explicit, and avoid generic test frameworks or reflection that hide setup, actions, or expected results.
+- Always use the current test's `t.Context()` as the root context, including inside subtests. Do not use `context.Background()` or `context.TODO()` in tests. Derive explicit cancellation and deadlines from `t.Context()`, and pass the test context to blocking operations and HTTP requests so their lifetime stays tied to the test.
 - Exercise real logic. Prefer small stateful fakes at I/O boundaries over mocks of internal methods.
 - Do not treat an assertion that a method was called as proof that a feature works. Avoid tests coupled to private helper names, incidental call order, or the current decomposition of a use case.
 - Call counts are valid only when they are an explicit part of the required observable behavior. Also assert returned data, resulting state, or the expected failure.

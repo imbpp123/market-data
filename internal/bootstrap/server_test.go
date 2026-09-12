@@ -13,119 +13,216 @@ import (
 	"testing/synctest"
 	"time"
 
+	"market-data/internal/config"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"market-data/internal/config"
 )
 
-func TestServeCancelsAndWaitsForWorkers(t *testing.T) {
+func TestServeBecomesReadyAfterLocalInitialization(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		listener := newPipeListener()
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
-		started := make(chan struct{})
-		stopped := make(chan struct{})
+		cfg := config.Defaults()
+		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		require.NoError(t, err)
+		listener := newPipeListener()
 		result := make(chan error, 1)
-		worker := func(ctx context.Context) error {
-			close(started)
-			<-ctx.Done()
-			defer close(stopped)
-
-			return ctx.Err()
-		}
-		go func() { result <- serve(ctx, config.Defaults(), testLogger(), listener, worker) }()
-		<-started
+		go func() {
+			result <- state.serve(ctx, cfg, testLogger(), listener)
+		}()
+		defer func() {
+			cancel()
+			require.NoError(t, <-result)
+		}()
 		synctest.Wait()
-
 		transport := &http.Transport{DialContext: listener.dial}
 		defer transport.CloseIdleConnections()
 		client := &http.Client{Transport: transport}
-		response, err := client.Get("http://local/ready")
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://local/ready", nil)
 		require.NoError(t, err)
 
-		_, err = io.Copy(io.Discard, response.Body)
+		response, err := client.Do(request)
+
 		require.NoError(t, err)
+		defer func() { _ = response.Body.Close() }()
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+	})
+}
 
-		require.NoError(t, response.Body.Close())
-
-		assert.Equal(t, 200, response.StatusCode)
+func TestServeCancelsAndWaitsForWorkers(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		cfg := config.Defaults()
+		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		require.NoError(t, err)
+		listener := newPipeListener()
+		started := make(chan struct{})
+		stopped := make(chan struct{})
+		worker := func(ctx context.Context) error {
+			defer close(stopped)
+			close(started)
+			<-ctx.Done()
+			return ctx.Err()
+		}
+		result := make(chan error, 1)
+		go func() {
+			result <- state.serve(ctx, cfg, testLogger(), listener, worker)
+		}()
+		<-started
 
 		cancel()
+
 		require.NoError(t, <-result)
-
-		assert.True(t, channelClosed(stopped), "returned before worker stopped")
-
+		assert.True(t, channelClosed(stopped), "server returned before its worker stopped")
 		assert.True(t, channelClosed(listener.closed), "listener remains open")
 	})
 }
 
 func TestWorkerFailureStopsServer(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		expected := errors.New("worker unavailable")
+		cfg := config.Defaults()
+		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		require.NoError(t, err)
 		listener := newPipeListener()
-		err := serve(context.Background(), config.Defaults(), testLogger(), listener, func(context.Context) error { return expected })
-		assert.ErrorIs(t, err, expected)
+		expected := errors.New("worker unavailable")
+		worker := func(context.Context) error {
+			return expected
+		}
 
+		err = state.serve(t.Context(), cfg, testLogger(), listener, worker)
+
+		assert.ErrorIs(t, err, expected)
 		assert.True(t, channelClosed(listener.closed), "listener remains open")
 	})
 }
 
-func TestShutdownDeadline(t *testing.T) {
+func TestShutdownStopsWaitingAtTheDeadline(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
 		cfg := config.Defaults()
+		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		require.NoError(t, err)
 		listener := newPipeListener()
-		ctx, cancel := context.WithCancel(context.Background())
-		started, release := make(chan struct{}), make(chan struct{})
+		started := make(chan struct{})
+		releaseWorker := make(chan struct{})
+		worker := func(context.Context) error {
+			close(started)
+			<-releaseWorker
+			return nil
+		}
 		result := make(chan error, 1)
 		go func() {
-			result <- serve(ctx, cfg, testLogger(), listener, func(context.Context) error {
-				close(started)
-				<-release
-
-				return nil
-			})
+			result <- state.serve(ctx, cfg, testLogger(), listener, worker)
 		}()
 		<-started
-		before := time.Now()
+		shutdownStarted := time.Now()
+
 		cancel()
-		err := <-result
+		err = <-result
+		close(releaseWorker)
+
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
-
-		assert.Equal(t, cfg.Server.ShutdownTimeout, time.Since(before))
-
-		close(release)
+		assert.Equal(t, cfg.Server.ShutdownTimeout, time.Since(shutdownStarted))
 		synctest.Wait()
 	})
 }
 
-func TestRunRejectsInvalidConfigBeforeStarting(t *testing.T) {
+func TestRunRejectsInvalidConfigBeforeStartingWorkers(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.Server.Port = 0
 	var started atomic.Bool
-	err := Run(context.Background(), cfg, testLogger(), func(context.Context) error {
+	worker := func(context.Context) error {
 		started.Store(true)
 		return nil
-	})
+	}
+
+	err := Run(t.Context(), cfg, testLogger(), worker)
+
 	assert.Error(t, err)
 	assert.False(t, started.Load())
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	assert.ErrorIs(t, Run(ctx, config.Defaults(), testLogger()), context.Canceled)
 }
 
-func TestListenerFailure(t *testing.T) {
+func TestRunRejectsCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	err := Run(ctx, config.Defaults(), testLogger())
+
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestServeReturnsListenerFailure(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
+		cfg := config.Defaults()
+		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		require.NoError(t, err)
 		listener := newPipeListener()
 		require.NoError(t, listener.Close())
 
-		err := serve(context.Background(), config.Defaults(), testLogger(), listener)
+		err = state.serve(t.Context(), cfg, testLogger(), listener)
+
 		assert.ErrorIs(t, err, net.ErrClosed)
 	})
 }
 
-func testLogger() *slog.Logger { return slog.New(slog.NewJSONHandler(io.Discard, nil)) }
+func TestWorkerShutdownFailureIsPreserved(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		cfg := config.Defaults()
+		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		require.NoError(t, err)
+		listener := newPipeListener()
+		expected := errors.New("worker cleanup failed")
+		started := make(chan struct{})
+		worker := func(ctx context.Context) error {
+			close(started)
+			<-ctx.Done()
+			return expected
+		}
+		result := make(chan error, 1)
+		go func() {
+			result <- state.serve(ctx, cfg, testLogger(), listener, worker)
+		}()
+		<-started
+
+		cancel()
+
+		assert.ErrorIs(t, <-result, expected)
+	})
+}
+
+func TestShutdownClosesAnIdleConnection(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		cfg := config.Defaults()
+		state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
+		require.NoError(t, err)
+		listener := newPipeListener()
+		result := make(chan error, 1)
+		go func() {
+			result <- state.serve(ctx, cfg, testLogger(), listener)
+		}()
+		client, err := listener.dial(ctx, "tcp", "local")
+		require.NoError(t, err)
+		defer func() { _ = client.Close() }()
+		synctest.Wait()
+
+		cancel()
+		require.NoError(t, <-result)
+
+		_, err = client.Write([]byte("GET /health HTTP/1.1\r\nHost: local\r\n\r\n"))
+		assert.Error(t, err, "connection remains usable after shutdown")
+	})
+}
+
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(io.Discard, nil))
+}
 
 // Pipe connections exercise the real HTTP server without external sockets or sleeps.
 type pipeListener struct {
@@ -135,7 +232,10 @@ type pipeListener struct {
 }
 
 func newPipeListener() *pipeListener {
-	return &pipeListener{connections: make(chan net.Conn), closed: make(chan struct{})}
+	return &pipeListener{
+		connections: make(chan net.Conn),
+		closed:      make(chan struct{}),
+	}
 }
 
 func (l *pipeListener) Accept() (net.Conn, error) {
@@ -153,7 +253,9 @@ func (l *pipeListener) Close() error {
 	return nil
 }
 
-func (l *pipeListener) Addr() net.Addr { return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080} }
+func (l *pipeListener) Addr() net.Addr {
+	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080}
+}
 
 func (l *pipeListener) dial(ctx context.Context, _, _ string) (net.Conn, error) {
 	client, server := net.Pipe()
@@ -175,51 +277,4 @@ func channelClosed(channel <-chan struct{}) bool {
 	default:
 		return false
 	}
-}
-
-func TestWorkerShutdownFailureIsPreserved(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		expected := errors.New("worker cleanup failed")
-		listener := newPipeListener()
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		started := make(chan struct{})
-		result := make(chan error, 1)
-		go func() {
-			result <- serve(ctx, config.Defaults(), testLogger(), listener, func(ctx context.Context) error {
-				close(started)
-				<-ctx.Done()
-				return expected
-			})
-		}()
-
-		<-started
-		cancel()
-		assert.ErrorIs(t, <-result, expected)
-	})
-}
-
-func TestShutdownClosesAnIdleConnection(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		listener := newPipeListener()
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		result := make(chan error, 1)
-		go func() {
-			result <- serve(ctx, config.Defaults(), testLogger(), listener)
-		}()
-
-		client, err := listener.dial(ctx, "tcp", "local")
-		require.NoError(t, err)
-		defer func() { _ = client.Close() }()
-		synctest.Wait()
-
-		cancel()
-		require.NoError(t, <-result)
-
-		_, err = client.Write([]byte("GET /health HTTP/1.1\r\nHost: local\r\n\r\n"))
-		assert.Error(t, err, "connection remains usable after shutdown")
-	})
 }
