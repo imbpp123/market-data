@@ -1,12 +1,12 @@
 # v1 development plan
 
-Status: delivery plan, September 12, 2026. Phases 01–04 are complete; phases 05–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
+Status: delivery plan, September 12, 2026. Phases 01–05 are complete; phases 06–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
 
 Source of requirements: [Technical specification v1](../technical-specification-v1.md). Engineering rules: [AGENTS.md](../../AGENTS.md). The specification remains authoritative; these files define delivery order, not new approved product requirements.
 
 ## Current project state
 
-The repository contains specifications, a phase plan, configuration/HTTP examples, phase 01 discovery fixtures, and the phase 02 Go process scaffold. The pinned module, configuration loader, health HTTP lifecycle, unit tests, Makefile, and CI baseline are implemented. Phase 03 adds exact domain models, tested UTC calendars, funding read models, and consumer-owned application contracts. Phase 04 adds independent atomic snapshots, candle storage with finalization and retention, and storage initialization before HTTP startup. Exchange adapters, data APIs, and deployment packaging are not implemented. Section 14 reports earlier SDK checks; those historical results remain evidence, not executed adapter tests in this project.
+The repository contains specifications, a phase plan, configuration/HTTP examples, phase 01 discovery fixtures, and the phase 02 Go process scaffold. The pinned module, configuration loader, health HTTP lifecycle, unit tests, Makefile, and CI baseline are implemented. Phase 03 adds exact domain models, tested UTC calendars, funding read models, and consumer-owned application contracts. Phase 04 adds independent atomic snapshots, candle storage with finalization and retention, and storage initialization before HTTP startup. Phase 05 adds shared upstream admission, scoped cooldowns, retry and cycle backoff, exact raw response capture, and pinned SDK clients with local HTTP integration tests. Feature normalization, collection workers, data APIs, and deployment packaging are not implemented. Section 14 reports earlier SDK checks; phase 05 recreates HTTP-boundary checks, while field normalization tests remain assigned to feature phases.
 
 The initial review assessed the supplied project documentation. Phase 01 source checks are recorded in the decision register. Phase 01 includes bounded live discovery and an official release-catalog check. It does not reproduce historical SDK tests or verify deployment behavior.
 

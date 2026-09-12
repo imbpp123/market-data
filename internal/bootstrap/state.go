@@ -15,6 +15,7 @@ import (
 // localState owns process storage. Feature services will share these repositories.
 type localState struct {
 	ready       atomic.Bool
+	exchanges   *exchangeClients
 	instruments instrument.Repository
 	tickers     ticker.Repository
 	marketStats marketstats.Repository

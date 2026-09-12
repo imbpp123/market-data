@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"market-data/internal/config"
+	"market-data/internal/infrastructure/exchange/upstream"
 	httptransport "market-data/internal/transport/http"
 )
 
@@ -31,6 +33,17 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, workers ..
 	state, err := newLocalState(int64(cfg.Klines.MaxHistoryCandles), time.Now)
 	if err != nil {
 		return err
+	}
+
+	state.exchanges, err = newExchangeClients(cfg, http.DefaultTransport, upstream.SystemClock{}, func(ceiling time.Duration) time.Duration {
+		return time.Duration(rand.Int64N(int64(ceiling)))
+	}, func(event upstream.Event) {
+		if event.Error != nil {
+			logger.Warn("Upstream attempt failed", "scope", event.Scope, "path", event.Path, "status", event.Status, "code", event.Code, "error", event.Error)
+		}
+	})
+	if err != nil {
+		return fmt.Errorf("initialize exchange clients: %w", err)
 	}
 
 	var listenConfig net.ListenConfig

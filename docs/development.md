@@ -1,6 +1,6 @@
 # Development guide
 
-Run all commands from the repository root. The current build includes configuration loading, the process scaffold, exact domain models, UTC candle calendars, funding read models, application contracts, and in-memory repositories. Exchange adapters, market-data endpoints, and observability integrations are not implemented yet.
+Run all commands from the repository root. The current build includes configuration loading, the process scaffold, exact domain models, UTC candle calendars, funding read models, application contracts, in-memory repositories, and bounded upstream admission/retries. Exchange normalization, collection workers, market-data endpoints, and observability integrations are not implemented yet.
 
 ## Run
 
@@ -39,7 +39,11 @@ Validation covers the full agreed schema, including disabled providers' input sy
 
 Reducing a kline page size may require raising the kline attempt bound. Increasing history also affects this bound. Counts use checked integer arithmetic; the history count additionally cannot exceed `MaxInt64 / (31 * 24 * 60 * 60)` so a worst-case monthly span fits signed seconds. Calendar-specific checks belong to the timeframe implementation.
 
-Admission will keep usage and cooldown state in memory. Exchange-side usage and bans may survive restarts. Restarting cannot guarantee continuity of local accounting. Actual admission is phase 05 work; this scaffold makes no exchange calls.
+Admission keeps usage, discovered limits, and cooldown state in memory. Exchange-side usage and bans may survive restarts. Restarting cannot guarantee continuity of local accounting. Bootstrap constructs a shared controller and pinned SDK clients before HTTP bind, without making exchange calls. See [phase 05](phases/05-upstream-admission-and-retries.md) for the implementation and checks.
+
+Feature adapters use the shared `binance.Client.Fetch` or `bybit.Client.Fetch` with one `Controller.Begin` context per full cycle or fill. Pages and retries reuse that context. The returned raw body retains exact source numbers and successful-attempt start/receipt timestamps; feature normalization must not rebuild numeric values from the Bybit SDK result. A background worker owns one `CycleGate` and calls `Run` with the full cycle, including publication, so a new cycle cannot reset failure backoff. Workers and domain normalization are added in phases 06–09.
+
+The transport resolves actual endpoint costs, performs atomic sliding-window admission, and bounds retries, response bodies after decompression, queues, HTTP concurrency, and deadlines. It exposes per-attempt request/error/duration events; bootstrap logs attempt failures. Built-in statistics aggregation and feature counters remain assigned to their feature and operations phases. Integration tests use loopback HTTP servers, so sandboxed test runs need permission to bind local ports.
 
 Sentry, Prometheus, and built-in statistics settings are validated but their integrations are deferred to feature and operations phases. The process logs that limitation when those options are enabled; metrics and debug routes are absent in this phase.
 

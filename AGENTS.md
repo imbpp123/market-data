@@ -41,7 +41,7 @@ Separate calculations from I/O. Keep business rules and validation directly test
 
 ## Go coding style
 
-- Keep code readable and clearly structured. Separate logical blocks with blank lines, keep related statements together, and avoid dense one-line control flow or multiple statements on one line. Use clear names and small, focused functions.
+- Use standard Go formatting with `gofmt`. Keep a blank line between top-level type, function, and method declarations. Within functions, separate logical blocks with blank lines and keep related statements together; in tests, visually separate setup, action, and assertions. `gofmt` does not add this logical spacing for you. Avoid dense one-line control flow or multiple statements on one line. Use clear names and small, focused functions.
 - Make the smallest sufficient change. Preserve the existing style and public interfaces unless the task requires a change.
 - Prefer the standard library. Add dependencies only for a concrete requirement.
 - Prefer unexported types and functions unless another package needs them.
@@ -56,12 +56,14 @@ Separate calculations from I/O. Keep business rules and validation directly test
 Unit tests are required for every non-trivial logic change. Bug fixes need a regression test that demonstrates the failure. Test observable inputs, outputs, state changes, invariants, and errors.
 
 - Keep tests simple and easy to read. Repeated code in tests is acceptable; prefer clear, self-contained scenarios over abstractions added only to remove duplication. Keep helpers small and explicit, and avoid generic test frameworks or reflection that hide setup, actions, or expected results.
+- Use table-driven tests when cases share the same setup, action, and assertion structure. Define named test cases first, then use one shared execution loop with `t.Run`. Each subtest must create its own state from its case data.
+- For non-table-driven tests, write one test function per test case, with independent setup and one scenario. Do not chain unrelated cases by changing configuration and repeating actions in one test. Multiple assertions are appropriate when they verify the same scenario.
 - Always use the current test's `t.Context()` as the root context, including inside subtests. Do not use `context.Background()` or `context.TODO()` in tests. Derive explicit cancellation and deadlines from `t.Context()`, and pass the test context to blocking operations and HTTP requests so their lifetime stays tied to the test.
 - Exercise real logic. Prefer small stateful fakes at I/O boundaries over mocks of internal methods.
 - Do not treat an assertion that a method was called as proof that a feature works. Avoid tests coupled to private helper names, incidental call order, or the current decomposition of a use case.
 - Call counts are valid only when they are an explicit part of the required observable behavior. Also assert returned data, resulting state, or the expected failure.
 - Cover normal cases, boundary values, empty input, malformed input, missing optional values, dependency failures, cancellation, and deadlines as relevant.
-- Use table-driven tests when cases share a behavior. Keep expected values explicit; do not recreate the production algorithm to compute the expected result.
+- Keep expected values explicit; do not recreate the production algorithm to compute the expected result.
 - Use controlled clocks, timers, and synchronization for time and concurrency tests. Do not rely on arbitrary sleeps, random scheduling, external services, or wall-clock timing for correctness.
 - Keep unit tests beside the code in `*_test.go`. Use the standard `testing` package as the test runner and `testify/assert` or `testify/require` for assertions. Use `require` for prerequisites that must stop the test on failure, and `assert` for independent result checks. Prefer clear assertions over manual `if` blocks with `t.Fatal` or `t.Errorf`. Do not add a mocking framework by default.
 - Do not test trivial getters, setters, or pure data containers without meaningful behavior. Coverage numbers help locate gaps; they are not a substitute for assertions and are not a reason to add empty tests.
