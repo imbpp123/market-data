@@ -36,17 +36,21 @@ func Limit(value string) (*decimal.Decimal, error) {
 	// Bound fixed-point expansion before String or comparisons can rescale it.
 	// The input cap already bounds coefficient allocation; int64 avoids negating
 	// MinInt32 when inspecting an upstream exponent.
-	digits := int64(len(parsed.Coefficient().String()))
-	exponent := int64(parsed.Exponent())
-	characters := digits + exponent
-	if exponent < 0 {
-		characters = max(digits+1, 2-exponent)
-	}
-	if characters > maxDecimalCharacters {
+	if decimalCharacters(parsed) > maxDecimalCharacters {
 		return nil, Invalid("decimal size")
 	}
 
 	return &parsed, nil
+}
+
+func decimalCharacters(value decimal.Decimal) int64 {
+	digits := int64(len(value.Coefficient().String()))
+	exponent := int64(value.Exponent())
+	if exponent < 0 {
+		return max(digits+1, 2-exponent)
+	}
+
+	return digits + exponent
 }
 
 func Step(value string) (decimal.Decimal, error) {

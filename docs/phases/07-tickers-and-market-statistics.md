@@ -1,6 +1,6 @@
 # 07 — Tickers and market statistics
 
-Status: not started. Dependencies: [06](06-instruments.md), statistics/API decisions from [01](01-specification-decisions.md). Next: [08](08-kline-planning.md).
+Status: implemented. Dependencies: [06](06-instruments.md), statistics/API decisions from [01](01-specification-decisions.md). Next: [08](08-kline-planning.md).
 
 ## Outcome
 
@@ -30,3 +30,14 @@ Current ticker and 24h statistics APIs backed only by independent snapshots. Sou
 ## Exit criteria
 
 Both current-data APIs work from cache for both exchanges. Different publication outcomes cannot corrupt each other, and all request costs remain under their correct budgets.
+
+## Implementation notes
+
+- `application/ticker` and `application/marketstats` own cache readers and independent publication. Bootstrap selects workers using provider capabilities and the existing bounded cycle/admission contracts.
+- Bybit decodes a shared response into raw fields once; field types and decimals are validated separately in each branch. Binance performs bulk requests through the pinned SDK clients, with `type=FULL` for spot statistics.
+- The internal instrument `ContractType` records known perpetual/expiry metadata for funding applicability. It is not part of the instruments HTTP DTO. Missing metadata does not block a positive upstream funding schedule, and no ticker read starts instrument collection.
+- All three snapshot HTTP APIs share one concurrent caller limit. Ticker countdown uses one clock reading per response; statistics accepts only the canonical `24h` window.
+- Publication counters retain independent success/error counts, source times, and sizes by exchange/market and statistics window. Exporters remain phase 11 work.
+- Unit tests cover decimal bounds, quote pairs, funding applicability, exact price changes, counts, duplicate symbols, branch failures, cache filters, and snapshot retention. Local HTTP integration tests cover all four scopes through adapters, collectors, repositories, and separate APIs. Virtual-clock tests cover immediate collection, completion-based intervals, failure backoff, and cancellation. Concurrent HTTP reads are covered by the race suite.
+
+Live exchange access from the deployment network remains a release check, including Binance Spot FULL bulk access. Phase 07 tests use local HTTP servers and no credentials.

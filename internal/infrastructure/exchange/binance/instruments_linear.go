@@ -101,6 +101,13 @@ func normalizeLinearInstrument(source instrumentRow) (domain.Instrument, error) 
 		return row, err
 	}
 
+	switch source.ContractType {
+	case "PERPETUAL":
+		row.ContractType = domain.ContractTypePerpetual
+	case "CURRENT_MONTH", "NEXT_MONTH", "CURRENT_QUARTER", "NEXT_QUARTER", "CURRENT_QUARTER_DELIVERING", "NEXT_QUARTER_DELIVERING":
+		row.ContractType = domain.ContractTypeExpiry
+	}
+
 	return row, nil
 }
 

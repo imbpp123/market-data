@@ -35,7 +35,10 @@ type instrumentDTO struct {
 }
 
 func NewInstrumentsHandler(reader InstrumentReader, timeout time.Duration, maximum int) http.Handler {
-	slots := make(chan struct{}, maximum)
+	return newInstrumentsHandler(reader, timeout, make(chan struct{}, maximum))
+}
+
+func newInstrumentsHandler(reader InstrumentReader, timeout time.Duration, slots chan struct{}) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parameters, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {

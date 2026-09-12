@@ -16,6 +16,7 @@ import (
 // localState owns process storage. Feature services will share these repositories.
 type localState struct {
 	instrumentMetrics *observability.Instruments
+	currentMetrics    *observability.Current
 	ready             atomic.Bool
 	exchanges         *exchangeClients
 	instruments       instrument.Repository
@@ -31,6 +32,7 @@ func newLocalState(historyCandles int64, now func() time.Time) (*localState, err
 	}
 	return &localState{
 		instruments:       memory.NewInstrumentRepository(),
+		currentMetrics:    observability.NewCurrent(),
 		instrumentMetrics: observability.NewInstruments(),
 		tickers:           memory.NewTickerRepository(),
 		marketStats:       memory.NewMarketStatsRepository(),

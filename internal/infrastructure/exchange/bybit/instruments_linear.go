@@ -145,5 +145,12 @@ func normalizeLinearInstrument(source instrumentRow) (domain.Instrument, error) 
 		}
 	}
 
+	switch source.ContractType {
+	case "LinearPerpetual":
+		row.ContractType = domain.ContractTypePerpetual
+	case "LinearFutures":
+		row.ContractType = domain.ContractTypeExpiry
+	}
+
 	return row, normalization.Validate(row)
 }

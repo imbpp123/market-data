@@ -2,6 +2,7 @@ package ticker
 
 import (
 	"context"
+	"time"
 
 	"market-data/internal/application"
 	"market-data/internal/domain"
@@ -25,6 +26,7 @@ type Repository interface {
 // with an empty slice is success. HasMarketStats distinguishes no stats branch
 // from a successfully empty one. Publication errors also stay branch-local.
 type Collection struct {
+	FetchedAt   time.Time
 	Tickers     []domain.Ticker
 	TickerError error
 

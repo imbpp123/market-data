@@ -50,7 +50,18 @@ func (s InstrumentStatus) Valid() bool {
 	}
 }
 
+type ContractType string
+
+const (
+	ContractTypeUnknown   ContractType = ""
+	ContractTypePerpetual ContractType = "perpetual"
+	ContractTypeExpiry    ContractType = "expiry"
+)
+
 type Instrument struct {
+	// ContractType is internal funding metadata and is not part of the HTTP DTO.
+	ContractType ContractType
+
 	Exchange Exchange
 	Market   Market
 

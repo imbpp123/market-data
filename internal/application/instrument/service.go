@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
 	"market-data/internal/application"
 	"market-data/internal/domain"
@@ -45,37 +43,11 @@ func (s *Reader) List(ctx context.Context, query Query) ([]domain.Instrument, er
 
 func (s *Reader) filter(query Query) (Filter, error) {
 	filter := Filter{}
-	if query.Exchange != "" && !domain.Exchange(query.Exchange).Valid() {
-		return filter, application.ErrInvalidFilter
+	selected, err := application.SelectSnapshot(s.scopes, application.SnapshotQuery{Exchange: query.Exchange, Market: query.Market, Symbol: query.Symbol})
+	if err != nil {
+		return filter, err
 	}
-
-	if query.Market != "" && !domain.Market(query.Market).Valid() {
-		return filter, application.ErrInvalidFilter
-	}
-
-	for _, scope := range s.scopes {
-		if (query.Exchange == "" || query.Exchange == string(scope.Exchange)) && (query.Market == "" || query.Market == string(scope.Market)) {
-			filter.Scopes = append(filter.Scopes, scope)
-		}
-	}
-
-	if len(filter.Scopes) == 0 {
-		return filter, application.ErrInvalidFilter
-	}
-
-	if query.Symbol != "" {
-		if len(query.Symbol) > 128 || !utf8.ValidString(query.Symbol) {
-			return filter, application.ErrInvalidFilter
-		}
-
-		for _, r := range query.Symbol {
-			if unicode.IsSpace(r) || unicode.IsControl(r) {
-				return filter, application.ErrInvalidFilter
-			}
-		}
-
-		filter.Symbol = &query.Symbol
-	}
+	filter.SnapshotFilter = selected
 
 	if query.Status != "" {
 		status := domain.InstrumentStatus(query.Status)
