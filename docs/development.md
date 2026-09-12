@@ -18,6 +18,8 @@ The service serves `GET /health`, `GET /ready`, `GET /api/v1/instruments`, `GET 
 
 Storage lives in `internal/infrastructure/storage/memory` behind application interfaces. Instrument, ticker, and statistics snapshots publish independently and keep scope readiness separate from empty data. Candle merges use `klines.max_history_candles`, an injected clock, and the domain history calendar; cleanup cutoffs cannot move backwards. Post-close confirmation uses internal successful-attempt start metadata. Periodic cleanup scheduling is phase 11 work; merge-time pruning is already active.
 
+Candle planning lives in `internal/application/kline`. Construct a `Planner` for one enabled scope with the provider's supported intervals, the configured history size, and the final per-request candle limit. Call `Validate` before cache lookup, then `Plan` with the query, cached rows, and a captured clock value. Each plan rechecks the rolling history window. It merges missing and non-final slots into the fewest half-open requests, including cached slots between gaps. The planner performs no I/O. Candle adapters and cache-fill/API integration remain phases 09–10.
+
 ## Instruments
 
 ```sh

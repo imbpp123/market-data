@@ -1,6 +1,6 @@
 # v1 development plan
 
-Status: delivery plan, September 12, 2026. Phases 01–07 are complete; phases 08–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
+Status: delivery plan, September 12, 2026. Phases 01–08 are complete; phases 09–12 are not started. See the [decision register](../specification-decisions-v1.md) for decisions, evidence, and future verification gates.
 
 Source of requirements: [Technical specification v1](../technical-specification-v1.md). Engineering rules: [AGENTS.md](../../AGENTS.md). The specification remains authoritative; these files define delivery order, not new approved product requirements.
 
@@ -9,6 +9,8 @@ Source of requirements: [Technical specification v1](../technical-specification-
 The repository contains specifications, a phase plan, configuration/HTTP examples, phase 01 discovery fixtures, and the phase 02 Go process scaffold. The pinned module, configuration loader, health HTTP lifecycle, unit tests, Makefile, and CI baseline are implemented. Phase 03 adds exact domain models, tested UTC calendars, funding read models, and consumer-owned application contracts. Phase 04 adds independent atomic snapshots, candle storage with finalization and retention, and storage initialization before HTTP startup. Phase 05 adds shared upstream admission, scoped cooldowns, retry and cycle backoff, exact raw response capture, and pinned SDK clients with local HTTP integration tests. Phase 06 adds instrument normalization for both exchanges, independent bounded refresh workers, publication counters, and the instruments read API. Phase 07 adds continuous ticker collection, independent Binance FULL statistics collection, shared Bybit response normalization with independent publication, and cache-only ticker/statistics APIs. Candle loading, the kline API, observability exporters, and deployment packaging are not implemented. Section 14 reports earlier SDK checks; phase 05 recreates HTTP-boundary checks, while phase 06 verifies instrument normalization and the remaining field tests stay assigned to their feature phases.
 
 The initial review assessed the supplied project documentation. Phase 01 source checks are recorded in the decision register. Phase 01 includes bounded live discovery and an official release-catalog check. It does not reproduce historical SDK tests or verify deployment behavior.
+
+Phase 08 adds a pure candle planner with pre-cache range validation, configured history/page bounds, request-start finalization evidence, and minimal request count. Unit tests cover missing and intermediate slots, calendar boundaries, malformed cache input, and exhaustive small-window request coverage and optimality. It is not yet wired to the kline API; adapters and cache fills remain phases 09–10.
 
 ## Technical assessment
 
