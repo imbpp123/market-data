@@ -4,7 +4,7 @@ A Go service for a common crypto market data API. It is designed to give trading
 
 v1 targets Binance and Bybit spot and linear markets, with instruments, tickers, 24-hour market statistics, and candlesticks.
 
-**Status:** Phases 01–08 are implemented. Instruments, tickers, and rolling 24h statistics work end to end for Binance and Bybit spot/linear: exact normalization, bounded background collection, independent atomic snapshots, and cache-only HTTP APIs. Configuration, health/readiness, graceful shutdown, domain calendars, repositories, shared upstream admission/retries, and pure candle planning are available. Candle loading, the kline API, and observability exporters remain future work.
+**Status:** Phases 01–09 are implemented. Instruments, tickers, and rolling 24h statistics work end to end for Binance and Bybit spot/linear: exact normalization, bounded background collection, independent atomic snapshots, and cache-only HTTP APIs. Configuration, health/readiness, graceful shutdown, domain calendars, repositories, shared upstream admission/retries, pure candle planning, and exact single-page candle adapters are available. Candle cache fills, the kline API, and observability exporters remain future work.
 
 ## Documentation
 
