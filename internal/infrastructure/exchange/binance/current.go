@@ -106,21 +106,15 @@ func (p *currentProvider) GetTickers(ctx context.Context, market domain.Market) 
 
 	if p.logger != nil {
 		for i := 1; i < len(paths); i++ {
-			missing, extra := 0, 0
+			missing := 0
 			for symbol := range indexes[0] {
 				if _, ok := indexes[i][symbol]; !ok {
 					missing++
 				}
 			}
 
-			for symbol := range indexes[i] {
-				if _, ok := indexes[0][symbol]; !ok {
-					extra++
-				}
-			}
-
-			if missing+extra > 0 {
-				p.logger.Warn("Ticker source symbol sets differ", "market", market, "path", paths[i], "missing", missing, "extra", extra)
+			if missing > 0 {
+				p.logger.Warn("Ticker source symbol sets differ", "market", market, "path", paths[i], "missing", missing)
 			}
 		}
 	}

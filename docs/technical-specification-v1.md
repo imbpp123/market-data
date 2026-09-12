@@ -545,7 +545,7 @@ The price response defines the main symbol set. After two successful responses f
 3. A symbol found only in book/funding does not create a ticker without a price record.
 4. Record order does not affect the result. A duplicate symbol in one response is a normalization error.
 
-If a required HTTP request, batch, or normalization fails, keep the previous ticker snapshot and FetchedAt. Do not mix parts from different cycles. After successful assembly, perform one atomic ReplaceSnapshot. Report different symbol sets for checks, but do not treat them as an HTTP error.
+If a required HTTP request, batch, or normalization fails, keep the previous ticker snapshot and FetchedAt. Do not mix parts from different cycles. After successful assembly, perform one atomic ReplaceSnapshot. Warn when a price symbol is missing from book or funding, but do not treat this as an HTTP error. Ignore symbols found only in book or funding without a warning.
 
 MarketStats is not part of this join. A failure in its collector does not cancel ticker publication or stop the ticker worker. Several REST responses are not a synchronized matching engine snapshot. FetchedAt does not mean that all parts were produced at the same time.
 
