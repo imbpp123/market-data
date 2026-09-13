@@ -94,7 +94,7 @@ MDS_EXCHANGES_BYBIT_MARKETS='["linear"]' \
 
 `MDS_SENTRY_DSN` is an alias for `MDS_OBSERVABILITY_SENTRY_DSN`; using both is an error. Do not commit a real DSN or other credentials.
 
-Binance settings are `upstream.binance.stop_threshold_percent` (integer 1–99, default 90) and `catalog_refresh_interval` (positive finite duration, default 1h). Environment overrides are `MDS_UPSTREAM_BINANCE_STOP_THRESHOLD_PERCENT` and `MDS_UPSTREAM_BINANCE_CATALOG_REFRESH_INTERVAL`. Explicit legacy Binance window limits are user caps; omitted limits track exchange changes. `safety_margin_percent` affects Bybit only. To keep an older 80% Binance policy, explicitly set the new percentage to 80. Invalid settings fail validation.
+Binance settings are `upstream.binance.stop_threshold_percent` (integer 1–99, default 90) and `catalog_refresh_interval` (positive finite duration, default 1h). Environment overrides are `MDS_UPSTREAM_BINANCE_STOP_THRESHOLD_PERCENT` and `MDS_UPSTREAM_BINANCE_CATALOG_REFRESH_INTERVAL`. Explicit legacy Binance window limits are user caps, including overrides equal to built-in defaults; omitted limits track exchange changes. `safety_margin_percent` affects Bybit only. To keep an older 80% Binance policy, explicitly set the new percentage to 80. Invalid settings fail validation.
 
 Validation covers the full agreed schema, including disabled providers' input syntax, endpoint page limits, history size, refresh schedules, reserved budget shares, fixed allocation windows, cooldown minima, concurrency, queues, attempts, observability options, and overflow. Kline caller timeout and HTTP attempt timeout are separate. Each RPC transport deadline is its request lifetime plus 5s from admission; an earlier client deadline wins. Operational writes use `server.http.write_timeout` (5s). Shutdown must cover the longest caller/fill lifetime plus 5s.
 
@@ -147,6 +147,8 @@ SIGINT and SIGTERM close RPC admission and cancel root work. Shutdown drains bot
 
 ## Checks
 
+Run from the repository root:
+
 ```sh
 make check
 ```
@@ -160,13 +162,15 @@ make check
 5. `test`: run unit tests.
 6. `test-race`: run tests with the race detector last.
 
+Also run `make check-api` for generated files, compatibility, and Go/Python client checks. It requires Python **3.13 and 3.14**. See the [API prerequisites](../api/README.md#reproduce-and-check) for tools and installation checks. Tool and dependency downloads need network access; test execution uses controlled fixtures without exchange credentials or live exchange access.
+
 This puts inexpensive checks first, subject to dependencies: the configuration check needs a built executable. `govet` is included in the standard linter set, so `check` does not run a second standalone vet pass. `make vet` remains available for a focused check.
 
 The Makefile pins golangci-lint to **v2.13.2**. `make lint` and `make check` install the official binary on first use into the ignored `bin/golangci-lint/v2.13.2/` directory. The installer is fetched from the same release tag and verifies the archive checksum. Installation requires network access, `curl`, `tar`, and a SHA-256 utility; later runs reuse the installed binary. `make install-lint` installs it explicitly. Linter dependencies are kept out of the service's Go module.
 
 The [linter configuration](../.golangci.yml) selects the upstream defaults without additional linters or custom exclusions. CI runs the same `make check`, including linter installation and example validation, without a second lint or configuration pass.
 
-Other targets include `make run`, `make docker-build`, `make docker-up`, `make docker-down`, `make docker-verify`, and `make release-load`. See the [packaging and operating guide](../README.md) and [release audit](release-verification-v1.md) for container checks, memory measurements, and deployment gates.
+Other targets include `make run`, `make docker-build`, `make docker-up`, `make docker-down`, `make docker-verify`, and `make release-load`. See the [operations guide](operations.md) and [release audit](release-verification-v1.md) for container checks, memory measurements, and deployment gates.
 
 Tests use `testify/require` for prerequisites and `testify/assert` for independent checks. They use no credentials or exchange access. Lifecycle tests exercise both servers and generated RPC clients over in-memory connections with `testing/synctest` for deterministic cancellation and deadline checks.
 

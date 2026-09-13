@@ -1,124 +1,57 @@
-# market-data
+# Market Data
 
-A Go gRPC service for Binance and Bybit spot and linear market data. It provides instruments, current tickers, 24-hour market statistics, and cached candles through one API. Binance linear means USDⓈ-M.
+Market Data provides a single entry point for market data from multiple exchanges through one API. It handles data collection, caching, and exchange request limits for client applications.
 
-**Status:** gRPC is active for all market data, with a separate operational HTTP listener. All four migration phases are complete after independent review. The [gRPC verification](docs/grpc-migration-verification.md) records installed clients, traffic, capacity and limits. The [HTTP release audit](docs/release-verification-v1.md) is historical evidence. Deployment remains an explicit operator action.
+## Features
 
-## Run locally
+- Instrument catalogs, tickers, 24-hour statistics, and candles.
+- Shared caching to reduce exchange requests.
+- Coordinated candle loading for concurrent clients.
+- Exchange request-limit tracking and cooldown handling.
+- Background updates and automatic retries for temporary failures.
+- A common data format with exact decimal values.
+- Configurable candle history and automatic cleanup.
+- Request timeouts and overload protection.
+- gRPC API with Go and Python clients.
+- Health checks, logs, and optional Prometheus and Sentry integration.
+- YAML and environment configuration, with Docker Compose support.
 
-Use Go **1.27.1**, the exact version in the module, Makefile, Dockerfile, and CI.
+## Supported exchanges and markets
 
-```sh
-make build
-./bin/market-data-service -config docs/examples/config-v1.yaml -check-config
-make run
-```
+| Exchange | Spot | Linear futures | Inverse futures | Options |
+| --- | --- | --- | --- | --- |
+| Binance | Supported | Supported: USDⓈ-M | Not supported: COIN-M | Not supported |
+| Bybit | Supported | Supported: linear contracts | Not supported | Not supported |
 
-The default listeners are gRPC `0.0.0.0:9090` and operational HTTP `0.0.0.0:8080`. Both markets on both exchanges are enabled. Startup initializes memory storage, binds both listeners, and starts independent collectors. No credentials are required for public exchange data. JSON logs go to stderr.
+## Documentation
 
-## Configuration
+| Guide | Contents |
+| --- | --- |
+| [Quick start](docs/quickstart.md) | Local and Docker setup, with a first API request. |
+| [API and clients](api/README.md) | Schema, generated clients, and examples. |
+| [API usage](docs/development.md#instruments) | Filters, candles, and error behavior. |
+| [Configuration](docs/development.md#configuration) | Settings, environment overrides, and validation. |
+| [Operations](docs/operations.md) | Docker Compose, diagnostics, and request limits. |
+| [Development](docs/development.md#checks) | Build tools and project checks. |
+| [Releases](docs/releasing.md) | Version tags and image publication. |
+| [Technical specification](docs/technical-specification-v1.md) | Architecture, requirements, and linked contracts. |
+| [Verification](docs/grpc-migration-verification.md) | Recorded checks, measurements, and their limits. |
 
-Precedence: **built-in defaults → YAML → explicit MDS_ environment values → validation**. `-config` is optional; omitting it uses defaults and environment values. Unknown keys, invalid types, duplicate keys, and invalid bounds fail startup. YAML does not interpolate environment variables.
+## Limits
 
-Environment names are uppercase configuration paths with underscores. Lists are JSON arrays and replace the whole list:
+- All data and request-limit state live in memory and are lost on restart. The default candle history is 1,000 calendar slots per series.
+- Failed refreshes preserve previous snapshots. v1 has no snapshot expiry; clients must check `updated_at` or `fetched_at` for freshness.
+- v1 assumes one instance with no other exchange clients sharing its outgoing IP. Restarting does not reset exchange-side usage or bans.
+- There is no native TLS or authentication. Use a trusted network or a separately protected connection for remote access.
+- Trading and account APIs, order books, raw trades, WebSocket ingestion, persistent storage, ticker/statistics history, and non-24h statistics are outside v1. There is no statistics aggregation from candles, strategy calculation, or MCP server.
+- There is no HTTP market-data API, gateway, or gRPC reflection. Use generated clients or the checked-in descriptor.
 
-```sh
-MDS_SERVER_HTTP_PORT=8081 \
-MDS_EXCHANGES_BYBIT_MARKETS='["linear"]' \
-./bin/market-data-service -config docs/examples/config-v1.yaml
-```
+## Contributing
 
-Binance `upstream.binance.stop_threshold_percent` defaults to `90`; `catalog_refresh_interval` defaults to `1h`. Explicit legacy window `limit` values become user caps, including default-valued overrides. Omitted limits follow exchange changes. An older `safety_margin_percent: 20` now applies only to Bybit; set the new Binance percentage to `80` explicitly if needed.
+Read the [development rules](AGENTS.md), keep changes focused, and add tests for non-trivial logic. Include check results in pull requests; see the [development checks](docs/development.md#checks).
 
-See the [complete configuration example](docs/examples/config-v1.yaml) and [configuration contract](docs/implementation-contract-v1.md). Use environment values for Sentry DSNs; do not commit them. Sentry, Prometheus, and the debug statistics endpoint are optional and disabled by default.
+For bug reports, include the version, reproduction steps, expected and actual behavior, and relevant logs with secrets removed.
 
-## API
+## License
 
-Market data uses `marketdata.v1.MarketDataService`: `ListInstruments`, `ListTickers`, `ListMarketStats`, and `GetKlines`. Use the checked-in [schema and descriptor](api/README.md), [Go client](api/go/examples/client/main.go), and [Python installation guide](api/python/README.md). Reuse channels, set a deadline per call, and set the 16 MiB receive limit. Go and Python packages need no exchange SDK.
-
-Operational checks stay on HTTP:
-
-```sh
-curl 'http://localhost:8080/health'
-curl 'http://localhost:8080/ready'
-```
-
-All old `/api/v1/*` HTTP paths return 404. No gateway or reflection is enabled. For command-line inspection with an installed `grpcurl`, use the descriptor:
-
-```sh
-grpcurl -plaintext -protoset api/descriptor.binpb -max-msg-sz 16777216 -max-time 5 \
-  -d '{"exchange":"binance","market":"spot","symbol":"BTCUSDT"}' \
-  localhost:9090 marketdata.v1.MarketDataService/ListTickers
-```
-
-Decimal values are exact strings. Optional Protobuf values distinguish absence from zero; times use `google.protobuf.Timestamp`. Unready snapshot scopes return `UNAVAILABLE` with `ErrorDetail.reason=data_not_ready`; ready empty scopes return an empty repeated field. Snapshot reads stay cache-only and only the `24h` statistics window is supported.
-
-Candles use aligned half-open `[from, to)` ranges. The default history bound is 1000 calendar slots per series. Complete final cache ranges need no upstream work. Missing or unconfirmed candles share bounded fills; success always contains the complete requested range. See the [API guide](docs/development.md) and [gRPC contract](docs/grpc-migration-specification.md).
-
-## Docker and Compose
-
-Install Docker Engine/Desktop with a recent Compose v2 or later. Run from this directory:
-
-```sh
-make docker-build
-make docker-up
-docker compose logs --tail=100 -f
-make docker-down
-```
-
-The image uses a digest-pinned Go builder and a `scratch` runtime with CA certificates, a static executable, and UID/GID 65532. Compose publishes only `127.0.0.1:9090` and `127.0.0.1:8080`, mounts the example configuration read-only, drops capabilities, and makes the root filesystem read-only. Keep the mounted file readable by UID 65532. There is one service and no state volume.
-
-Compose enforces 1,000,000,000 bytes of memory, disables swap, and sets `GOMEMLIMIT=700MiB`, a soft Go runtime memory target, not a process RSS limit. The [release audit](docs/release-verification-v1.md) records historical HTTP capacity. The [gRPC capacity run](docs/grpc-migration-verification.md#capacity) passed at 775,417,856-byte peak process RSS for the agreed main profile. Rebuild with `make docker-build` after source changes, then run `make docker-up` to recreate the service.
-
-The image runs `/market-data-service -config /etc/market-data/config.yaml`. Its healthcheck uses the same file and environment with `-healthcheck`; it makes one local `/health` request with a two-second timeout and never starts collectors. When running the image directly, mount configuration at that path. Override configuration, ports, or environment with a local Compose override; host `MDS_` variables are not forwarded automatically by Compose. Change the matching port mapping and `server.grpc.port` or `server.http.port` together. Removed flat `server.host`, `server.port`, HTTP settings and their old environment names fail validation.
-
-SIGINT/SIGTERM close RPC admission and owned work. The default internal shutdown bound is 35 seconds; Compose allows 40 seconds before forced termination. Increase `stop_grace_period` if increasing `server.shutdown_timeout`. The service does not restart automatically.
-
-## Publish a release image
-
-The [release workflow](.github/workflows/release.yml) builds the tagged source with the existing Dockerfile and pushes a Linux/amd64 image to `ghcr.io/<owner>/<repository>`. It runs when a version tag is pushed or a GitHub Release is published, including pre-releases. Use semantic versions with an optional `v` prefix: `v1.2.3` and `1.2.3` both publish `ghcr.io/imbpp123/market-data:1.2.3`; `v1.2.3-rc.1` publishes `:1.2.3-rc.1`. Invalid version tags fail before registry login. No `latest` tag is published.
-
-Before building or publishing the image, the workflow runs `make check` on the tagged commit with Go 1.27.1, just like the Checks workflow. Formatting, build, example configuration, lint, tests, race checks, and `make check-api` must all pass. API checks cover the nested Go module and isolated Python installations before registry login. Any failure stops publication.
-
-After the workflow is merged, tag the commit to release and push the tag:
-
-```sh
-git tag v1.2.3
-git push origin v1.2.3
-```
-
-Alternatively, publish a GitHub Release for the version tag. Publishing a release after pushing its tag runs the workflow again and replaces the same image tag. Use one trigger per version when a second build is not needed. The workflow uses the repository's `GITHUB_TOKEN` with `contents: read` and `packages: write`; no separate registry secret is needed. If the GHCR package already exists, it must grant this repository write access. See [GitHub's registry publishing guide](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images).
-
-## Diagnose and operate
-
-- `/health` means the process is alive; `/ready` means local initialization is complete. Neither proves exchange data is available or fresh.
-- On `data_not_ready`, inspect collector errors and enabled scopes. A failed first refresh leaves its scope unready. Other scopes continue.
-- Stale `updated_at` or `fetched_at` means a collector has not published new data. Failed refreshes preserve previous snapshots; v1 has no snapshot expiry. Check upstream errors, admission waits, cooldowns, and system time before restarting.
-- `service_overloaded` means a finite caller/fill/queue limit was reached or needed Binance exchange work failed a budget check. `request_too_large` and `range_out_of_retention` require a valid smaller/recent request. No error returns a successful partial candle range.
-- Optional `/metrics` and `/debug/stats` expose counters, last successes, durations, retained candle counts, and failures. `/debug/stats?view=admission` shows current Binance limits, usage, per-window operation reasons, and recovery times. See the [diagnostic guide](docs/development.md#binance-admission-diagnostics). Keep these operational routes on a trusted network. All counters reset on restart.
-
-All data, usage counters, discovered exchange limits, and cooldowns are memory-only. A restart loses them immediately, begins from bootstrap budgets, and adds no automatic quiet period. Exchange-side usage and bans may remain. Restarting is not a rate-limit reset.
-
-v1 assumes one instance and no other exchange clients sharing its outgoing IP. Verify this on the deployment network, including Binance Spot bulk `type=FULL` access. Binance uses a configurable stop line (default 90%) and strict 60/30/5/5 operation shares. No new positive-cost request is admitted when current accounted usage is already above a stop line; crossing from equality or below is allowed. Bybit keeps its 20% safety margin. These local checks cannot guarantee actual IP usage: external traffic, restarts, delayed observations, and unseen limits remain unknown. Conservative counter overlap can approach twice actual usage. See the [operating contract](docs/implementation-contract-v1.md).
-
-Retention prunes old candles on merges and every hour by default. It keeps at most the configured rolling history per series, including every supported interval; it does not cap the number of requested series. Keep the host clock synchronized to UTC using NTP. A candle is final only after a request started at or after its close. v1 assumes exchanges do not later revise such confirmed candles; it does not reconcile later corrections.
-
-## Checks
-
-```sh
-make check          # formatting, build, example config, pinned lint, tests, race
-make vet
-make docker-build
-make docker-verify  # isolated Compose test; no exchange network access
-make release-load   # opt-in synthetic capacity measurement; no network
-```
-
-`make docker-verify` requires Python 3 and a local Linux Docker engine with the host's CPU architecture. It mounts a compiled probe in a temporary Compose project with an internal network and checks health/readiness, unready data, certificates, permissions, and SIGTERM. CI runs the same build and lifecycle checks. Dependency downloads need network access; unit/integration test execution needs no exchange access or credentials.
-
-## v1 scope
-
-There is no trading execution, order/account/position/balance API, strategy calculation, MCP server, order book, raw trades, WebSocket ingestion, Redis/PostgreSQL implementation, ticker/statistics history, non-24h statistics, or statistics aggregation from candles.
-
-Further documentation: [development guide](docs/development.md), [technical specification](docs/technical-specification-v1.md), [decision register](docs/specification-decisions-v1.md), and [development rules](AGENTS.md).
-
-The Binance request-limit rework is complete. Current rules are in the [operating contract](docs/implementation-contract-v1.md#bootstrap-discovered-limits-and-cooldown); checks and saved-catalog measurements are in the [verification record](docs/release-verification-v1.md#binance-request-limit-validation). Earlier whole-service measurements do not cover the complete rework. No deployment was performed.
+Licensed under the [MIT License](LICENSE).

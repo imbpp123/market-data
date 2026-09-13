@@ -107,7 +107,7 @@ The broad profile requests 50 symbols in every supported interval: 16 Binance Sp
 2. Keep the host UTC clock synchronized and accept the specified post-close stability assumption. Cache and limiter state are lost on restart; no persistent recovery or automatic restart wait exists.
 3. Respect the measured workload and 1 GB memory envelope. Broader interval demand failed capacity verification. No global count limit protects against arbitrary series requests in v1.
 
-For startup, configuration precedence, diagnosis, shutdown, and unsupported features, use the [operating guide](../README.md).
+For startup, use the [quick start](quickstart.md). See the [configuration guide](development.md#configuration) for settings and the [README](../README.md#limits) for unsupported features. For diagnosis and shutdown, use the [operations guide](operations.md).
 
 ## Binance request-limit validation
 
