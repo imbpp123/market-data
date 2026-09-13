@@ -60,7 +60,13 @@ type Operations[T any] struct {
 	MarketStats T `yaml:"market_stats"`
 }
 
+type BinanceUpstream struct {
+	StopThresholdPercent   int           `yaml:"stop_threshold_percent"`
+	CatalogRefreshInterval time.Duration `yaml:"catalog_refresh_interval"`
+}
+
 type Upstream struct {
+	Binance               BinanceUpstream `yaml:"binance"`
 	SafetyMarginPercent   int             `yaml:"safety_margin_percent"`
 	OperationSharePercent Operations[int] `yaml:"operation_share_percent"`
 	MaxHTTPInflight       int             `yaml:"max_http_inflight"`
@@ -103,6 +109,7 @@ type Scope struct {
 }
 
 type Window struct {
+	ExplicitLimit   bool          `yaml:"-"`
 	Unit            string        `yaml:"unit"`
 	Window          time.Duration `yaml:"window"`
 	Limit           int           `yaml:"limit"`
@@ -211,6 +218,7 @@ func Defaults() Config {
 		},
 		MarketStats: MarketStats{Windows: []string{"24h"}},
 		Upstream: Upstream{
+			Binance:               BinanceUpstream{StopThresholdPercent: 90, CatalogRefreshInterval: time.Hour},
 			SafetyMarginPercent:   20,
 			OperationSharePercent: Operations[int]{Tickers: 60, Klines: 30, Instruments: 5, MarketStats: 5},
 			MaxHTTPInflight:       24,

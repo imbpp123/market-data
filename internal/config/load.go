@@ -38,6 +38,7 @@ func Load(source io.Reader, environment []string) (Config, error) {
 		leaves[path] = v.Type()
 		names["MDS_"+strings.ToUpper(strings.ReplaceAll(path, ".", "_"))] = path
 	})
+	explicit := koanf.New(".")
 	k := koanf.New(".")
 	if err := k.Load(confmap.Provider(initial, ""), nil); err != nil {
 		return Config{}, err
@@ -46,6 +47,10 @@ func Load(source io.Reader, environment []string) (Config, error) {
 	if source != nil {
 		values, err := readYAML(source, &schema, leaves)
 		if err != nil {
+			return Config{}, err
+		}
+
+		if err := explicit.Load(confmap.Provider(values, ""), nil); err != nil {
 			return Config{}, err
 		}
 
@@ -63,6 +68,10 @@ func Load(source io.Reader, environment []string) (Config, error) {
 		return Config{}, err
 	}
 
+	if err := explicit.Load(confmap.Provider(values, ""), nil); err != nil {
+		return Config{}, err
+	}
+
 	var cfg Config
 	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{
 		Tag: "yaml",
@@ -73,6 +82,13 @@ func Load(source io.Reader, environment []string) (Config, error) {
 		},
 	}); err != nil {
 		return Config{}, errors.New("cannot decode configuration")
+	}
+
+	for name, scope := range map[string]*Scope{"binance_spot": &cfg.Upstream.Limits.BinanceSpot, "binance_linear": &cfg.Upstream.Limits.BinanceLinear} {
+		for key, window := range scope.Windows {
+			window.ExplicitLimit = explicit.Exists("upstream.limits." + name + ".windows." + key + ".limit")
+			scope.Windows[key] = window
+		}
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -252,7 +268,11 @@ func walkLeaves(value reflect.Value, path string, visit func(string, reflect.Val
 	switch value.Kind() {
 	case reflect.Struct:
 		for i := 0; i < value.NumField(); i++ {
-			walkLeaves(value.Field(i), joinPath(path, value.Type().Field(i).Tag.Get("yaml")), visit)
+			tag := value.Type().Field(i).Tag.Get("yaml")
+			if tag == "-" {
+				continue
+			}
+			walkLeaves(value.Field(i), joinPath(path, tag), visit)
 		}
 	case reflect.Map:
 		keys := value.MapKeys()

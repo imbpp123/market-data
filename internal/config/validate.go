@@ -88,6 +88,10 @@ func (c Config) validateLocalSettings() error {
 }
 
 func (c Config) validateSharesAndCooldowns() error {
+	if c.Upstream.Binance.StopThresholdPercent < 1 || c.Upstream.Binance.StopThresholdPercent > 99 {
+		return fmt.Errorf("upstream.binance.stop_threshold_percent must be in 1..99")
+	}
+
 	margin := c.Upstream.SafetyMarginPercent
 	if margin < 0 || margin > 99 {
 		return fmt.Errorf("upstream.safety_margin_percent must be in 0..99")
@@ -269,7 +273,11 @@ func percentage(value, percent int) int { return value/100*percent + value%100*p
 // allowances applies the common margin first, then independent reserved shares.
 // Shared ticker/statistics providers combine percentages before rounding.
 func (c Config) allowances(window Window, sharedStatistics bool) (int, Operations[int]) {
-	common := percentage(window.Limit, 100-c.Upstream.SafetyMarginPercent)
+	threshold := c.Upstream.Binance.StopThresholdPercent
+	if sharedStatistics {
+		threshold = 100 - c.Upstream.SafetyMarginPercent
+	}
+	common := percentage(window.Limit, threshold)
 	if !window.SplitOperations {
 		return common, Operations[int]{Instruments: common}
 	}
@@ -321,6 +329,9 @@ func (c Config) validateBudgets() error {
 				continue
 			}
 
+			if !scope.shared {
+				w.Limit = min(w.Limit, d.Limit)
+			}
 			common, allocation := c.allowances(w, scope.shared)
 			cost := scope.costs
 			if w.Unit == "requests" {

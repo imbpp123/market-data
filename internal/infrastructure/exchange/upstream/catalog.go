@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"market-data/internal/application"
@@ -24,11 +26,9 @@ func (c *Controller) updateCatalog(scope Scope, started time.Time, body []byte) 
 	if started.Before(s.catalogStart) {
 		return nil
 	}
-	s.catalogStart = started
 	defer c.notify()
 	fail := func(reason string) error {
-		s.blocked = fmt.Errorf("invalid %s limit catalog: %s: %w", scope, reason, application.ErrUpstreamUnavailable)
-		return s.blocked
+		return fmt.Errorf("invalid %s limit catalog: %s: %w", scope, reason, application.ErrUpstreamUnavailable)
 	}
 	var catalog struct {
 		Limits *[]catalogLimit `json:"rateLimits"`
@@ -67,20 +67,23 @@ func (c *Controller) updateCatalog(scope Scope, started time.Time, body []byte) 
 		if _, duplicate := updates[key]; duplicate {
 			return fail("duplicate applicable window")
 		}
-		value.limit = percent(min(value.ceiling, limit.Limit), 100-c.settings.SafetyMarginPercent)
-		if !s.feasible(value) {
-			return fail("allowance cannot admit a permitted request")
+		value.ceiling = limit.Limit
+		value.source = "exchange_info"
+		value.updatedAt = c.clock.Now()
+		effective := limit.Limit
+		if value.userCap > 0 {
+			effective = min(effective, value.userCap)
 		}
+		value.limit = percent(effective, c.settings.Binance.StopThresholdPercent)
+		// A valid reduction applies even when some operations no longer fit.
+		// Admission checks each request against its new allowance.
 		updates[key] = value
 	}
-	now := c.clock.Now()
 	for key, w := range updates {
-		if _, exists := s.windows[key]; !exists && s.historySince.After(now.Add(-w.duration)) {
-			s.cooldown = maxTime(s.cooldown, now.Add(w.duration))
-		}
 		s.windows[key] = w
 	}
-	s.blocked = nil
+	s.catalogStart = started
+	s.catalogUpdatedAt = c.clock.Now()
 	return nil
 }
 
@@ -101,4 +104,35 @@ func (s *scopeState) feasible(w window) bool {
 		}
 	}
 	return true
+}
+
+// LimitState describes an installed window. A zero UserCap means no user cap.
+// HistorySince marks the oldest available local history, not known exchange usage.
+type LimitState struct {
+	Name          string
+	Unit          string
+	Window        time.Duration
+	ExchangeLimit int
+	UserCap       int
+	StopLine      int
+	Source        string
+	UpdatedAt     time.Time
+	HistorySince  time.Time
+}
+
+// Limits returns an independent snapshot for logs and diagnostics.
+func (c *Controller) Limits(scope Scope) []LimitState {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	state := c.scopes[scope]
+	if state == nil {
+		return nil
+	}
+	result := make([]LimitState, 0, len(state.windows))
+	for name, w := range state.windows {
+		result = append(result, LimitState{Name: name, Unit: w.unit, Window: w.duration, ExchangeLimit: w.ceiling, UserCap: w.userCap, StopLine: w.limit, Source: w.source, UpdatedAt: w.updatedAt, HistorySince: state.historySince})
+	}
+	slices.SortFunc(result, func(a, b LimitState) int { return strings.Compare(a.Name, b.Name) })
+	return result
 }

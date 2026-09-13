@@ -287,7 +287,7 @@ func TestSpotCatalogResponseUpdatesLimitsAndChargesOnce(t *testing.T) {
 		assert.Len(t, base.sent(), 1)
 		assert.Equal(t, 1, c.Attempts(ctx))
 		state := c.scopes[BinanceSpot]
-		assert.Equal(t, 1600, state.windows["request_weight_1m"].limit)
+		assert.Equal(t, 1800, state.windows["request_weight_1m"].limit)
 		require.Len(t, state.history, 1)
 		assert.Equal(t, 20, state.history[0].cost.weight)
 		assert.Equal(t, Instruments, state.history[0].cost.operation)
@@ -308,19 +308,20 @@ func TestCatalogUpdatesKeepUsageAndRejectStaleResults(t *testing.T) {
 		// A stale increase and a stale malformed catalog cannot replace newer limits.
 		require.NoError(t, c.updateCatalog(BinanceSpot, start, []byte(`{"rateLimits":[]}`)))
 		require.NoError(t, c.updateCatalog(BinanceSpot, start, []byte(`invalid`)))
-		assert.Equal(t, 1600, c.scopes[BinanceSpot].windows["request_weight_1m"].limit)
+		assert.Equal(t, 1800, c.scopes[BinanceSpot].windows["request_weight_1m"].limit)
 		require.NoError(t, c.updateCatalog(BinanceSpot, start.Add(2*time.Second), []byte(`{"rateLimits":[{"rateLimitType":"REQUEST_WEIGHT","interval":"MINUTE","intervalNum":1,"limit":999999}]}`)))
-		assert.Equal(t, 4800, c.scopes[BinanceSpot].windows["request_weight_1m"].limit)
+		assert.Equal(t, 899999, c.scopes[BinanceSpot].windows["request_weight_1m"].limit)
+		assert.Len(t, c.scopes[BinanceSpot].history, 3)
 		ctx, cancel := context.WithTimeout(begin(t, c, BinanceSpot, MarketStats), time.Second)
 		defer cancel()
 		_, err := send(ctx, transport, "/api/v3/ticker/24hr")
-		assert.ErrorIs(t, err, context.DeadlineExceeded)
-		assert.Len(t, recorder.sent(), 3)
+		require.NoError(t, err)
+		assert.Len(t, recorder.sent(), 4)
 	})
 }
 
-func TestMalformedCatalogFailsClosedAndCanRecover(t *testing.T) {
-	for _, body := range []string{`{}`, `{"rateLimits":null}`, `{"rateLimits":[{"rateLimitType":"UNKNOWN"}]}`, `{"rateLimits":[{"rateLimitType":"REQUEST_WEIGHT","interval":"MINUTE","intervalNum":1,"limit":1}]}`, `{"rateLimits":[{"rateLimitType":"REQUEST_WEIGHT","interval":"MINUTE","intervalNum":0,"limit":6000}]}`, `{"rateLimits":[{"rateLimitType":"REQUEST_WEIGHT","interval":"DAY","intervalNum":9223372036854775807,"limit":6000}]}`} {
+func TestMalformedCatalogKeepsBootstrapAndCanRecover(t *testing.T) {
+	for _, body := range []string{`{}`, `{"rateLimits":null}`, `{"rateLimits":[{"rateLimitType":"UNKNOWN"}]}`, `{"rateLimits":[{"rateLimitType":"REQUEST_WEIGHT","interval":"MINUTE","intervalNum":1,"limit":0}]}`, `{"rateLimits":[{"rateLimitType":"REQUEST_WEIGHT","interval":"MINUTE","intervalNum":0,"limit":6000}]}`, `{"rateLimits":[{"rateLimitType":"REQUEST_WEIGHT","interval":"DAY","intervalNum":9223372036854775807,"limit":6000}]}`} {
 		t.Run(body, func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				recorder := &recorder{}
@@ -329,8 +330,8 @@ func TestMalformedCatalogFailsClosedAndCanRecover(t *testing.T) {
 				err := c.updateCatalog(BinanceSpot, start, []byte(body))
 				assert.ErrorIs(t, err, application.ErrUpstreamUnavailable)
 				_, err = send(begin(t, c, BinanceSpot, Tickers), transport, "/api/v3/ticker/price")
-				assert.ErrorIs(t, err, application.ErrUpstreamUnavailable)
-				assert.Empty(t, recorder.sent())
+				require.NoError(t, err)
+				assert.Len(t, recorder.sent(), 1)
 				require.NoError(t, c.updateCatalog(BinanceSpot, start.Add(time.Second), []byte(`{"rateLimits":[{"rateLimitType":"ORDERS"}]}`)))
 				_, err = send(begin(t, c, BinanceSpot, Tickers), transport, "/api/v3/ticker/price")
 				require.NoError(t, err)
@@ -339,20 +340,18 @@ func TestMalformedCatalogFailsClosedAndCanRecover(t *testing.T) {
 	}
 }
 
-func TestNewLongWindowPausesWithoutLosingConfiguredLimits(t *testing.T) {
+func TestNewLongWindowKeepsAvailableHistoryWithoutPause(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		recorder := &recorder{}
 		c, transport := setup(t, config.Defaults(), BinanceLinear, recorder)
 		start := time.Now()
 		catalog := []byte(`{"rateLimits":[{"rateLimitType":"RAW_REQUESTS","interval":"HOUR","intervalNum":1,"limit":10000}]}`)
 		require.NoError(t, c.updateCatalog(BinanceLinear, start, catalog))
-		assert.Equal(t, start.Add(time.Hour), c.scopes[BinanceLinear].cooldown)
+		assert.True(t, c.scopes[BinanceLinear].cooldown.IsZero())
 		assert.Contains(t, c.scopes[BinanceLinear].windows, "funding_requests_5m")
 		assert.Contains(t, c.scopes[BinanceLinear].windows, "request_weight_1m")
 		_, err := send(begin(t, c, BinanceLinear, Instruments), transport, "/fapi/v1/fundingInfo")
-		assert.ErrorIs(t, err, application.ErrUpstreamUnavailable)
-		time.Sleep(time.Hour)
-		_, err = send(begin(t, c, BinanceLinear, Instruments), transport, "/fapi/v1/fundingInfo")
+		require.NoError(t, err)
 		require.NoError(t, err)
 		assert.Len(t, recorder.sent(), 1)
 	})
@@ -372,7 +371,7 @@ func TestRestartUsesBootstrapAndEmptyLocalState(t *testing.T) {
 		start := time.Now()
 		_, err := send(begin(t, c, BinanceSpot, Instruments), transport, "/api/v3/exchangeInfo")
 		require.NoError(t, err)
-		assert.Equal(t, 4800, c.scopes[BinanceSpot].windows["request_weight_1m"].limit)
+		assert.Equal(t, 5400, c.scopes[BinanceSpot].windows["request_weight_1m"].limit)
 		assert.Equal(t, start, recorder.sent()[0].at)
 	})
 }

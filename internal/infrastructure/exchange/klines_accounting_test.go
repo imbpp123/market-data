@@ -28,13 +28,13 @@ func (f candleHTTP) RoundTrip(request *http.Request) (*http.Response, error) { r
 
 func TestCandleActualPlannedLimitDeterminesAdmissionCost(t *testing.T) {
 	cases := []struct{ limit, weight, accepted int }{
-		{1, 1, 19}, {99, 1, 19}, {100, 2, 9}, {499, 2, 9}, {500, 5, 3}, {1000, 5, 3}, {1001, 10, 1}, {1500, 10, 1},
+		{1, 1, 21}, {99, 1, 21}, {100, 2, 10}, {499, 2, 10}, {500, 5, 4}, {1000, 5, 4}, {1001, 10, 2}, {1500, 10, 2},
 	}
 	for _, tt := range cases {
 		t.Run(strconv.Itoa(tt.limit), func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				cfg := config.Defaults()
-				// A 1% kline share leaves 19 of the 1,920 common weight units.
+				// A 1% kline share leaves 21 of the 2,160 common weight units.
 				cfg.Upstream.OperationSharePercent.Tickers = 88
 				cfg.Upstream.OperationSharePercent.Klines = 1
 				cfg.Upstream.OperationSharePercent.MarketStats = 6
@@ -76,7 +76,7 @@ func TestCandleActualPlannedLimitDeterminesAdmissionCost(t *testing.T) {
 
 				assert.Equal(t, tt.accepted, calls)
 				assert.Equal(t, tt.accepted, admission.Attempts(ctx))
-				assert.LessOrEqual(t, tt.accepted*tt.weight, 19)
+				assert.LessOrEqual(t, tt.accepted*tt.weight, 21)
 				select {
 				case err := <-result:
 					require.FailNow(t, "request escaped the kline budget", "%v", err)

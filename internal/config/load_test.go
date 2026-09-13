@@ -214,3 +214,53 @@ func assertLoadError(t *testing.T, source io.Reader, environment []string) {
 	_, err := Load(source, environment)
 	assert.Error(t, err)
 }
+
+func TestBinanceSettingsAndLegacyCaps(t *testing.T) {
+	cases := []struct {
+		name, yaml       string
+		env              []string
+		threshold, limit int
+		explicit         bool
+	}{
+		{name: "defaults", threshold: 90, limit: 6000},
+		{name: "configured 80", yaml: "upstream: {binance: {stop_threshold_percent: 80}}", threshold: 80, limit: 6000},
+		{name: "configured 85", yaml: "upstream: {binance: {stop_threshold_percent: 85}}", threshold: 85, limit: 6000},
+		{name: "environment wins", yaml: "upstream: {binance: {stop_threshold_percent: 80}}", env: []string{"MDS_UPSTREAM_BINANCE_STOP_THRESHOLD_PERCENT=85"}, threshold: 85, limit: 6000},
+		{name: "legacy margin remains independent", yaml: "upstream: {safety_margin_percent: 20, binance: {stop_threshold_percent: 90}}", threshold: 90, limit: 6000},
+		{name: "explicit default YAML cap", yaml: "upstream: {limits: {binance_spot: {windows: {request_weight_1m: {limit: 6000}}}}}", threshold: 90, limit: 6000, explicit: true},
+		{name: "explicit default environment cap", env: []string{"MDS_UPSTREAM_LIMITS_BINANCE_SPOT_WINDOWS_REQUEST_WEIGHT_1M_LIMIT=6000"}, threshold: 90, limit: 6000, explicit: true},
+		{name: "environment cap wins", yaml: "upstream: {limits: {binance_spot: {windows: {request_weight_1m: {limit: 6000}}}}}", env: []string{"MDS_UPSTREAM_LIMITS_BINANCE_SPOT_WINDOWS_REQUEST_WEIGHT_1M_LIMIT=5000"}, threshold: 90, limit: 5000, explicit: true},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := loadText(t, tt.yaml, tt.env...)
+
+			assert.Equal(t, tt.threshold, cfg.Upstream.Binance.StopThresholdPercent)
+			assert.Equal(t, time.Hour, cfg.Upstream.Binance.CatalogRefreshInterval)
+			window := cfg.Upstream.Limits.BinanceSpot.Windows["request_weight_1m"]
+			assert.Equal(t, tt.limit, window.Limit)
+			assert.Equal(t, tt.explicit, window.ExplicitLimit)
+			assert.False(t, cfg.Upstream.Limits.BinanceSpot.Windows["raw_requests_5m"].ExplicitLimit)
+			assert.Equal(t, 20, cfg.Upstream.SafetyMarginPercent)
+		})
+	}
+}
+
+func TestInvalidBinanceSettings(t *testing.T) {
+	cases := []struct{ setting, value string }{
+		{"stop_threshold_percent", "0"}, {"stop_threshold_percent", "100"},
+		{"stop_threshold_percent", "1.5"}, {"stop_threshold_percent", "1"},
+		{"catalog_refresh_interval", "0s"}, {"catalog_refresh_interval", "-1h"},
+		{"catalog_refresh_interval", "9999999999999h"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.setting+tt.value, func(t *testing.T) {
+			_, err := Load(strings.NewReader("upstream: {binance: {"+tt.setting+": "+tt.value+"}}"), nil)
+
+			require.Error(t, err)
+			if tt.value != "1" {
+				assert.Contains(t, err.Error(), tt.setting)
+			}
+		})
+	}
+}

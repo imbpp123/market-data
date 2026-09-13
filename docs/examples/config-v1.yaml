@@ -268,16 +268,25 @@ market_stats:
 # State is local and memory-only: this cannot account for other processes on the
 # same outgoing IP, and exchange usage/bans can survive a process restart.
 upstream:
-  # Description: Percentage withheld from each configured/discovered common window
-  #              ceiling. Common allowance is floor(min(configured_limit,
-  #              discovered_limit) * (100 - margin) / 100). Before discovery, the
-  #              configured ceiling is used. A larger margin lowers request capacity;
-  #              validation rejects allowances too small for permitted work.
-  #
+  binance:
+    # Description: Percentage of the current Binance ceiling used for the stop line.
+    #              An explicit legacy window limit is a user cap applied first.
+    # Values: Integer from 1 to 99; shares must admit supported requests.
+    # Default: 90
+    # Required: no
+    stop_threshold_percent: 90
+
+    # Description: Maximum age before the instrument worker requests a fresh limit
+    #              catalog. Successful instrument exchangeInfo responses are reused.
+    # Values: Positive Go duration.
+    # Default: 1h
+    # Required: no
+    catalog_refresh_interval: 1h
+
+  # Description: Percentage withheld from Bybit common windows. Binance uses
+  #              stop_threshold_percent independently, including for old config files.
   # Values: Integer from 0 to 99.
-  #
   # Default: 20
-  #
   # Required: no
   safety_margin_percent: 20
 
@@ -568,7 +577,10 @@ upstream:
   # numeric ceilings and positive pacing durations may be changed. All applicable
   # windows must pass together. Limits are sliding allowances, not refill tokens.
   # Validation checks single permitted request costs and statistics schedule capacity.
-  # Runtime discovery may tighten a ceiling; raising config cannot override that.
+  # Binance defaults are bootstrap values, not permanent caps. Explicit limit
+  # values (including values equal to defaults) become user caps. The Binance limit
+  # examples below are commented out so this file follows exchange increases.
+  # Bybit settings and safety margin keep their existing behavior.
   limits:
     # Binance Spot API scope; its ledgers are separate from Binance USD(S)-M.
     binance_spot:
@@ -611,7 +623,7 @@ upstream:
           window: 1m
 
           # Description: Positive weight ceiling BEFORE margin and operation splitting.
-          #              6000 with 20% margin yields 4800 common units and 240
+          #              6000 at 90% yields 5400 common units and 270
           #              statistics units; an 80-weight FULL statistics call fits twice
           #              per default 30s schedule, with room for one additional attempt
           #              per minute. Retries can delay work.
@@ -621,7 +633,7 @@ upstream:
           # Default: 6000
           #
           # Required: no
-          limit: 6000
+          # limit: 6000
 
           # Description: Reserve operation percentages in this window. Both the common
           #              allowance and the operation's own share constrain a call.
@@ -659,7 +671,7 @@ upstream:
           window: 5m
 
           # Description: Positive raw-request ceiling before margin/shares. The default
-          #              gives 240000 common attempts per 5m; the weight window and
+          #              gives 270000 common attempts per 5m; the weight window and
           #              pacing still apply.
           #
           # Values: Positive integer that fits Go int.
@@ -667,7 +679,7 @@ upstream:
           # Default: 300000
           #
           # Required: no
-          limit: 300000
+          # limit: 300000
 
           # Description: Reserve operation shares in the raw-request capacity. A request
           #              fitting the weight budget can still be blocked by this window.
@@ -719,8 +731,8 @@ upstream:
           # Required: no
           window: 1m
 
-          # Description: Positive weight ceiling before margin/shares. 2400 gives 1920
-          #              common units and 96 statistics units at the defaults. Two
+          # Description: Positive weight ceiling before margin/shares. 2400 gives 2160
+          #              common units and 108 statistics units at the defaults. Two
           #              40-weight statistics calls fit per minute; retries share that
           #              same finite allowance.
           #
@@ -729,7 +741,7 @@ upstream:
           # Default: 2400
           #
           # Required: no
-          limit: 2400
+          # limit: 2400
 
           # Description: Apply each operation's reserved share after the safety margin.
           #
@@ -766,7 +778,7 @@ upstream:
           window: 5m
 
           # Description: Positive family request ceiling before the safety margin. The
-          #              default yields 400 funding metadata attempts per 5m, subject to
+          #              default yields 450 funding metadata attempts per 5m, subject to
           #              other applicable constraints. v1 does not make fundingRate
           #              history requests.
           #
@@ -775,7 +787,7 @@ upstream:
           # Default: 500
           #
           # Required: no
-          limit: 500
+          # limit: 500
 
           # Description: Keep this instrument-only endpoint-family allowance outside
           #              operation splitting. Instruments may use the whole allowance

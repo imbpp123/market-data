@@ -12,12 +12,15 @@ import (
 )
 
 type window struct {
-	unit     string
-	duration time.Duration
-	ceiling  int
-	limit    int
-	split    bool
-	funding  bool
+	unit      string
+	duration  time.Duration
+	ceiling   int
+	userCap   int
+	source    string
+	updatedAt time.Time
+	limit     int
+	split     bool
+	funding   bool
 }
 
 type entry struct {
@@ -26,16 +29,16 @@ type entry struct {
 }
 
 type scopeState struct {
-	windows      map[string]window
-	history      []entry
-	historySince time.Time
-	spacing      time.Duration
-	next         time.Time
-	cooldown     time.Time
-	catalogStart time.Time
-	blocked      error
-	shares       [operationCount]int
-	maxCosts     [operationCount]int
+	windows          map[string]window
+	history          []entry
+	historySince     time.Time
+	spacing          time.Duration
+	next             time.Time
+	cooldown         time.Time
+	catalogUpdatedAt time.Time
+	catalogStart     time.Time
+	shares           [operationCount]int
+	maxCosts         [operationCount]int
 }
 
 type lane struct {
@@ -133,7 +136,20 @@ func (c *Controller) addScope(id Scope, cfg config.Scope, costs [operationCount]
 		source = bootstrap.Bybit
 	}
 	for key, w := range cfg.Windows {
-		s.windows[key] = window{unit: w.Unit, duration: w.Window, ceiling: w.Limit, limit: percent(min(w.Limit, source.Windows[key].Limit), 100-c.settings.SafetyMarginPercent), split: w.SplitOperations, funding: key == "funding_requests_5m"}
+		ceiling := source.Windows[key].Limit
+		threshold := c.settings.Binance.StopThresholdPercent
+		userCap := 0
+		if id == Bybit || w.ExplicitLimit || w.Limit != ceiling {
+			userCap = w.Limit
+		}
+		if id == Bybit {
+			threshold = 100 - c.settings.SafetyMarginPercent
+		}
+		effective := ceiling
+		if userCap > 0 {
+			effective = min(effective, userCap)
+		}
+		s.windows[key] = window{unit: w.Unit, duration: w.Window, ceiling: ceiling, userCap: userCap, source: "bootstrap", limit: percent(effective, threshold), split: w.SplitOperations, funding: key == "funding_requests_5m"}
 	}
 	c.scopes[id] = s
 }
@@ -161,9 +177,6 @@ func (w window) cost(c cost) int {
 }
 
 func (s *scopeState) ready(w *waiter, now time.Time) (time.Time, error) {
-	if s.blocked != nil {
-		return time.Time{}, s.blocked
-	}
 	ready := maxTime(s.next, s.cooldown, w.notBefore)
 	longest := time.Duration(0)
 	for _, limit := range s.windows {
@@ -178,14 +191,18 @@ func (s *scopeState) ready(w *waiter, now time.Time) (time.Time, error) {
 	if cutoff.After(s.historySince) {
 		s.historySince = cutoff
 	}
-	for _, limit := range s.windows {
+	for name, limit := range s.windows {
 		amount := limit.cost(w.cost)
 		if amount == 0 {
 			continue
 		}
 		allowance := percent(limit.limit, s.shares[w.cost.operation])
 		if amount > limit.limit || limit.split && amount > allowance {
-			return time.Time{}, application.ErrUpstreamUnavailable
+			capacity := limit.limit
+			if limit.split {
+				capacity = min(capacity, allowance)
+			}
+			return time.Time{}, fmt.Errorf("%s window %s: request cost %d exceeds allowance %d: %w", w.scope, name, amount, capacity, application.ErrUpstreamUnavailable)
 		}
 		common, own := 0, 0
 		first := now.Add(-limit.duration)

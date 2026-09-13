@@ -1,6 +1,6 @@
 # Binance request-limit rework
 
-September 13, 2026. Main design and all five phase plans approved by the user. Phase 1 is complete; see its [implementation report](request-budget-rework/01-exchange-info.md#implementation-report). Phases 2–5 have not started. Proposed details are marked below.
+September 13, 2026. Main design and all five phase plans approved by the user. Phases 1 and 2 are implemented; see the [phase 1 report](request-budget-rework/01-exchange-info.md#implementation-report) and [phase 2 report](request-budget-rework/02-limits-and-settings.md#implementation-report). Phases 3–5 have not started. Proposed details are marked below.
 
 ## Summary / Overview
 
@@ -78,7 +78,7 @@ The transport passes request cost, dispatch status, response headers, and respon
 
 The public API keeps its response format. A candle request that needs rejected exchange work returns `service_overloaded`. Valid cached pages remain stored, but the caller never receives partial success. Complete cache reads and snapshot reads keep working under their existing local limits. Workers keep previous snapshots and defer the next run.
 
-Proposed configuration fields:
+Configuration fields implemented in phase 2:
 
 ```yaml
 upstream:
@@ -87,7 +87,7 @@ upstream:
     catalog_refresh_interval: 1h
 ```
 
-Missing fields use these defaults. Explicit YAML values and then environment values override them. Proposed validation: an integer percentage from 1 to 99, a positive finite interval, and operation allowances large enough for supported requests.
+Missing fields use these defaults. Explicit YAML values and then environment values override them. Validation requires an integer percentage from 1 to 99, a positive finite interval, and operation allowances large enough for supported requests. Legacy cap mapping is recorded in the [phase 2 report](request-budget-rework/02-limits-and-settings.md#implemented-settings-and-migration).
 
 ## Failure Modes / Edge Cases
 
@@ -112,7 +112,7 @@ Keep threshold rejection, exhausted operation share, exchange cooldown, refresh 
 
 ## Migration / Rollout Plan
 
-The [phase plans](request-budget-rework/README.md) describe the work, expected results, and test cases. All five phase plans are approved by the user; implementation has not started.
+The [phase plans](request-budget-rework/README.md) describe the work, expected results, and test cases. All five phase plans are approved by the user. Phases 1 and 2 are implemented; later phases remain pending.
 
 1. [Read exchangeInfo](request-budget-rework/01-exchange-info.md): fix the separate response-size issue and check complete catalogs.
 2. [Limits and settings](request-budget-rework/02-limits-and-settings.md): add settings, user caps, and catalog updates.
@@ -148,11 +148,10 @@ The following engineering details still need verification. They do not change th
 
 - Phase 1 confirmed that `showPermissionSets=false` fits the measured complete Spot response within 16 MiB. Recheck if the catalog grows beyond that bound.
 - Which response timing proves that a local request is included in a counter? Define and test the conservative fallback for unclear cases.
-- Confirm final configuration field names, validation, and handling of legacy overrides before implementation.
 
 ## Earlier requirements replaced
 
-Phase 1 changes only Spot catalog loading. The current limiter rules and historical release evidence remain unchanged until later phases are implemented.
+Phase 1 changes only Spot catalog loading. Phase 2 adds settings and catalog refreshes. Usage accounting and request rejection still need phases 3–4; historical release evidence does not cover the complete rework.
 
 - [Implementation contract](implementation-contract-v1.md), “Bootstrap, discovered limits, and cooldown”: replace discrepancy/new-window pauses, malformed-catalog blocking and permanent bootstrap caps with the rules above.
 - [Specification](technical-specification-v1.md), sections 32–33: replace Binance's hard common 80% budget and budget waiting with a configurable stop line, permitted crossing and immediate rejection. Keep strict operation caps.

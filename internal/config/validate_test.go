@@ -104,13 +104,13 @@ func TestAllowances(t *testing.T) {
 		common int
 		shares Operations[int]
 	}{
-		{"spot", cfg.Upstream.Limits.BinanceSpot.Windows["request_weight_1m"], false, 4800, Operations[int]{2880, 1440, 240, 240}},
-		{"linear", cfg.Upstream.Limits.BinanceLinear.Windows["request_weight_1m"], false, 1920, Operations[int]{1152, 576, 96, 96}},
-		{"raw", cfg.Upstream.Limits.BinanceSpot.Windows["raw_requests_5m"], false, 240000, Operations[int]{144000, 72000, 12000, 12000}},
-		{"funding", cfg.Upstream.Limits.BinanceLinear.Windows["funding_requests_5m"], false, 400, Operations[int]{Instruments: 400}},
+		{"spot", cfg.Upstream.Limits.BinanceSpot.Windows["request_weight_1m"], false, 5400, Operations[int]{3240, 1620, 270, 270}},
+		{"linear", cfg.Upstream.Limits.BinanceLinear.Windows["request_weight_1m"], false, 2160, Operations[int]{1296, 648, 108, 108}},
+		{"raw", cfg.Upstream.Limits.BinanceSpot.Windows["raw_requests_5m"], false, 270000, Operations[int]{162000, 81000, 13500, 13500}},
+		{"funding", cfg.Upstream.Limits.BinanceLinear.Windows["funding_requests_5m"], false, 450, Operations[int]{Instruments: 450}},
 		{"Bybit shared", cfg.Upstream.Limits.Bybit.Windows["http_requests_5s"], true, 480, Operations[int]{312, 144, 24, 0}},
 		{"combine before floor", Window{Limit: 24, SplitOperations: true}, true, 19, Operations[int]{12, 5, 0, 0}},
-		{"separate floors", Window{Limit: 24, SplitOperations: true}, false, 19, Operations[int]{11, 5, 0, 0}},
+		{"separate floors", Window{Limit: 24, SplitOperations: true}, false, 21, Operations[int]{12, 6, 1, 1}},
 	}
 
 	for _, tc := range cases {
@@ -122,7 +122,7 @@ func TestAllowances(t *testing.T) {
 	}
 
 	cfg.Upstream.SafetyMarginPercent = 0
-	common, _ := cfg.allowances(Window{Limit: math.MaxInt, SplitOperations: true}, false)
+	common, _ := cfg.allowances(Window{Limit: math.MaxInt, SplitOperations: true}, true)
 	assert.Equal(t, math.MaxInt, common)
 }
 
@@ -131,9 +131,9 @@ func TestEveryBudgetWindowThreshold(t *testing.T) {
 		scope, window string
 		threshold     int
 	}{
-		{"binance_spot", "request_weight_1m", 4000},
-		{"binance_spot", "raw_requests_5m", 250},
-		{"binance_linear", "request_weight_1m", 2000},
+		{"binance_spot", "request_weight_1m", 3556},
+		{"binance_spot", "raw_requests_5m", 223},
+		{"binance_linear", "request_weight_1m", 1778},
 		{"binance_linear", "funding_requests_5m", 2},
 		{"bybit", "http_requests_5s", 25},
 	} {
@@ -167,7 +167,7 @@ func TestPermittedLinearPageCosts(t *testing.T) {
 			cfg.Upstream.SafetyMarginPercent = 0
 			cfg.Upstream.OperationSharePercent = Operations[int]{30, 1, 19, 50}
 			window := cfg.Upstream.Limits.BinanceLinear.Windows["request_weight_1m"]
-			window.Limit = tc.cost * 100
+			window.Limit = (tc.cost*100*100 + 89) / 90
 			cfg.Exchanges.Binance.MarketStats.RefreshInterval = time.Minute
 			cfg.Upstream.Limits.BinanceLinear.Windows["request_weight_1m"] = window
 			require.NoError(t, cfg.Validate())
