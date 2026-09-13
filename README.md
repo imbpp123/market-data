@@ -35,7 +35,6 @@ Market Data provides a single entry point for market data from multiple exchange
 | [Development](docs/development.md#checks) | Build tools and project checks. |
 | [Releases](docs/releasing.md) | Version tags and image publication. |
 | [Technical specification](docs/technical-specification-v1.md) | Architecture, requirements, and linked contracts. |
-| [Verification](docs/grpc-migration-verification.md) | Recorded checks, measurements, and their limits. |
 
 ## Limits
 

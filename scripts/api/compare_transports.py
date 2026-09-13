@@ -184,7 +184,7 @@ def main():
                 return json.loads(server.stdout.readline())
             for name, path in paths().items():
                 kind = name.rsplit("-", 1)[0]
-                old = gzip.decompress((ROOT / f"docs/evidence/grpc-migration/{name}.http.json.gz").read_bytes())
+                old = gzip.decompress((ROOT / f"testdata/http-baseline/{name}.http.json.gz").read_bytes())
                 normalized = normalized_protobuf(json.loads((fixed / f"{name}.json").read_text()), kind)
                 if json.loads(old)["data"] != normalized:
                     raise RuntimeError(f"Semantic mismatch before timing: {name}")

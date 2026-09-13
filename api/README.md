@@ -39,15 +39,15 @@ The schema and generated outputs, including the descriptor and `.pyi`, belong in
 
 The [Go example](go/examples/client/main.go), [Python example](examples/client.py), and [async example](examples/client_async.py) reuse channels, set deadlines/receive limits and handle missing/unknown rich-status details. For local testing, run `go run ./cmd/contract-fixture` from `api/go`; it prints a loopback address. Pass that address to an example. The server is a fixed contract fixture with test selectors, not an application transport or a public API implementation.
 
-`make check-api` also runs installed clients against the actual phase 2 handlers, application readers, memory repositories, and candle service. A standalone Go client and Python clients compare normalized results for all four methods. Production uses this same transport after the phase 3 cutover.
+`make check-api` also runs installed clients against the production gRPC handlers, application readers, memory repositories, and candle service. A standalone Go client and Python clients compare normalized results for all four methods. Production uses this same transport.
 
-The [phase 1 evidence](../docs/evidence/grpc-migration/README.md) records exact normal/full sizes and the existing HTTP TCP baseline. Phase 2 verifies application behavior, send lifetime and overload; full container workload and capacity measurements remain later migration gates.
+The [HTTP response fixtures](../testdata/http-baseline/README.md) provide fixed expected bytes for transport regression tests and comparisons. Generated Protobuf fixtures are checked against the same values.
 
 `make api-http-baseline` remains a historical measurement tool. It uses the frozen
 HTTP fixture under `scripts/api/httpfixture/legacyhttp`; that code is not part of
 the production executable or image. Its responses are checked byte-for-byte
 against the saved HTTP evidence. Do not run it merely to validate the service:
-it writes new benchmark output. Phase 4 owns the migration comparison.
+it writes new benchmark output under ignored `bin/api-benchmarks/http-baseline/`. Committed response fixtures stay unchanged.
 
 For a running service, use the Python installation example or the descriptor
 commands in the [development guide](../docs/development.md). The complete Go and

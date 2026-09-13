@@ -15,7 +15,7 @@ make docker-down
 
 The image uses a digest-pinned Go builder and a `scratch` runtime with CA certificates, a static executable, and UID/GID 65532. Compose publishes only `127.0.0.1:9090` and `127.0.0.1:8080`, mounts the example configuration read-only, drops capabilities, and makes the root filesystem read-only. Keep the mounted file readable by UID 65532. There is one service and no state volume.
 
-Compose enforces 1,000,000,000 bytes of memory, disables swap, and sets `GOMEMLIMIT=700MiB`, a soft Go runtime memory target, not a process RSS limit. The [release audit](release-verification-v1.md) records historical HTTP capacity. The [gRPC capacity run](grpc-migration-verification.md#capacity) passed at 775,417,856-byte peak process RSS for the agreed main profile. This synthetic result does not prove that every allowed workload fits the memory limit. Rebuild with `make docker-build` after source changes, then run `make docker-up` to recreate the service.
+Compose enforces 1,000,000,000 bytes of memory, disables swap, and sets `GOMEMLIMIT=700MiB`, a soft Go runtime memory target, not a process RSS limit. Validate memory use for the deployment workload. Rebuild with `make docker-build` after source changes, then run `make docker-up` to recreate the service.
 
 The image runs `/market-data-service -config /etc/market-data/config.yaml`. Its healthcheck uses the same file and environment with `-healthcheck`; it makes one local `/health` request with a two-second timeout and never starts collectors. When running the image directly, mount configuration at that path. Override configuration, ports, or environment with a local Compose override; host `MDS_` variables are not forwarded automatically by Compose. Change the matching port mapping and `server.grpc.port` or `server.http.port` together. Removed flat `server.host`, `server.port`, HTTP settings and their old environment names fail validation.
 
@@ -58,6 +58,6 @@ make release-load   # opt-in synthetic capacity measurement; no exchange access
 
 `make docker-verify` requires Python 3 and a local Linux Docker engine with the host's CPU architecture. It mounts a compiled probe in a temporary Compose project with an internal network and checks health/readiness, unready data, certificates, permissions, and SIGTERM. CI runs the same build and lifecycle checks. Build and dependency downloads need network access; test execution needs no exchange access or credentials.
 
-The [gRPC verification record](grpc-migration-verification.md) records current acceptance and capacity limits. The [HTTP release audit](release-verification-v1.md) is historical evidence. The [Binance request-limit verification](release-verification-v1.md#binance-request-limit-validation) records the completed rework and saved-catalog measurements; earlier whole-service measurements do not cover that complete rework. These records do not report a deployment.
+Use the capacity profile and acceptance criteria in the [gRPC specification](grpc-migration-specification.md#testing--validation). Keep new run output outside tracked documentation, for example under ignored `bin/`. Historical reports and measurements remain in Git history.
 
 See the [development checks](development.md#checks) for service tests and the [release guide](releasing.md) for image publication.

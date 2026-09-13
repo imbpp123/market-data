@@ -2,7 +2,7 @@
 
 Run all commands from the repository root. The current build includes configuration loading, the process scaffold, exact domain models, UTC candle calendars, funding read models, application contracts, in-memory repositories, and bounded upstream admission/retries. Instrument normalization, scheduled refresh workers, the instruments read API, and publication counters are implemented. Ticker/statistics collectors and their cache-only APIs are implemented. Bounded candle cache fills and the kline endpoint are implemented. Retention scheduling and optional observability exporters are implemented.
 
-The [gRPC verification record](grpc-migration-verification.md) covers installed Go/Python consumers, combined adapter behavior, TCP comparisons and Linux capacity. Phase 4 is complete after independent review and correction of one finding. Historical HTTP measurements remain in the earlier audit.
+See the [transport implementation note](grpc-transport.md) for request bounds, resource ownership, and telemetry limits.
 
 ## Run
 
@@ -100,7 +100,7 @@ Validation covers the full agreed schema, including disabled providers' input sy
 
 Reducing a kline page size may require raising the kline attempt bound. Increasing history also affects this bound. Counts use checked integer arithmetic; the history count additionally cannot exceed `MaxInt64 / (31 * 24 * 60 * 60)` so a worst-case monthly span fits signed seconds. Calendar-specific checks belong to the timeframe implementation.
 
-Admission keeps usage, discovered limits, and cooldown state in memory. Exchange-side usage and bans may survive restarts. Restarting cannot guarantee continuity of local accounting. Bootstrap constructs a shared controller and pinned SDK clients before both listeners bind, without making exchange calls. See the [implementation contract](implementation-contract-v1.md) for admission rules and the [release audit](release-verification-v1.md) for checks.
+Admission keeps usage, discovered limits, and cooldown state in memory. Exchange-side usage and bans may survive restarts. Restarting cannot guarantee continuity of local accounting. Bootstrap constructs a shared controller and pinned SDK clients before both listeners bind, without making exchange calls. See the [implementation contract](implementation-contract-v1.md) for admission rules.
 
 Feature adapters use the shared `binance.Client.Fetch` (implemented separately for spot and linear) or `bybit.Client.Fetch` with one `Controller.Begin` context per full cycle or fill. Pages and retries reuse that context. The returned raw body retains exact source numbers and successful-attempt start/receipt timestamps; feature normalization must not rebuild numeric values from the Bybit SDK result. A background worker owns one `CycleGate` and calls `Run` with the full cycle, including publication, so a new cycle cannot reset failure backoff. Instrument and current-data workers, normalization, and single-page candle adapters are implemented. Candle fills use the same operation boundary across pages and retries.
 
@@ -170,7 +170,7 @@ The Makefile pins golangci-lint to **v2.13.2**. `make lint` and `make check` ins
 
 The [linter configuration](../.golangci.yml) selects the upstream defaults without additional linters or custom exclusions. CI runs the same `make check`, including linter installation and example validation, without a second lint or configuration pass.
 
-Other targets include `make run`, `make docker-build`, `make docker-up`, `make docker-down`, `make docker-verify`, and `make release-load`. See the [operations guide](operations.md) and [release audit](release-verification-v1.md) for container checks, memory measurements, and deployment gates.
+Other targets include `make run`, `make docker-build`, `make docker-up`, `make docker-down`, `make docker-verify`, and `make release-load`. See the [operations guide](operations.md) for container and capacity checks.
 
 Tests use `testify/require` for prerequisites and `testify/assert` for independent checks. They use no credentials or exchange access. Lifecycle tests exercise both servers and generated RPC clients over in-memory connections with `testing/synctest` for deterministic cancellation and deadline checks.
 

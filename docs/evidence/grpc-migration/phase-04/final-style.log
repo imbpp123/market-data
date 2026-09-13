@@ -1,3 +1,0 @@
-"/Users/nkornushkov/Projects/market-data/bin/golangci-lint/v2.13.2/golangci-lint" config verify --config .golangci.yml
-"/Users/nkornushkov/Projects/market-data/bin/golangci-lint/v2.13.2/golangci-lint" run --config .golangci.yml ./...
-0 issues.

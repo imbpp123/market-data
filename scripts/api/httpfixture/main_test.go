@@ -92,7 +92,7 @@ func TestConnectionByteCounters(t *testing.T) {
 	assert.Equal(t, int64(5), counts.read.Load())
 }
 
-// These bytes are the committed phase 1 evidence, not newly generated expectations.
+// These fixed response bytes are independent of generated benchmark output.
 func TestArchivedHTTPMatchesRecordedBaseline(t *testing.T) {
 	cases := []struct{ name, path string }{
 		{"instruments-1", "/api/v1/instruments"}, {"instruments-20000", "/api/v1/instruments?symbol=full"},
@@ -105,7 +105,7 @@ func TestArchivedHTTPMatchesRecordedBaseline(t *testing.T) {
 	target := handler()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			file, err := os.Open(filepath.Join("../../../docs/evidence/grpc-migration", tc.name+".http.json.gz"))
+			file, err := os.Open(filepath.Join("../../../testdata/http-baseline", tc.name+".http.json.gz"))
 			require.NoError(t, err)
 			defer func() { _ = file.Close() }()
 			reader, err := gzip.NewReader(file)

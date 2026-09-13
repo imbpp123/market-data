@@ -1,10 +1,10 @@
 # Market Data Service — Technical Specification v1
 
-> **Status:** gRPC serves all market data, with a separate operational HTTP listener. Migration phases 1–3 are independently reviewed. Phase 4 is complete after independent review and correction of one finding. The full migration is complete. The [gRPC verification](grpc-migration-verification.md) records current traffic, installed clients and bounded Linux capacity. The [HTTP audit](release-verification-v1.md) remains historical evidence.
+> **Status:** gRPC serves all market data, with a separate operational HTTP listener. The HTTP replacement is complete. The [gRPC contract](grpc-migration-specification.md) defines the active API and acceptance criteria.
 >
 > This document keeps the content of the original 60 sections. Timeframe, MarketStats, and Market statistics API now have separate sections, with 65 sections in total. It includes Go 1.27.1 and request admission requirements, with matching changes in related sections.
 >
-> **Decision contract:** [Implementation decisions](implementation-contract-v1.md), [complete configuration](examples/config-v1.yaml), and [evidence](evidence/phase-01/README.md) close the phase 01 implementation choices. The [decision register](specification-decisions-v1.md) distinguishes user requirements, engineering defaults, and future verification gates.
+> **Decision contract:** [Implementation decisions](implementation-contract-v1.md) and the [complete configuration](examples/config-v1.yaml) define implementation choices. The [decision register](specification-decisions-v1.md) distinguishes user requirements and engineering defaults.
 
 Current decision status, evidence, and implementation gates are recorded in the [v1 decision register](specification-decisions-v1.md). Historical SDK checks reported below are not a reproducible test suite in this repository.
 
@@ -383,7 +383,7 @@ Source: [Bybit Instruments Info](https://bybit-exchange.github.io/docs/v5/market
 
 `GET /fapi/v1/fundingInfo` provides `fundingIntervalHours` for symbols with changed funding settings. Convert hours to a domain duration, then to integer seconds in the gRPC API. This response is not a full instrument catalog. Join it with `exchangeInfo` by symbol.
 
-Phase 01 decision: use a valid explicit interval from the successful full `fundingInfo` response. A perpetual symbol absent from that response gets `null`; do not infer an eight-hour interval from the general FAQ. The FAQ base interval is not a current per-symbol guarantee, especially for inactive instruments. A failed or malformed response fails the refresh and preserves the previous snapshot instead of publishing new nulls or defaults. Unknown contract types and expiry futures have no inferred fallback. The interval can change and is refreshed with instruments. Captured explicit values and synthetic failure cases are in the [phase 01 evidence](evidence/phase-01/README.md).
+Phase 01 decision: use a valid explicit interval from the successful full `fundingInfo` response. A perpetual symbol absent from that response gets `null`; do not infer an eight-hour interval from the general FAQ. The FAQ base interval is not a current per-symbol guarantee, especially for inactive instruments. A failed or malformed response fails the refresh and preserves the previous snapshot instead of publishing new nulls or defaults. Unknown contract types and expiry futures have no inferred fallback. The interval can change and is refreshed with instruments. Captured explicit values are in [testdata/exchange](../testdata/exchange/README.md); synthetic failure cases are in the adapter tests.
 
 Sources: [Binance Funding Rate Info](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data#get-funding-rate-info), [Binance Funding Rates — default and interval changes](https://www.binance.com/en/support/faq/detail/360033525031).
 
@@ -820,7 +820,7 @@ We do not fix the Timeframe functions and methods now. Define them during implem
 
 All intervals except 1M have fixed durations. 1d, 3d, and 1w are 24, 72, and 168 hours in UTC. A monthly candle starts on the first day of the month at 00:00:00 UTC and ends at the start of the next calendar month. Do not replace a month with 30 days.
 
-Boundary calculation follows the selected exchange calendar and interval. Phase 01 live fixtures confirm Monday 00:00 UTC for 1w on all four supported exchange/market pairs. Binance Spot and USDⓈ-M 3d starts follow the congruence anchored at 1970-01-02T00:00:00Z (not Unix epoch modulo 72 hours). This anchor is an inference from consecutive BTCUSDT/ETHUSDT rows across the 2025/2026 year boundary; use it with the saved [raw responses and expected UTC boundaries](evidence/phase-01/README.md). Do not round upstream OpenTime to hide a mismatch. Invalid input or time calculation overflow must not silently produce a corrected result. Adapter tests must replay these fixtures before those intervals ship.
+Boundary calculation follows the selected exchange calendar and interval. Phase 01 live fixtures confirm Monday 00:00 UTC for 1w on all four supported exchange/market pairs. Binance Spot and USDⓈ-M 3d starts follow the congruence anchored at 1970-01-02T00:00:00Z (not Unix epoch modulo 72 hours). This anchor is an inference from consecutive BTCUSDT/ETHUSDT rows across the 2025/2026 year boundary; use it with the saved [raw responses and expected UTC boundaries](../testdata/exchange/README.md). Do not round upstream OpenTime to hide a mismatch. Invalid input or time calculation overflow must not silently produce a corrected result. Adapter tests must replay these fixtures before those intervals ship.
 
 ### Exchange interval mapping
 
@@ -1186,7 +1186,7 @@ Phase 01 dispositions are now recorded in the [decision register](specification-
 - One instance is confirmed; the deployment must verify no other clients and no outstanding ban on its egress IP.
 - Binance funding uses explicit intervals only, with null for an absent symbol in a successful response. Request failure preserves the previous snapshot. Binance delisting stays null.
 - Twelve captured calendar cases cover 3d/1w alignment, both symbols, and year boundaries, with raw responses and expected normalized rows.
-- Binance Spot FULL 24hr was verified with a successful live array response without symbol filters. Its [capture context](evidence/phase-01/binance-spot-full-statistics.json) is evidence for this environment, not future deployment access.
+- Verify Binance Spot FULL 24hr access without symbol filters from the deployment network. A past successful request from another environment does not guarantee access.
 - The official release catalog confirms Go 1.27.1 availability. Phase 02 must install/use it; local Go remains 1.26.0. Earlier SDK checks still need recreation as project adapter tests in phases 06–09.
 
 ---
@@ -2857,4 +2857,4 @@ v1 is ready when:
 40. The MarketStats API reads only the repository, distinguishes unready and empty snapshots, and keeps fetched_at after a failed refresh.
 41. Tests cover all fields in both model mappings, independent updates, and the API contract as described in sections 6–7 and 57–60.
 
-Current acceptance also requires all four methods from installed Go/Python clients, independent operational HTTP under saturation, bounded native send ownership, and the complete Linux capacity profile. See the [gRPC verification](grpc-migration-verification.md); historical HTTP latency is not a network gRPC baseline.
+Current acceptance also requires all four methods from installed Go/Python clients, independent operational HTTP under saturation, bounded native send ownership, and the complete Linux capacity profile. See the [gRPC acceptance criteria](grpc-migration-specification.md#testing--validation); in-process HTTP latency is not a network gRPC baseline.

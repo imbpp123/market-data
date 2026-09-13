@@ -1,7 +1,0 @@
-goos: darwin
-goarch: arm64
-pkg: market-data/internal/transport/grpc
-cpu: Apple M1 Pro
-BenchmarkKlineConversionAndEncoding-8   	    1486	   2377292 ns/op	 2318591 B/op	   58014 allocs/op
-PASS
-ok  	market-data/internal/transport/grpc	4.279s

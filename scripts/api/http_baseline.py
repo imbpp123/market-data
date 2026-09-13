@@ -17,7 +17,7 @@ import time
 import urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / "docs/evidence/grpc-migration"
+OUTPUT = ROOT / "bin/api-benchmarks/http-baseline"
 
 
 def run_json(command, **kwargs):
@@ -96,7 +96,7 @@ def main():
     if args.client:
         print(json.dumps(python_client(args.address, args.path, args.sha256, args.workers, args.samples)))
         return
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    OUTPUT.mkdir(parents=True, exist_ok=True)
     subprocess.run(["go", "build", "-o", ROOT / "bin/api-http-fixture", "./scripts/api/httpfixture"], cwd=ROOT, check=True)
     with tempfile.TemporaryDirectory(prefix="market-data-baseline-") as directory:
         work = pathlib.Path(directory)
@@ -123,8 +123,8 @@ def main():
                 if json.loads(body)["data"] != expected:
                     raise RuntimeError(f"{name}: JSON/Protobuf semantic mismatch")
                 digest = hashlib.sha256(body).hexdigest()
-                # gzip is only evidence storage. Every measurement is uncompressed.
-                (EVIDENCE / (name + ".http.json.gz")).write_bytes(gzip.compress(body, mtime=0))
+                # gzip is only output storage. Every measurement is uncompressed.
+                (OUTPUT / (name + ".http.json.gz")).write_bytes(gzip.compress(body, mtime=0))
                 fixture_sizes[name] = {"http_response_bytes": len(body), "protobuf_response_bytes": sizes[name], "http_sha256": digest,
                                        "protobuf_sha256": hashlib.sha256((work / (name + ".pb")).read_bytes()).hexdigest(),
                                        "rows": len(expected), "semantic_equivalence": True}
@@ -166,10 +166,10 @@ def main():
                                              "Fixed reader slices exclude application validation, cache/storage and upstream fills. This is a transport baseline, not capacity acceptance.",
                                              "Handler-only measurements include request validation, mapping, decimal conversion and JSON encoding; they do not isolate json.Marshal alone.",
                                              "20 samples per worker are a smoke baseline; p99 is a sample-tail observation, not a stable production estimate.",
-                                             "Four-client normal traffic is measured. The separate overload and partial-fill acceptance profiles belong to phase 4."],
+                                             "Four-client normal traffic is measured. Overload and partial fills need separate acceptance profiles."],
                       "fixture_sizes": fixture_sizes, "results": results}
-            (EVIDENCE / "http-baseline.json").write_text(json.dumps(report, indent=2) + "\n")
-            (EVIDENCE / "message-sizes.json").write_text(json.dumps(fixture_sizes, indent=2) + "\n")
+            (OUTPUT / "http-baseline.json").write_text(json.dumps(report, indent=2) + "\n")
+            (OUTPUT / "message-sizes.json").write_text(json.dumps(fixture_sizes, indent=2) + "\n")
         finally:
             server.stdin.close()
             server.wait(timeout=10)
