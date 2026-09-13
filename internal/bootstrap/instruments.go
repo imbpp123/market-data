@@ -63,6 +63,9 @@ func (s *localState) instrumentWorkers(cfg config.Config, logger *slog.Logger, c
 					path, parameters = "/fapi/v1/exchangeInfo", nil
 				}
 				_, err := s.exchanges.binance[transportScope].Fetch(ctx, path, parameters)
+				if application.DeferredRefresh(err) != nil {
+					return err
+				}
 				if err != nil {
 					s.telemetry.Report(err, map[string]string{"operation": "limit_catalog", "exchange": string(scope.Exchange), "market": string(scope.Market)})
 					logger.Warn("Limit catalog refresh failed", "scope", transportScope, "error", err)

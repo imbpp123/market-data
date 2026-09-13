@@ -170,21 +170,15 @@ func TestAllWindowsAreConsumedAtomically(t *testing.T) {
 		ctx := begin(t, c, BinanceLinear, Instruments)
 		_, err := send(ctx, transport, "/fapi/v1/fundingInfo")
 		require.NoError(t, err)
-		canceled, cancel := context.WithCancel(ctx)
-		done := make(chan error, 1)
-		go func() {
-			_, err := send(canceled, transport, "/fapi/v1/fundingInfo")
-			done <- err
-		}()
-		synctest.Wait()
-		cancel()
-		assert.ErrorIs(t, <-done, context.Canceled)
+		_, err = send(ctx, transport, "/fapi/v1/fundingInfo")
+		assert.ErrorIs(t, err, application.ErrServiceOverloaded)
 		assert.Equal(t, 1, c.Attempts(ctx))
 		// Family budget still has one charge, and the zero-weight endpoint uses a raw share.
 		s := c.scopes[BinanceLinear]
 		require.Len(t, s.history, 1)
 		assert.Zero(t, s.history[0].cost.weight)
 		assert.Equal(t, 1, s.windows["funding_requests_5m"].cost(s.history[0].cost))
+		time.Sleep(time.Second)
 		_, err = send(ctx, transport, "/fapi/v1/fundingInfo")
 		require.NoError(t, err)
 		sent := recorder.sent()
@@ -203,16 +197,12 @@ func TestWaitAndOperationDeadlines(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				recorder := &recorder{}
 				c, transport := setup(t, config.Defaults(), BinanceSpot, recorder)
-				// Exhaust the statistics share with three successful requests.
-				for range 3 {
-					_, err := send(begin(t, c, BinanceSpot, MarketStats), transport, "/api/v3/ticker/24hr")
-					require.NoError(t, err)
-				}
+				c.scopes[BinanceSpot].next = time.Now().Add(time.Minute)
 				ctx, cancel := context.WithTimeout(begin(t, c, BinanceSpot, MarketStats), tt.timeout)
 				defer cancel()
 				_, err := send(ctx, transport, "/api/v3/ticker/24hr")
 				assert.ErrorIs(t, err, tt.expected)
-				assert.Len(t, recorder.sent(), 3)
+				assert.Empty(t, recorder.sent())
 				assert.Zero(t, c.active)
 				assert.Zero(t, c.queued)
 			})

@@ -76,7 +76,7 @@ func (s *Refresher) Refresh(ctx context.Context) error {
 		}
 	}
 
-	if s.observe != nil {
+	if s.observe != nil && application.DeferredRefresh(event.Error) == nil {
 		s.observe(event)
 	}
 

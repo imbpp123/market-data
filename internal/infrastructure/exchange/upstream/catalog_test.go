@@ -221,8 +221,8 @@ func TestCatalogReductionKeepsSpentUsageConstrainingOtherOperations(t *testing.T
 
 		_, err = send(ctx, transport, "/api/v3/ticker/price")
 
-		assert.ErrorIs(t, err, context.DeadlineExceeded)
-		assert.Equal(t, started.Add(time.Second), time.Now())
+		assert.ErrorIs(t, err, application.ErrServiceOverloaded)
+		assert.Equal(t, started, time.Now())
 		assert.Zero(t, c.Attempts(ctx))
 		assert.Len(t, base.sent(), 2)
 		require.Len(t, c.scopes[BinanceSpot].history, 2)

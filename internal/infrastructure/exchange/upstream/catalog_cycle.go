@@ -2,8 +2,10 @@ package upstream
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"market-data/internal/application"
 	"market-data/internal/config"
 )
 
@@ -30,21 +32,16 @@ func NewCatalogCycle(controller *Controller, scope Scope, clock Clock, jitter Ji
 }
 
 func (c *CatalogCycle) Run(ctx context.Context, refreshInstruments func(context.Context) error) error {
-	c.controller.mu.Lock()
-	lastCatalog := c.controller.scopes[c.scope].catalogUpdatedAt
-	c.controller.mu.Unlock()
-
-	catalogDue := c.catalog.next
-	if !lastCatalog.IsZero() {
-		catalogDue = maxTime(catalogDue, lastCatalog.Add(c.catalog.interval))
+	gate, lastCatalog, err := c.next(ctx)
+	if err != nil {
+		return err
 	}
-	gate, refresh := c.instruments, refreshInstruments
-	if !c.instruments.next.IsZero() && catalogDue.Before(c.instruments.next) {
-		gate, refresh = c.catalog, c.refresh
-		gate.next = catalogDue
+	refresh := refreshInstruments
+	if gate == c.catalog {
+		refresh = c.refresh
 	}
 
-	err := NewBoundedCycle(gate, c.controller, c.scope, Instruments).Run(ctx, refresh)
+	err = NewBoundedCycle(gate, c.controller, c.scope, Instruments).Run(ctx, refresh)
 	if gate == c.instruments {
 		c.controller.mu.Lock()
 		updatedAt := c.controller.scopes[c.scope].catalogUpdatedAt
@@ -52,9 +49,58 @@ func (c *CatalogCycle) Run(ctx context.Context, refreshInstruments func(context.
 		if updatedAt.After(lastCatalog) {
 			c.catalog.failures = 0
 			c.catalog.next = updatedAt.Add(c.catalog.interval)
-		} else {
+		} else if application.DeferredRefresh(err) == nil {
 			c.catalog.complete(err == nil)
 		}
 	}
 	return err
+}
+
+// next keeps the two schedules independent when only one request family is
+// blocked. Both jobs still run on the same worker and cannot overlap.
+func (c *CatalogCycle) next(ctx context.Context) (*CycleGate, time.Time, error) {
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, time.Time{}, err
+		}
+		c.controller.mu.Lock()
+		now := c.controller.clock.Now()
+		lastCatalog := c.controller.scopes[c.scope].catalogUpdatedAt
+		instrumentDue := c.due(c.instruments, now)
+		catalogDue := c.due(c.catalog, now)
+		if !catalogDue.IsZero() && !lastCatalog.IsZero() {
+			catalogDue = maxTime(catalogDue, lastCatalog.Add(c.catalog.interval))
+		}
+		changed := c.controller.changed
+		c.controller.mu.Unlock()
+
+		gate, due := c.instruments, instrumentDue
+		if due.IsZero() || !catalogDue.IsZero() && catalogDue.Before(due) {
+			gate, due = c.catalog, catalogDue
+		}
+		if !due.IsZero() && !due.After(now) {
+			return gate, lastCatalog, nil
+		}
+		if err := wait(ctx, c.controller.clock, due, changed); err != nil {
+			return nil, time.Time{}, err
+		}
+	}
+}
+
+// due is called under the controller lock by the single owning worker.
+func (c *CatalogCycle) due(gate *CycleGate, now time.Time) time.Time {
+	due := maxTime(now, gate.next)
+	var deferred *budgetDeferral
+	if errors.As(gate.deferred, &deferred) {
+		next, err := deferred.ready(now)
+		if err != nil || !next.IsZero() && !next.After(now) {
+			// An impossible cost returns through the ordinary refresh error path.
+			gate.deferred = nil
+		} else if next.IsZero() {
+			return time.Time{}
+		} else {
+			due = maxTime(due, next)
+		}
+	}
+	return due
 }

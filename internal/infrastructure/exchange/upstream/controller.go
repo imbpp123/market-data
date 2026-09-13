@@ -181,8 +181,10 @@ func (w window) cost(c cost) int {
 	return 1
 }
 
-func (s *scopeState) ready(w *waiter, now time.Time) (time.Time, error) {
+func (c *Controller) ready(w *waiter, now time.Time) (time.Time, error) {
+	s := c.scopes[w.scope]
 	ready := maxTime(s.next, s.cooldown, w.notBefore)
+	var blocked *budgetDeferral
 	s.prune(now)
 	for name, limit := range s.windows {
 		amount := limit.cost(w.cost)
@@ -201,12 +203,37 @@ func (s *scopeState) ready(w *waiter, now time.Time) (time.Time, error) {
 		if usage.common <= limit.limit-amount && (!limit.split || usage.operations[w.cost.operation] <= allowance-amount) {
 			continue
 		}
-		// Phase 3 keeps budget waits. Recheck at the next expiry or completion.
+		if s.keepInflight {
+			common := usage.common > limit.limit
+			share := limit.split && usage.operations[w.cost.operation] > allowance-amount
+			if !common && !share {
+				continue
+			}
+			reason := "operation_share"
+			if common {
+				reason = "common_threshold"
+			}
+			next := s.budgetReady(limit, w.cost, now)
+			if blocked == nil {
+				blocked = &budgetDeferral{controller: c, scope: w.scope, cost: w.cost, reason: reason, next: next}
+			} else if blocked.next.IsZero() || next.IsZero() {
+				blocked.next = time.Time{}
+			} else {
+				blocked.next = maxTime(blocked.next, next)
+			}
+			continue
+		}
 		if usage.next.IsZero() {
 			ready = maxTime(ready, w.expires)
 		} else {
 			ready = maxTime(ready, usage.next)
 		}
+	}
+	if blocked != nil {
+		if !blocked.next.IsZero() {
+			blocked.next = maxTime(blocked.next, ready)
+		}
+		return time.Time{}, blocked
 	}
 	return ready, nil
 }
@@ -229,12 +256,18 @@ func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operat
 	if !ok {
 		return nil, application.ErrUnsupportedOperation
 	}
+	w := &waiter{ctx: ctx, scope: scope, cost: cost, operation: operation, expires: c.clock.Now().Add(c.settings.AdmissionTimeout), notBefore: notBefore}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if _, err := c.ready(w, c.clock.Now()); err != nil {
+		return nil, err
+	}
 	index := laneIndex(scope, cost.operation)
 	l := &c.lanes[index]
 	if l.capacity <= len(l.queue) || c.queued >= c.settings.MaxAdmissionWaiters {
 		return nil, application.ErrServiceOverloaded
 	}
-	w := &waiter{ctx: ctx, scope: scope, cost: cost, operation: operation, expires: c.clock.Now().Add(c.settings.AdmissionTimeout), notBefore: notBefore}
 	l.queue = append(l.queue, w)
 	c.queued++
 	c.notify()
@@ -252,7 +285,7 @@ func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operat
 		if operation.attempts >= operation.maximum {
 			return nil, application.ErrUpstreamAttemptLimit
 		}
-		ready, err := s.ready(w, now)
+		ready, err := c.ready(w, now)
 		if err != nil {
 			return nil, err
 		}
@@ -301,7 +334,7 @@ func (c *Controller) selected(now time.Time) int {
 		if w.ctx.Err() != nil || !now.Before(w.expires) || w.operation.attempts >= w.operation.maximum {
 			continue
 		}
-		ready, err := c.scopes[w.scope].ready(w, now)
+		ready, err := c.ready(w, now)
 		if err == nil && !ready.After(now) {
 			return index
 		}

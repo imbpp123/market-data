@@ -322,7 +322,7 @@ func TestLongInflightUsagePreservesBybitBehavior(t *testing.T) {
 				if tt.scope == BinanceLinear {
 					assert.Equal(t, 1, currentUsage(c, tt.scope, tt.window).reserved)
 					cancel()
-					assert.ErrorIs(t, <-waiting, context.Canceled)
+					assert.ErrorIs(t, <-waiting, application.ErrServiceOverloaded)
 				} else {
 					require.NoError(t, <-waiting)
 				}

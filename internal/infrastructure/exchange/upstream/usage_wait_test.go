@@ -6,13 +6,14 @@ import (
 	"testing/synctest"
 	"time"
 
+	"market-data/internal/application"
 	"market-data/internal/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestUsageWaitResumesWithoutAnotherResponse(t *testing.T) {
+func TestBudgetDeferralResumesWithoutAnotherResponse(t *testing.T) {
 	cases := []struct {
 		name     string
 		cooldown time.Duration
@@ -30,7 +31,7 @@ func TestUsageWaitResumesWithoutAnotherResponse(t *testing.T) {
 					calls++
 					if calls == 1 {
 						time.Sleep(200 * time.Millisecond)
-						return response(200, http.Header{"X-Mbx-Used-Weight-1s": {"1800"}}, `[]`), nil
+						return response(200, http.Header{"X-Mbx-Used-Weight-1s": {"1801"}}, `[]`), nil
 					}
 					return response(200, nil, `[]`), nil
 				}}
@@ -44,7 +45,13 @@ func TestUsageWaitResumesWithoutAnotherResponse(t *testing.T) {
 				}
 
 				_, err = send(ctx, transport, "/api/v3/ticker/bookTicker")
+				require.ErrorIs(t, err, application.ErrServiceOverloaded)
+				deferred := application.DeferredRefresh(err)
+				require.NotNil(t, deferred)
+				assert.Equal(t, start.Add(tt.resume), deferred.NextEligible())
+				require.NoError(t, deferred.Wait(t.Context()))
 
+				_, err = send(ctx, transport, "/api/v3/ticker/bookTicker")
 				require.NoError(t, err)
 				sent := base.sent()
 				require.Len(t, sent, 2)

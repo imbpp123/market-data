@@ -1,6 +1,6 @@
 # Binance request-limit rework
 
-September 13, 2026. Main design and all five phase plans approved by the user. Phases 1 and 2 are implemented; see the [phase 1 report](request-budget-rework/01-exchange-info.md#implementation-report) and [phase 2 report](request-budget-rework/02-limits-and-settings.md#implementation-report). Phase 3 is implemented and has passed independent review; see its [accounting report](request-budget-rework/03-usage-accounting.md#implementation-report). Phases 4–5 have not started. Proposed details are marked below.
+September 13, 2026. Main design and all five phase plans approved by the user. Phases 1 and 2 are implemented; see the [phase 1 report](request-budget-rework/01-exchange-info.md#implementation-report) and [phase 2 report](request-budget-rework/02-limits-and-settings.md#implementation-report). Phase 3 is implemented and has passed independent review; see its [accounting report](request-budget-rework/03-usage-accounting.md#implementation-report). Phase 4 is complete after independent review; see its [rejection and recovery report](request-budget-rework/04-rejection-and-recovery.md#implementation-report). Phase 5 has not started. Proposed details are marked below.
 
 ## Summary / Overview
 
@@ -114,7 +114,7 @@ Keep threshold rejection, exhausted operation share, exchange cooldown, refresh 
 
 ## Migration / Rollout Plan
 
-The [phase plans](request-budget-rework/README.md) describe the work, expected results, and test cases. All five phase plans are approved by the user. Phases 1–3 are implemented; phase 3 has passed independent review. Phases 4–5 remain pending.
+The [phase plans](request-budget-rework/README.md) describe the work, expected results, and test cases. All five phase plans are approved by the user. Phases 1–3 are implemented; phase 3 has passed independent review. Phase 4 is complete after independent review. Phase 5 remains pending.
 
 1. [Read exchangeInfo](request-budget-rework/01-exchange-info.md): fix the separate response-size issue and check complete catalogs.
 2. [Limits and settings](request-budget-rework/02-limits-and-settings.md): add settings, user caps, and catalog updates.
@@ -136,7 +136,7 @@ Use deterministic unit tests and local HTTP integration tests with controlled cl
 - Candle errors, complete cache reads, background deferral, and diagnostics follow their contracts. Bybit behavior stays unchanged.
 - Full Spot catalogs load within the selected body and memory bounds. Oversized or incomplete bodies fail clearly.
 
-During implementation, run formatting, `make check`, `make vet`, and relevant memory checks. Live response-size measurements are separate from deterministic tests. The phase reports record passed checks for phases 1–3. They do not claim that phase 4 rejection behavior or phase 5 full-flow validation is complete.
+During implementation, run formatting, `make check`, `make vet`, and relevant memory checks. Live response-size measurements are separate from deterministic tests. The phase reports record passed checks for phases 1–4. Phase 4 independent review is complete; no confirmed defects were found. Phase 5 final validation remains pending.
 
 ## Risks / Trade-offs
 
@@ -153,7 +153,7 @@ The following engineering details still need verification. They do not change th
 
 ## Earlier requirements replaced
 
-Phase 1 changes only Spot catalog loading. Phase 2 adds settings and catalog refreshes. Phase 3 implements usage accounting with a documented conservative estimate. Request rejection still needs phase 4; historical release evidence does not cover the complete rework.
+Phase 1 changes only Spot catalog loading. Phase 2 adds settings and catalog refreshes. Phase 3 implements usage accounting with a documented conservative estimate. Phase 4 implements rejection and recovery and is complete after independent review. Historical release evidence does not cover the complete rework; phase 5 remains pending.
 
 - [Implementation contract](implementation-contract-v1.md), “Bootstrap, discovered limits, and cooldown”: replace discrepancy/new-window pauses, malformed-catalog blocking and permanent bootstrap caps with the rules above.
 - [Specification](technical-specification-v1.md), sections 32–33: replace Binance's hard common 80% budget and budget waiting with a configurable stop line, permitted crossing and immediate rejection. Keep strict operation caps.

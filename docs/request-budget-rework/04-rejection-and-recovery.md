@@ -1,6 +1,6 @@
 # Phase 4. Reject after crossing and resume by time
 
-Status: approved by the user. Implementation has not started. Depends on phase 3.
+Status: complete on September 13, 2026 after independent review. No confirmed defects were found. Phase 5 is not implemented.
 
 See the [phase list](README.md) and [main specification](../request-budget-rework-specification.md).
 
@@ -45,3 +45,53 @@ Use a limit of 6,000 and a 90% setting in the first cases. Give the operation en
 ## Expected result
 
 The API fails quickly on Binance budget shortage. Background work resumes through normal scheduling. Controlled-time tests prove both threshold crossing and recovery without polling. Bybit admission and cooldown behavior remain unchanged.
+
+## Implementation report
+
+### Admission and recovery
+
+Binance checks each positive-cost constraint before joining an admission queue, then checks again under the same lock as reservation. The common check uses current accounted usage, including reservations. Current usage at or below the stop line allows a crossing request. Current usage above the line rejects it. Operation shares still require the new cost to fit and do not borrow unused shares. Dedicated funding limits remain separate constraints.
+
+A shortage returns an error that wraps `service_overloaded`. It does not reserve cost, occupy an HTTP slot, dispatch HTTP, spend an attempt, or wait for retry backoff. An impossible request cost still returns a clear `upstream_unavailable` limit error. Valid catalog reductions remain installed. Pacing, FIFO lanes, slots, deadlines, and the Bybit fit-and-wait rule keep their existing behavior when budget permits admission.
+
+The error implements the application-owned `RefreshDeferral` contract. It gives the reason (`common_threshold` or `operation_share`), a next eligible time, and a cancelable wait. The time is a prediction from current state, not reserved permission. The controller searches known local and observation expiry times and checks all applicable constraints. It uses sorting and binary search, with O(n log n) work per blocking window. Rejected calls never change usage timestamps. If in-flight costs prevent a known recovery time, the time is zero and the wait uses completion or state-change notifications. It does not poll.
+
+At a timer or state change, the controller rechecks current costs, all windows, strict shares, pacing, and cooldown. An ordinary caller performs the same local admission check. Recovery needs no probe or new response. Actual dispatch still checks queue and HTTP capacity. The phase 3 conservative usage formula and receipt-based observation lifetime are unchanged; budget expiry cannot clear a real ban.
+
+### Background work and API behavior
+
+Cycle gates retain a deferral across worker runs. Waiting happens before starting the next bounded operation, so a long budget wait does not spend the next cycle's deadline. Deferral does not increment failure backoff or report a failed snapshot refresh. Existing snapshots and their timestamps remain available. If limits become impossible while waiting, the next refresh reports the normal limit error and uses failure backoff.
+
+The single instrument worker compares both instrument and catalog schedules while waiting. A funding-family block can defer instruments while a due exchangeInfo request still runs. Catalog-only shortage follows the same quiet deferral path. Cancellation stops timers or notification waits and lets the owner join the worker.
+
+A candle fill returns HTTP 503 `service_overloaded` if a later page is rejected. Valid pages already written remain in cache. The response contains no partial success. Complete final cache reads and snapshot reads continue without upstream budget usage.
+
+### Validation
+
+Passed on September 13, 2026:
+
+- Focused upstream, exchange, application, and bootstrap tests.
+- `make check`: formatting, build, example configuration, configured linter, all tests, and race tests.
+- `make vet`: all packages.
+- `git diff --check`: no whitespace errors.
+
+New controlled-time tests cover 5,398/5,400/5,401 with cost 4, one concurrent crossing, 250/251 with cost 20 and share 270, rejection before unavailable queues/slots/cooldown, retry rejection without extra attempts, unchanged expiry, several active windows, recovery without responses, unknown in-flight expiry, shutdown, fresh cycle deadlines, and later impossible catalog limits. A scheduler test proves that a due catalog refresh continues during a funding-family block.
+
+Bootstrap integration tests exercise real adapters, workers, repositories, and HTTP handlers. They check quiet instrument/ticker/statistics and catalog deferral, unchanged snapshots and metrics, recovery by time, bounded shutdown, and a rejected multi-page candle fill followed by a successful cache read. Existing tests still cover HTTP 429/418, Retry-After and fallbacks, body failures, late responses, canceled admission, valid catalog reductions, and Bybit behavior. Earlier Binance wait tests now assert fast rejection while preserving their accounting checks.
+
+One first race run found an unsynchronized counter in a new test. The test now uses an atomic counter and a locked controller-state read. The final full check passed after this test fix. Tests use virtual time and local transports; no public exchange traffic was needed.
+
+### Independent review
+
+A separate XHIGH reviewer found no confirmed defects. The reviewer ran a fresh `go test -race -count=1 ./internal/infrastructure/exchange/... ./internal/application/... ./internal/bootstrap` and `git diff --check`; both passed. No production fixes or additional regression tests were needed after review.
+
+### Changed files and remaining work
+
+- `internal/application/refresh.go` and the instrument, ticker, and marketstats services: deferral contract and quiet refresh observation.
+- `internal/infrastructure/exchange/upstream/controller.go`, `deferral.go`, `retry.go`, and `catalog_cycle.go`: immediate admission rejection, recovery, and worker scheduling.
+- `internal/bootstrap/instruments.go`: quiet catalog deferral.
+- Upstream `rejection_test.go`, `deferral_test.go`, and updated admission/catalog/usage tests: deterministic boundary and recovery checks.
+- `internal/bootstrap/budget_rejection_test.go` and exchange `klines_accounting_test.go`: worker and candle integration evidence.
+- This report, the phase index, main specification, and root README: implementation status.
+
+Phase 4 is complete after independent review. Phase 5 diagnostics, final full-flow validation, and operating-document reconciliation remain pending. The next eligible time can change when new usage, limits, completion, or cooldown arrives. Conservative overlap can defer work longer than actual exchange usage requires. Deployment and live load measurements are outside this phase.

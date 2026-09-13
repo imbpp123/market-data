@@ -2,7 +2,7 @@
 
 A Go REST service for Binance and Bybit spot and linear market data. It provides instruments, current tickers, 24-hour market statistics, and cached candles through one API. Binance linear means USDⓈ-M.
 
-**Status:** v1 implementation and verification are complete for the agreed workload. Release packaging, all 41 acceptance items, capacity measurements, and current-host compatibility checks are recorded in the [release audit](docs/release-verification-v1.md). Deployment remains an explicit operator action.
+**Status:** the current HTTP implementation was verified for the agreed workload; its results are recorded in the [release audit](docs/release-verification-v1.md). The first release is pending the [gRPC and Protobuf migration](docs/grpc-migration-specification.md): all market-data APIs move to gRPC, with a separate operational HTTP listener and no legacy data API. The migration is specified, not implemented. The commands below describe the current implementation. Deployment remains an explicit operator action.
 
 ## Run locally
 
@@ -89,7 +89,7 @@ Alternatively, publish a GitHub Release for the version tag. Publishing a releas
 - `/health` means the process is alive; `/ready` means local initialization is complete. Neither proves exchange data is available or fresh.
 - On `data_not_ready`, inspect collector errors and enabled scopes. A failed first refresh leaves its scope unready. Other scopes continue.
 - Stale `updated_at` or `fetched_at` means a collector has not published new data. Failed refreshes preserve previous snapshots; v1 has no snapshot expiry. Check upstream errors, admission waits, cooldowns, and system time before restarting.
-- `service_overloaded` means a finite caller/fill/queue limit was reached. `request_too_large` and `range_out_of_retention` require a valid smaller/recent request. No error returns a successful partial candle range.
+- `service_overloaded` means a finite caller/fill/queue limit was reached or needed Binance exchange work failed a budget check. `request_too_large` and `range_out_of_retention` require a valid smaller/recent request. No error returns a successful partial candle range.
 - Optional `/metrics` and `/debug/stats` expose counters, last successes, durations, retained candle counts, and failures. Keep these operational routes on a trusted network. All counters reset on restart.
 
 All data, usage counters, discovered exchange limits, and cooldowns are memory-only. A restart loses them immediately, begins from bootstrap budgets, and adds no automatic quiet period. Exchange-side usage and bans may remain. Restarting is not a rate-limit reset.
@@ -116,4 +116,4 @@ There is no trading execution, order/account/position/balance API, strategy calc
 
 Further documentation: [development guide](docs/development.md), [technical specification](docs/technical-specification-v1.md), [decision register](docs/specification-decisions-v1.md), and [development rules](AGENTS.md).
 
-Ongoing change: [request budget accounting rework](docs/request-budget-rework-specification.md). [Phase 1](docs/request-budget-rework/01-exchange-info.md#implementation-report) is complete: Spot exchangeInfo omits unused permission sets and keeps the full catalog within the existing 16 MiB decoded-body bound in the measured response. Phases 2 and 3 implement limit discovery and usage accounting; phase 3 has passed independent review. Immediate threshold rejection and final diagnostics remain in phases 4–5.
+Ongoing change: [request budget accounting rework](docs/request-budget-rework-specification.md). [Phase 1](docs/request-budget-rework/01-exchange-info.md#implementation-report) is complete: Spot exchangeInfo omits unused permission sets and keeps the full catalog within the existing 16 MiB decoded-body bound in the measured response. Phases 2 and 3 implement limit discovery and usage accounting; phase 3 has passed independent review. [Phase 4](docs/request-budget-rework/04-rejection-and-recovery.md#implementation-report) implements immediate threshold rejection and quiet worker recovery; independent review is complete with no confirmed defects. Final diagnostics and validation remain in phase 5.

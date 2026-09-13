@@ -1,7 +1,6 @@
 package exchange_test
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -64,26 +63,15 @@ func TestCandleActualPlannedLimitDeterminesAdmissionCost(t *testing.T) {
 					require.Len(t, rows, 1)
 					assert.Equal(t, "10", rows[0].Candle.Turnover.String())
 				}
-				result := make(chan error, 1)
-				go func() {
-					rows, err := provider.GetKlines(ctx, request)
-					assert.Nil(t, rows)
-					result <- err
-				}()
-				// Move past pacing, while remaining inside the weighted minute window.
-				time.Sleep(25 * time.Millisecond)
-				synctest.Wait()
+				started := time.Now()
+				rows, err := provider.GetKlines(ctx, request)
 
+				assert.Nil(t, rows)
+				assert.ErrorIs(t, err, application.ErrServiceOverloaded)
+				assert.Equal(t, started, time.Now())
 				assert.Equal(t, tt.accepted, calls)
 				assert.Equal(t, tt.accepted, admission.Attempts(ctx))
 				assert.LessOrEqual(t, tt.accepted*tt.weight, 21)
-				select {
-				case err := <-result:
-					require.FailNow(t, "request escaped the kline budget", "%v", err)
-				default:
-				}
-				cancel()
-				assert.ErrorIs(t, <-result, context.Canceled)
 			})
 		})
 	}

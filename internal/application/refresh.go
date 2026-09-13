@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -26,4 +27,21 @@ func RunRefresh(ctx context.Context, cycles CycleRunner, refresh func(context.Co
 	}
 
 	return ctx.Err()
+}
+
+// RefreshDeferral is a temporary upstream shortage, not a failed refresh.
+// A zero next time means completion or another state change is required.
+type RefreshDeferral interface {
+	error
+	Reason() string
+	NextEligible() time.Time
+	Wait(context.Context) error
+}
+
+func DeferredRefresh(err error) RefreshDeferral {
+	var deferred RefreshDeferral
+	if errors.As(err, &deferred) {
+		return deferred
+	}
+	return nil
 }

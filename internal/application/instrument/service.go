@@ -89,7 +89,7 @@ func (s *Refresher) Refresh(ctx context.Context) (err error) {
 		if !published && event.Error == nil {
 			event.Error = application.ErrInternal
 		}
-		if s.observe != nil {
+		if s.observe != nil && application.DeferredRefresh(event.Error) == nil {
 			s.observe(event)
 		}
 	}()

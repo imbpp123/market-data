@@ -73,7 +73,7 @@ func (s *Refresher) Refresh(ctx context.Context) error {
 		event.FetchedAt = result.Tickers[0].FetchedAt
 	}
 
-	if s.observe != nil {
+	if s.observe != nil && application.DeferredRefresh(event.Error) == nil {
 		s.observe(event)
 	}
 
@@ -91,7 +91,7 @@ func (s *Refresher) Refresh(ctx context.Context) error {
 		event.FetchedAt = result.MarketStats[0].FetchedAt
 	}
 
-	if s.observe != nil {
+	if s.observe != nil && application.DeferredRefresh(event.Error) == nil {
 		s.observe(event)
 	}
 

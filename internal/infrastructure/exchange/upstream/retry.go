@@ -37,6 +37,7 @@ type CycleGate struct {
 	failures int
 	next     time.Time
 	running  bool
+	deferred application.RefreshDeferral
 }
 
 func NewCycleGate(clock Clock, jitter Jitter, retry config.Retry, interval time.Duration) (*CycleGate, error) {
@@ -48,8 +49,16 @@ func NewCycleGate(clock Clock, jitter Jitter, retry config.Retry, interval time.
 
 func (g *CycleGate) wait(ctx context.Context) error {
 	g.mu.Lock()
-	next := g.next
+	next, deferred := g.next, g.deferred
 	g.mu.Unlock()
+	if deferred != nil {
+		if err := deferred.Wait(ctx); err != nil && ctx.Err() != nil {
+			return ctx.Err()
+		}
+		g.mu.Lock()
+		g.deferred = nil
+		g.mu.Unlock()
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -92,6 +101,12 @@ func (g *CycleGate) Run(ctx context.Context, cycle func(context.Context) error) 
 		return err
 	}
 	err := cycle(ctx)
-	g.complete(err == nil)
+	if deferred := application.DeferredRefresh(err); deferred != nil {
+		g.mu.Lock()
+		g.deferred = deferred
+		g.mu.Unlock()
+	} else {
+		g.complete(err == nil)
+	}
 	return err
 }
