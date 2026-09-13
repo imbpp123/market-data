@@ -24,10 +24,30 @@ Ask only when a missing decision blocks the current task; continue independent w
 
 ## Specifications
 
-Write specifications as a short, plain-language explanation of what will change and how the work will proceed.
+Write specifications in simple English at B1 level. Use short sentences and explain technical terms when needed. Describe what will change and why without repeating the same rule in several sections.
 
-- Start with the problem, expected behavior, and scope.
-- Describe a few implementation phases. State the result and relevant checks for each phase.
+Use the following section order. Required sections must be present. Add optional sections only when they have useful content; do not add empty placeholders.
+
+1. **Summary / Overview** (required): briefly state the change and its purpose.
+2. **Context / Background** (required): describe the current system and relevant constraints.
+3. **Problem Statement** (required): explain the specific failure or missing behavior.
+4. **Goals** (required): state the outcomes we need.
+5. **Non-Goals** (optional): define work outside the scope.
+6. **Requirements** (optional): list distinct functional or quality requirements when needed.
+7. **Proposed Solution / Design** (required): explain the solution and how the parts work together.
+8. **Alternatives Considered** (optional): record real alternatives and reasons for rejecting them.
+9. **Data Model / API / Interfaces** (required): describe state and contract changes; state briefly when no changes are needed.
+10. **Failure Modes / Edge Cases** (required when applicable): describe failures and expected behavior.
+11. **Security / Privacy** (optional): cover relevant security or privacy changes.
+12. **Observability** (optional): define useful logs, metrics, traces, or alerts.
+13. **Migration / Rollout Plan** (optional): explain implementation stages, configuration migration, and release steps.
+14. **Rollback Plan** (optional): explain how to return to the earlier version.
+15. **Testing / Validation** (required): define checks and acceptance criteria.
+16. **Risks / Trade-offs** (optional, when present): explain limits and accepted compromises.
+17. **Open Questions** (optional): list unresolved decisions, separate from agreed behavior.
+
+When phases are useful, put them in the rollout plan: first a short list, then details and expected results. Link to design and tests instead of repeating them. Put sources and earlier requirement replacements after the main sections when needed.
+
 - Use concrete examples to explain important rules and boundaries.
 - Keep agreed constraints, acceptance criteria, and open decisions explicit. Distinguish proposals from confirmed requirements.
 - Include technical details only when they prevent ambiguity or an implementation error. Link to existing documentation instead of repeating it.
