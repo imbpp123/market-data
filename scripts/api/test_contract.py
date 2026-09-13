@@ -13,6 +13,7 @@ import time
 
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
+from grpc_status import rpc_status
 from marketdata.v1 import market_data_pb2 as pb
 from marketdata.v1 import market_data_pb2_grpc as rpc
 from client import OPTIONS, candle_request, reason
