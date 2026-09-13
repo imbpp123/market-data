@@ -123,8 +123,9 @@ class ContractTest(unittest.TestCase):
             self.assertEqual(grpc.StatusCode.RESOURCE_EXHAUSTED, failure.exception.code())
 
     def test_deadline(self):
+        grpc.channel_ready_future(self.channel).result(timeout=5)
         with self.assertRaises(grpc.RpcError) as failure:
-            self.client.ListTickers(pb.ListTickersRequest(symbol="wait"), timeout=0)
+            self.client.ListTickers(pb.ListTickersRequest(symbol="wait"), timeout=0.1)
         self.assertEqual(grpc.StatusCode.DEADLINE_EXCEEDED, failure.exception.code())
 
     def test_full_snapshots(self):

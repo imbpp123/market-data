@@ -23,6 +23,7 @@ type Sample struct {
 }
 
 type Statistics struct {
+	RPC         *RPC
 	Admission   *upstream.Controller
 	Instruments *Instruments
 	Current     *Current
@@ -37,7 +38,7 @@ func (s *Statistics) Snapshot(ctx context.Context) ([]Sample, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := make([]Sample, 0)
+	result := s.RPC.Samples()
 	add := func(name string, labels map[string]string, value float64) {
 		result = append(result, Sample{Name: name, Labels: labels, Value: value})
 	}

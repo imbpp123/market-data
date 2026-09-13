@@ -1,6 +1,12 @@
 **
 !go.mod
 !go.sum
+!api/
+!api/go/
+!api/go/go.mod
+!api/go/go.sum
+!api/go/marketdata/
+!api/go/marketdata/**
 !cmd/
 !cmd/**
 !internal/

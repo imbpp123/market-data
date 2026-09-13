@@ -13,7 +13,7 @@ run:
 	$(GO) run ./cmd/market-data-service -config docs/examples/config-v1.yaml
 
 fmt-check:
-	@files=$$(gofmt -l cmd internal scripts/api/httpfixture api/go) || exit $$?; \
+	@files=$$(gofmt -l cmd internal scripts/api/httpfixture scripts/api/grpcfixture api/go) || exit $$?; \
 	if [ -n "$$files" ]; then \
 		printf 'Go files need formatting:\n%s\n' "$$files"; \
 		exit 1; \

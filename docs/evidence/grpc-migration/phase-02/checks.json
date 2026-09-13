@@ -1,0 +1,220 @@
+{
+  "phase": 2,
+  "status": "complete; seven findings corrected and independently verified",
+  "base_revision": "23521fa186fee05bcf07a216e591d4891413b585",
+  "source_state": "Uncommitted phase 2 changes on the phase 1 revision. Source digests describe this run; no commit was created.",
+  "source_sha256": {
+    ".dockerignore": "f967bade12333c6b228fa6880e671b9e48766c3221f62be7118f4443522b2adb",
+    "Dockerfile": "1c8479fb623c3653a63e07e1a848dd034dcf800bdfdce8fae516413bc7e9bae1",
+    "Makefile": "9cbe3328fc250e44394666b64f691edebb1d4916666c7f55425478d6b26d1472",
+    "README.md": "42fdc4021606719d21bfd11b2ce012f51c639bab015cfcb10551d28a8b076c83",
+    "api/README.md": "6eb1fd58d30c930101c468b9811ba3568f5e21447b2eaf17aee023632a9be42b",
+    "api/go/cmd/application-check/main.go": "3059e949ed57d66e7a4115177f26e54528d37216a4c78552479bc49b2a5b94f8",
+    "docs/grpc-migration-specification.md": "301f84e9028d848a7065eb8295796311c8ba78aa8ab421807c0c838131467b02",
+    "docs/grpc-migration/02-transport-and-lifecycle.md": "bce9d15089b0634ba8d41d7b3b1e627925145e55142eaf53ae9223f952ec00ce",
+    "docs/grpc-migration/README.md": "1029432af40c482d46087e127437c945e835593ba672b1df72f9da3d31aa0280",
+    "go.mod": "cb8eeec42969eaed8ca6ddf20297b9d723b09dfb59842b47f726338a11ec129c",
+    "go.sum": "2ea140acdd1f055a13057cafde9ed083fdae0ad4726d738bd0ccb3cabdfd6956",
+    "internal/bootstrap/grpc.go": "769aaadb289892b6cd1b4c9f7ce5c5f012d3555b4607d3f1a3f37d3e6e55ba14",
+    "internal/bootstrap/grpc_test.go": "be023927db8e830e1ee4ba33f749a50c75b7626f7c83f2ba2ac638e872d6e518",
+    "internal/bootstrap/operations.go": "303439563ef6f0ac8fefb03cdda7abd777b67ed2b023710767907cf31b8fe257",
+    "internal/bootstrap/state.go": "44aeb202bd7fe0429aa654b8256ab34757f9d47f5882035e25b9e33391ca592a",
+    "internal/infrastructure/observability/rpc.go": "5099b4962496a76cb4c9849b0db29723b7f3f34ba2c021b56c742c6be64016a2",
+    "internal/infrastructure/observability/rpc_test.go": "c8001b2a57ff78aefc3ec3bbbf12cdc73959e41f7b843cc217b7f43cafe5553d",
+    "internal/infrastructure/observability/rpc_transport_test.go": "7df8169fde08533c845c0195759eefff3fc3991250a9080fa5dcb1eeed2ecac6",
+    "internal/infrastructure/observability/statistics.go": "63b01937f0fad5fcd1189992bc52e2c7ef53830ffa0fd6e8dcc9d2fa8126e5f9",
+    "internal/testfixture/grpcapi/fixture.go": "bb06a7a17150a470057d63cdd187f1a741ecbea80976c67ab88a32c7947079e2",
+    "internal/transport/grpc/application_test.go": "fbac34a3fd526f72c2e249602a28deda593c5ad471dead79de901c3107da1e1a",
+    "internal/transport/grpc/bounds_test.go": "db378dedc54784ac838894ed6afcaedcc0f752770dbc756635abf846b0d2e36d",
+    "internal/transport/grpc/conversion.go": "1d8ac7c95da5f71e941792bb413ecfa5cc0c449ed0b8318cc08725f5b73c02ed",
+    "internal/transport/grpc/conversion_test.go": "3cdce167f273ced68af6e90edfa6e7d4f334a35d12881cb91831c17aa626a12f",
+    "internal/transport/grpc/errors.go": "44a07989f87b6fa0d9061bdb764baebf7924cfbc563715988acf04264f0f90ca",
+    "internal/transport/grpc/errors_test.go": "bdbe94c52d04e948633c431d62cc005e013e3d9d5dd31d939f1005f5551e4c18",
+    "internal/transport/grpc/failures_test.go": "9a22d0c2fa49df1e2b1aa62ab0840eda21cde35f293eb47808251798b6883353",
+    "internal/transport/grpc/handlers.go": "6a59952dfb4d1f2768793f0ebc8cf02a468c0969f455bd70a75bcfe97ea7a8c2",
+    "internal/transport/grpc/ownership_test.go": "ed6f09cf18a65b029de52823398d567265f52a461f052ea31fc8dcfa7598bab5",
+    "internal/transport/grpc/request.go": "5fd390d8d3a36d4e2f0d6c3286a19099767c710ff9975deb193b1fb219651aed",
+    "internal/transport/grpc/review_regression_test.go": "888bdeb378ffaf3d45274814680c90e3059c61d1ea4651aa9152ae274d6a2475",
+    "internal/transport/grpc/server.go": "de86a5e6784391c690f917eb514018abfcf3029105a436bc91a68e5f20e071e4",
+    "internal/transport/grpc/server_test.go": "a8c2a3f4ddc01a237823930715cb93876e51028649eddd0e4d39b77592e79a7d",
+    "scripts/api/check_package.py": "5f7c6d2361e0aac08d5e21e15baab8a37bba0db2b1589ebe80df5f7f4fb0848e",
+    "scripts/api/grpcfixture/main.go": "bea428adf3cf456386be2961d59b548b9c3b8680a26eaafc6d31c03c76deeeb1",
+    "scripts/api/test_application.py": "15fa149754fb96b22612629effd5ec63166b09935b4084d64f81ec405b599f9b",
+    "scripts/api/test_contract.py": "c483a542b817fa70fca9bf3a2126334cecbf5d4a0f7e5675aa9cb9bbbc9064a4"
+  },
+  "environment": {
+    "os": "macOS-26.6.2-arm64-arm-64bit",
+    "architecture": "arm64",
+    "go": "go version go1.27.1 darwin/arm64",
+    "grpc_go": "1.76.0",
+    "protobuf_go": "1.36.10",
+    "python_supported": [
+      "3.13",
+      "3.14"
+    ],
+    "python_grpc": "1.76.0",
+    "python_protobuf": "6.33.5"
+  },
+  "checks": {
+    "focused": {
+      "command": "go test ./internal/transport/grpc ./internal/application/... ./internal/bootstrap ./internal/infrastructure/observability -count=1 -v",
+      "result": "failed: confirmed baseline budget-resume flake; all phase 2 tests passed",
+      "log": "focused.log",
+      "earlier_pass_log": "focused-before-shutdown.log"
+    },
+    "check-api": {
+      "command": "make check-api",
+      "result": "pass",
+      "log": "check-api.log"
+    },
+    "check": {
+      "command": "make check",
+      "result": "pass",
+      "log": "check.log"
+    },
+    "vet": {
+      "command": "make vet",
+      "result": "pass",
+      "log": "vet.log"
+    },
+    "docker-build": {
+      "command": "make docker-build",
+      "result": "pass",
+      "log": "docker-build.log"
+    },
+    "deadline-split": {
+      "command": "go test -race ./internal/transport/grpc -run 'TestEarlierClientDeadline' -count=10 -v -timeout=30s",
+      "result": "pass",
+      "log": "deadline-split.log"
+    },
+    "rereview-race": {
+      "command": "go test -race ./internal/transport/grpc ./internal/infrastructure/observability -count=1 -timeout=120s",
+      "result": "pass",
+      "log": "rereview-race.log"
+    }
+  },
+  "send_gate": {
+    "transport": "grpc.Server.ServeHTTP on Go 1.27.1 net/http unencrypted HTTP/2",
+    "capacity_release": "Both native RPC processing completion (stats.End) and HTTP/2 CloseNotify stream closure, after HTTP handler return.",
+    "abort": "ResponseController.SetWriteDeadline; root/peer cancellation; server Close",
+    "client": "raw TCP HTTP/2, initial stream window zero, no WINDOW_UPDATE",
+    "deadline_case": {
+      "request_seconds": 1,
+      "write_grace_seconds": 1
+    },
+    "tests": [
+      "TestSlowReaderKeepsCapacityUntilReset",
+      "TestSlowReaderAbortsAtWriteDeadline",
+      "TestForcedCloseAbortsBlockedSend",
+      "TestEarlierClientDeadlineAbortsFlowControlledSend"
+    ],
+    "request_input": "One unary frame and EOF are read before runtime/application dispatch; body reads use the work/client deadline and cancel on root/peer cancellation.",
+    "processing_ownership": "Wait for both native stats.End and stream closure; ConnBegin registers expected processing before native dispatch, with a closed-call application dispatch fence."
+  },
+  "limits": [
+    "ServeHTTP is experimental and CloseNotifier is deprecated; pinned-runtime tests are required on upgrade.",
+    "The final local status is corrected for observed DATA/Flush errors. A trailer-only failure after handler return has no supported close-cause hook.",
+    "No remote consumption guarantee. No full gRPC container workload/performance acceptance in phase 2. Production cutover remains phase 3.",
+    "At an exact hard write cutoff, Go HTTP/2 sends INTERNAL_ERROR RST; generated clients may observe the exact native INTERNAL reset rather than DEADLINE_EXCEEDED. Application timeout with writable grace remains strict DEADLINE_EXCEEDED/request_timeout; the transport bound is unchanged.",
+    "Transport cutoff does not abandon still-running application work. Slots remain owned until native processing finishes. Shutdown returns at its context deadline; a permanently stuck dependency may require process exit."
+  ],
+  "review_corrections": [
+    {
+      "finding": "P1 unbounded unary input tail",
+      "result": "fixed; independently verified",
+      "test": "TestUnaryTailCannotReachRuntimeOrApplication",
+      "behavior": "No application dispatch before one bounded frame and EOF; at most payload limit + 5 framing bytes + one lookahead byte consumed."
+    },
+    {
+      "finding": "P1 overload and header rejection blocked on missing body",
+      "result": "fixed; independently verified",
+      "tests": [
+        "TestOverloadRejectsHeadersWithoutReadingBody",
+        "TestHeaderLimitRejectsWithoutReadingBody",
+        "TestPartialUnaryBodyUsesWorkDeadlineAndCancellation"
+      ]
+    },
+    {
+      "finding": "P2 native method failures recorded OK",
+      "result": "fixed; independently verified",
+      "test": "TestNativeRPCFailuresReachObserverAndExporter"
+    },
+    {
+      "finding": "P2 cancellation reported as timeout",
+      "result": "fixed; independently verified",
+      "tests": [
+        "TestRootAndClientCancellationKeepCanceledObservation",
+        "TestClientDeadlineHasTimeoutObservation"
+      ]
+    },
+    {
+      "finding": "P2 expected RPC errors sent to Sentry",
+      "result": "fixed; independently verified",
+      "test": "TestRPCExpectedFailuresStayInMetricsWithoutErrorReports"
+    },
+    {
+      "finding": "P1 capacity released before application cleanup or native serialization finished",
+      "result": "fixed; independently verified",
+      "tests": [
+        "TestCanceledRPCKeepsCapacityThroughApplicationCleanup",
+        "TestCanceledRPCKeepsCapacityThroughNativeSerialization",
+        "TestCanceledRPCBeforeNativeDispatchCannotStartApplication",
+        "TestClosedRPCFencePreventsApplicationDispatch",
+        "TestStoppedNativeRuntimeDoesNotWaitForMissingProcessingEnd",
+        "TestShutdownDeadlineDoesNotReleaseActiveApplicationCapacity"
+      ],
+      "behavior": "Known unary processing is registered synchronously in ConnBegin, before asynchronous dispatch. Capacity waits for both stats.End and HTTP/2 closure. Setup failures and unknown methods do not wait for a missing End. Shutdown returns at its context deadline without releasing unfinished processing capacity; Close does not wait for application cleanup."
+    },
+    {
+      "finding": "P2 native HTTP setup failures recorded OK",
+      "result": "fixed; independently verified",
+      "tests": [
+        "TestNativeHTTPFailuresReachObserverAndExporter",
+        "TestHTTPFailureCode"
+      ],
+      "behavior": "HTTP status fallback observes malformed timeout and binary metadata as Internal, wrong content type as Unknown. All increment non-OK exported counters."
+    }
+  ],
+  "baseline_validation_issues": [
+    {
+      "test": "TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots",
+      "proof": "baseline-budget-flake.log",
+      "source_revision": "23521fa186fee05bcf07a216e591d4891413b585",
+      "action": "No unrelated budget code or test change."
+    },
+    {
+      "test": "Python synthetic test_deadline timeout=0",
+      "proof": "baseline-python-deadline.log",
+      "source_revision": "23521fa186fee05bcf07a216e591d4891413b585",
+      "action": "Active test now waits for channel readiness and uses timeout=0.1; strict DEADLINE_EXCEEDED assertion retained."
+    }
+  ],
+  "independent_review": {
+    "reasoning_effort": "xhigh",
+    "result": "all seven findings closed; no further actionable defects",
+    "log": "final-review.log",
+    "source_hashes_verified": 37,
+    "post_review_changes": "Documentation completion status and evidence metadata only; implementation and tests are unchanged.",
+    "packages": [
+      "internal/transport/grpc",
+      "internal/infrastructure/observability"
+    ],
+    "race": true
+  },
+  "log_sha256": {
+    "baseline-budget-flake.log": "5810ed407734c253c0e93b4913aeb7c749621232b730d8efd115eb37eba0836b",
+    "baseline-python-deadline.log": "4f67f0a80ed877310e2674b58f6291a8bd92ac1a64450afc9e72313aa220af4e",
+    "check-api.log": "4b6767ea90e5d199e3e55ba15ec831e2c6d83ca58b68902b189c3337abfafe97",
+    "check.log": "aa09d747f14fc34292f6a47134b06355b5c7a6ed2de3ebb53fcda13f8348fb91",
+    "deadline-split.log": "7b5375ec56d3b6f4c3f5e7f68e19ca312cdf23440b3ca8253994c9c0be70ad3f",
+    "docker-build.log": "a2e08511f1181753f7febaf0188559c6b532b1b78f0d885ada0d191916aba297",
+    "final-review.log": "2f4b33161448b2bbe1bf28d2a9b30c8bbc64145be9cf34830454daf1dbb0173c",
+    "focused-before-shutdown.log": "2cc40b6c663c8c3bc0c2c596acbfe59e8ec607c2c3f1a7d789b6b9d11817d0bd",
+    "focused.log": "0a27aede5824080599aafda296b5d0c602d1d44fea04f86c3da446785373c43d",
+    "native-client-deadline-race.log": "b7410e70868e9a654c5e8d6b8f170e461fbc6ed3aaa2bf0fabbe8c75ba0f2488",
+    "rereview-race.log": "d9ffe03c8e8a0d1163272960d250c953d3d8669423ee1ea37b971441744501c7",
+    "review-initial-check-api.log": "6f1e3623cfdca38192f98b5d2589b7996df45fde3cd6368957174bc110d3b131",
+    "review-initial-check.log": "6e5e85aef6cd0fadc22e255ddc991b5b6fd4ff9d9f276f1cc151621beebd4b3d",
+    "vet.log": "685d158f951e3eb11749d2e519a64eba4f57dcc93cd562eaee2cc9457f72846e"
+  }
+}

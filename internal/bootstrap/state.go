@@ -30,6 +30,7 @@ type telemetry interface {
 
 // localState owns process storage. Feature services will share these repositories.
 type localState struct {
+	rpcMetrics        *observability.RPC
 	instrumentMetrics *observability.Instruments
 	currentMetrics    *observability.Current
 	klineMetrics      *observability.Klines

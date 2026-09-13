@@ -2,7 +2,7 @@
 
 The schema is `proto/marketdata/v1/market_data.proto`. The public service is `marketdata.v1.MarketDataService`, with four unary methods. Field numbers are now assigned. Required timestamps are application guarantees; Protobuf messages still track absence. Decimal values stay strings. No semantic validation is added to generated setters.
 
-Go clients import `github.com/imbpp123/market-data/api/go/marketdata/v1`. The dedicated module has no exchange SDK dependency. Run its Go commands from `api/go`; the root module does not include it. The production service still uses HTTP. Phase 2 will consume the generated module through a local replacement.
+Go clients import `github.com/imbpp123/market-data/api/go/marketdata/v1`. The dedicated module has no exchange SDK dependency. Run its Go commands from `api/go`; the root module does not include it. The production service still uses HTTP. The phase 2 transport consumes the generated module through a local replacement and passed independent review.
 
 Python clients install the project at `api/python`. See its [installation guide](python/README.md). The supported range is Python 3.13–3.14. Both boundary minor versions are checked with wheel and pinned local Git installs. This initial range is intentionally limited to verified runtimes. Exact dependency pins can conflict with another application's dependencies; change pins only with regeneration and compatibility/installation checks.
 
@@ -40,4 +40,6 @@ The schema and generated outputs, including the descriptor and `.pyi`, belong in
 
 The [Go example](go/examples/client/main.go), [Python example](examples/client.py), and [async example](examples/client_async.py) reuse channels, set deadlines/receive limits and handle missing/unknown rich-status details. For local testing, run `go run ./cmd/contract-fixture` from `api/go`; it prints a loopback address. Pass that address to an example. The server is a fixed contract fixture with test selectors, not an application transport or a public API implementation.
 
-The [phase 1 evidence](../docs/evidence/grpc-migration/README.md) records exact normal/full sizes and the existing HTTP TCP baseline. Full application behavior, send lifetime, overload and container capacity remain later migration gates.
+`make check-api` also runs installed clients against the actual phase 2 handlers, application readers, memory repositories, and candle service. A standalone Go client and Python clients compare normalized results for all four methods. These local checks do not activate production gRPC.
+
+The [phase 1 evidence](../docs/evidence/grpc-migration/README.md) records exact normal/full sizes and the existing HTTP TCP baseline. Phase 2 verifies application behavior, send lifetime and overload; full container workload and capacity measurements remain later migration gates.

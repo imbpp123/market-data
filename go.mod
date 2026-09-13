@@ -10,6 +10,7 @@ require (
 	github.com/bybit-exchange/bybit.go.api v1.1.2-0.20260724042240-a58e14c6fd93
 	github.com/getsentry/sentry-go v0.48.0
 	github.com/go-viper/mapstructure/v2 v2.4.0
+	github.com/imbpp123/market-data/api/go v0.0.0
 	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/env/v2 v2.0.0
 	github.com/knadh/koanf/v2 v2.3.0
@@ -17,6 +18,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/sync v0.23.0
+	google.golang.org/grpc v1.76.0
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
@@ -33,5 +36,8 @@ require (
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/imbpp123/market-data/api/go => ./api/go

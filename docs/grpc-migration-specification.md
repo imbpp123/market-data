@@ -1,6 +1,6 @@
 # gRPC and Protobuf API migration
 
-September 13, 2026. The user approved this specification, including Python installation from this repository. [Phase 1](grpc-migration/01-contract-and-clients.md) is complete after independent review and correction of one finding. Generated clients and the HTTP baseline are available; production transport is still HTTP. Phases 2–4 are not implemented.
+September 13, 2026. The user approved this specification, including Python installation from this repository. [Phase 1](grpc-migration/01-contract-and-clients.md) is complete after independent review and correction of one finding. Generated clients and the HTTP baseline are available; production transport is still HTTP. Phase 2 transport and lifecycle are complete after independent review and correction of seven findings. Phases 3–4 are not implemented.
 
 The user confirmed full replacement of the market-data HTTP API with gRPC and Protobuf. HTTP remains only for operations on a separate listener. There are no existing clients or published first version, so no compatibility period is needed. Python client code must be generated and kept in this repository; consuming projects install the library from this repository. Ports, schema layout, limits, and tooling below are engineering defaults adopted with this design. The stated implementation verification gates still apply.
 

@@ -1,0 +1,4 @@
+Base revision: 23521fa186fee05bcf07a216e591d4891413b585
+Runtime grpcio: 1.76.0
+Probe: 200 fresh channels, baseline ListTickers(symbol=wait), timeout=0
+Results: {'DEADLINE_EXCEEDED': 112, 'CANCELLED': 88}

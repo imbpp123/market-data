@@ -1,0 +1,42 @@
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.01s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.09s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.01s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.09s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.01s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.08s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.00s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.09s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.00s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.09s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.00s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.09s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.01s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.09s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.00s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.10s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.01s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.09s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.00s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.09s)
+PASS
+ok  	market-data/internal/transport/grpc	22.532s

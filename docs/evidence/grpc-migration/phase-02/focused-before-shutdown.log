@@ -1,0 +1,1835 @@
+=== RUN   TestApplicationSnapshotsAndAllRPCs
+--- PASS: TestApplicationSnapshotsAndAllRPCs (0.01s)
+=== RUN   TestSnapshotReadinessIsNotHiddenByFilters
+=== RUN   TestSnapshotReadinessIsNotHiddenByFilters/unready_scope
+=== RUN   TestSnapshotReadinessIsNotHiddenByFilters/ready_empty_scope
+--- PASS: TestSnapshotReadinessIsNotHiddenByFilters (0.00s)
+    --- PASS: TestSnapshotReadinessIsNotHiddenByFilters/unready_scope (0.00s)
+    --- PASS: TestSnapshotReadinessIsNotHiddenByFilters/ready_empty_scope (0.00s)
+=== RUN   TestFailedRefreshPreservesSnapshot
+--- PASS: TestFailedRefreshPreservesSnapshot (0.00s)
+=== RUN   TestSnapshotValidationOrder
+=== RUN   TestSnapshotValidationOrder/present_empty
+=== RUN   TestSnapshotValidationOrder/canonical_exchange
+=== RUN   TestSnapshotValidationOrder/disabled_scope
+=== RUN   TestSnapshotValidationOrder/invalid_symbol
+=== RUN   TestSnapshotValidationOrder/empty_status_before_values
+=== RUN   TestSnapshotValidationOrder/exchange_before_status
+--- PASS: TestSnapshotValidationOrder (0.00s)
+    --- PASS: TestSnapshotValidationOrder/present_empty (0.00s)
+    --- PASS: TestSnapshotValidationOrder/canonical_exchange (0.00s)
+    --- PASS: TestSnapshotValidationOrder/disabled_scope (0.00s)
+    --- PASS: TestSnapshotValidationOrder/invalid_symbol (0.00s)
+    --- PASS: TestSnapshotValidationOrder/empty_status_before_values (0.00s)
+    --- PASS: TestSnapshotValidationOrder/exchange_before_status (0.00s)
+=== RUN   TestKlineValidationAndBoundaryResults
+=== RUN   TestKlineValidationAndBoundaryResults/missing_timestamp
+=== RUN   TestKlineValidationAndBoundaryResults/missing_interval
+=== RUN   TestKlineValidationAndBoundaryResults/empty_interval
+=== RUN   TestKlineValidationAndBoundaryResults/canonical_scope
+=== RUN   TestKlineValidationAndBoundaryResults/invalid_nanos
+=== RUN   TestKlineValidationAndBoundaryResults/pre_epoch
+=== RUN   TestKlineValidationAndBoundaryResults/unaligned
+=== RUN   TestKlineValidationAndBoundaryResults/reverse
+=== RUN   TestKlineValidationAndBoundaryResults/future
+=== RUN   TestKlineValidationAndBoundaryResults/too_many
+=== RUN   TestKlineValidationAndBoundaryResults/too_old
+=== RUN   TestKlineValidationAndBoundaryResults/empty
+=== RUN   TestKlineValidationAndBoundaryResults/maximum
+=== RUN   TestKlineValidationAndBoundaryResults/open_slot
+--- PASS: TestKlineValidationAndBoundaryResults (0.02s)
+    --- PASS: TestKlineValidationAndBoundaryResults/missing_timestamp (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/missing_interval (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/empty_interval (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/canonical_scope (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/invalid_nanos (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/pre_epoch (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/unaligned (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/reverse (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/future (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/too_many (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/too_old (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/empty (0.00s)
+    --- PASS: TestKlineValidationAndBoundaryResults/maximum (0.01s)
+    --- PASS: TestKlineValidationAndBoundaryResults/open_slot (0.00s)
+=== RUN   TestSharedFillSurvivesOneCanceledRPCCaller
+--- PASS: TestSharedFillSurvivesOneCanceledRPCCaller (0.00s)
+=== RUN   TestMissingCandleProgressPreservesValidCache
+--- PASS: TestMissingCandleProgressPreservesValidCache (0.00s)
+=== RUN   TestEmptyRangeStillRequiresCatalog
+--- PASS: TestEmptyRangeStillRequiresCatalog (0.00s)
+=== RUN   TestCalendarBoundariesPassThroughRPC
+=== RUN   TestCalendarBoundariesPassThroughRPC/week_Monday
+=== RUN   TestCalendarBoundariesPassThroughRPC/week_Tuesday
+=== RUN   TestCalendarBoundariesPassThroughRPC/month_first_day
+=== RUN   TestCalendarBoundariesPassThroughRPC/month_second_day
+--- PASS: TestCalendarBoundariesPassThroughRPC (0.00s)
+    --- PASS: TestCalendarBoundariesPassThroughRPC/week_Monday (0.00s)
+    --- PASS: TestCalendarBoundariesPassThroughRPC/week_Tuesday (0.00s)
+    --- PASS: TestCalendarBoundariesPassThroughRPC/month_first_day (0.00s)
+    --- PASS: TestCalendarBoundariesPassThroughRPC/month_second_day (0.00s)
+=== RUN   TestCandleLimitAcrossChannelsKeepsSnapshotsAvailable
+--- PASS: TestCandleLimitAcrossChannelsKeepsSnapshotsAvailable (0.00s)
+=== RUN   TestRequestMessageExactBoundaries
+=== RUN   TestRequestMessageExactBoundaries/below
+=== RUN   TestRequestMessageExactBoundaries/at
+=== RUN   TestRequestMessageExactBoundaries/above
+--- PASS: TestRequestMessageExactBoundaries (0.00s)
+    --- PASS: TestRequestMessageExactBoundaries/below (0.00s)
+    --- PASS: TestRequestMessageExactBoundaries/at (0.00s)
+    --- PASS: TestRequestMessageExactBoundaries/above (0.00s)
+=== RUN   TestHeaderLimitExactBoundaries
+=== RUN   TestHeaderLimitExactBoundaries/below
+=== RUN   TestHeaderLimitExactBoundaries/at
+=== RUN   TestHeaderLimitExactBoundaries/above
+--- PASS: TestHeaderLimitExactBoundaries (0.00s)
+    --- PASS: TestHeaderLimitExactBoundaries/below (0.00s)
+    --- PASS: TestHeaderLimitExactBoundaries/at (0.00s)
+    --- PASS: TestHeaderLimitExactBoundaries/above (0.00s)
+=== RUN   TestMalformedWireReturnsNativeFailure
+--- PASS: TestMalformedWireReturnsNativeFailure (0.00s)
+=== RUN   TestDeadlineIsCheckedBeforeValidation
+--- PASS: TestDeadlineIsCheckedBeforeValidation (0.00s)
+=== RUN   TestEarlierClientDeadlineWins
+--- PASS: TestEarlierClientDeadlineWins (1.00s)
+=== RUN   TestConversionPreservesValuesAndPresence
+--- PASS: TestConversionPreservesValuesAndPresence (0.00s)
+=== RUN   TestDecimalExpansionBound
+=== RUN   TestDecimalExpansionBound/long_exact
+=== RUN   TestDecimalExpansionBound/fraction
+=== RUN   TestDecimalExpansionBound/negative
+=== RUN   TestDecimalExpansionBound/positive_overflow
+=== RUN   TestDecimalExpansionBound/negative_exponent_overflow
+--- PASS: TestDecimalExpansionBound (0.00s)
+    --- PASS: TestDecimalExpansionBound/long_exact (0.00s)
+    --- PASS: TestDecimalExpansionBound/fraction (0.00s)
+    --- PASS: TestDecimalExpansionBound/negative (0.00s)
+    --- PASS: TestDecimalExpansionBound/positive_overflow (0.00s)
+    --- PASS: TestDecimalExpansionBound/negative_exponent_overflow (0.00s)
+=== RUN   TestResponseSizeBoundaries
+=== RUN   TestResponseSizeBoundaries/one_byte_below
+=== RUN   TestResponseSizeBoundaries/at_cap
+=== RUN   TestResponseSizeBoundaries/one_byte_above
+--- PASS: TestResponseSizeBoundaries (0.00s)
+    --- PASS: TestResponseSizeBoundaries/one_byte_below (0.00s)
+    --- PASS: TestResponseSizeBoundaries/at_cap (0.00s)
+    --- PASS: TestResponseSizeBoundaries/one_byte_above (0.00s)
+=== RUN   TestConversionCancellationAndInvalidTimestamp
+--- PASS: TestConversionCancellationAndInvalidTimestamp (0.00s)
+=== RUN   TestErrorMapping
+=== RUN   TestErrorMapping/invalid_parameter/Invalid_parameter
+=== RUN   TestErrorMapping/invalid_filter/Invalid_filter
+=== RUN   TestErrorMapping/invalid_status/Invalid_instrument_status
+=== RUN   TestErrorMapping/unsupported_window/Unsupported_statistics_window
+=== RUN   TestErrorMapping/invalid_interval/Invalid_or_unsupported_interval
+=== RUN   TestErrorMapping/invalid_range/Invalid_time_range
+=== RUN   TestErrorMapping/request_too_large/Request_is_too_large
+=== RUN   TestErrorMapping/range_out_of_retention/Range_is_outside_retained_history
+=== RUN   TestErrorMapping/symbol_not_found/Symbol_not_found
+=== RUN   TestErrorMapping/data_not_ready/Data_is_not_ready
+=== RUN   TestErrorMapping/upstream_unavailable/Upstream_is_unavailable
+=== RUN   TestErrorMapping/upstream_error/Upstream_request_failed
+=== RUN   TestErrorMapping/service_overloaded/Service_is_overloaded
+=== RUN   TestErrorMapping/upstream_attempt_limit/Upstream_attempt_limit_reached
+=== RUN   TestErrorMapping/response_too_large/response_is_too_large
+=== RUN   TestErrorMapping/incomplete_data/Requested_data_is_incomplete
+=== RUN   TestErrorMapping/invalid_upstream_data/Invalid_upstream_data
+=== RUN   TestErrorMapping/request_timeout/Request_timed_out
+=== RUN   TestErrorMapping/request_timeout/context_deadline_exceeded
+=== RUN   TestErrorMapping/request_canceled/context_canceled
+=== RUN   TestErrorMapping/unsupported_operation/Unsupported_operation
+=== RUN   TestErrorMapping/internal_error/Internal_error
+=== RUN   TestErrorMapping/internal_error/secret_upstream_body
+--- PASS: TestErrorMapping (0.00s)
+    --- PASS: TestErrorMapping/invalid_parameter/Invalid_parameter (0.00s)
+    --- PASS: TestErrorMapping/invalid_filter/Invalid_filter (0.00s)
+    --- PASS: TestErrorMapping/invalid_status/Invalid_instrument_status (0.00s)
+    --- PASS: TestErrorMapping/unsupported_window/Unsupported_statistics_window (0.00s)
+    --- PASS: TestErrorMapping/invalid_interval/Invalid_or_unsupported_interval (0.00s)
+    --- PASS: TestErrorMapping/invalid_range/Invalid_time_range (0.00s)
+    --- PASS: TestErrorMapping/request_too_large/Request_is_too_large (0.00s)
+    --- PASS: TestErrorMapping/range_out_of_retention/Range_is_outside_retained_history (0.00s)
+    --- PASS: TestErrorMapping/symbol_not_found/Symbol_not_found (0.00s)
+    --- PASS: TestErrorMapping/data_not_ready/Data_is_not_ready (0.00s)
+    --- PASS: TestErrorMapping/upstream_unavailable/Upstream_is_unavailable (0.00s)
+    --- PASS: TestErrorMapping/upstream_error/Upstream_request_failed (0.00s)
+    --- PASS: TestErrorMapping/service_overloaded/Service_is_overloaded (0.00s)
+    --- PASS: TestErrorMapping/upstream_attempt_limit/Upstream_attempt_limit_reached (0.00s)
+    --- PASS: TestErrorMapping/response_too_large/response_is_too_large (0.00s)
+    --- PASS: TestErrorMapping/incomplete_data/Requested_data_is_incomplete (0.00s)
+    --- PASS: TestErrorMapping/invalid_upstream_data/Invalid_upstream_data (0.00s)
+    --- PASS: TestErrorMapping/request_timeout/Request_timed_out (0.00s)
+    --- PASS: TestErrorMapping/request_timeout/context_deadline_exceeded (0.00s)
+    --- PASS: TestErrorMapping/request_canceled/context_canceled (0.00s)
+    --- PASS: TestErrorMapping/unsupported_operation/Unsupported_operation (0.00s)
+    --- PASS: TestErrorMapping/internal_error/Internal_error (0.00s)
+    --- PASS: TestErrorMapping/internal_error/secret_upstream_body (0.00s)
+=== RUN   TestRPCFailureAndPanicAreSanitized
+=== RUN   TestRPCFailureAndPanicAreSanitized/repository_failure
+=== RUN   TestRPCFailureAndPanicAreSanitized/panic
+=== RUN   TestRPCFailureAndPanicAreSanitized/application_failure
+=== RUN   TestRPCFailureAndPanicAreSanitized/service_deadline
+--- PASS: TestRPCFailureAndPanicAreSanitized (1.01s)
+    --- PASS: TestRPCFailureAndPanicAreSanitized/repository_failure (0.00s)
+    --- PASS: TestRPCFailureAndPanicAreSanitized/panic (0.00s)
+    --- PASS: TestRPCFailureAndPanicAreSanitized/application_failure (0.00s)
+    --- PASS: TestRPCFailureAndPanicAreSanitized/service_deadline (1.00s)
+=== RUN   TestNativeRPCFailures
+=== RUN   TestNativeRPCFailures/unknown_method
+=== RUN   TestNativeRPCFailures/message_too_large
+--- PASS: TestNativeRPCFailures (0.01s)
+    --- PASS: TestNativeRPCFailures/unknown_method (0.00s)
+    --- PASS: TestNativeRPCFailures/message_too_large (0.00s)
+=== RUN   TestClientCancellationReleasesCapacity
+--- PASS: TestClientCancellationReleasesCapacity (0.00s)
+=== RUN   TestClientTimeoutParsing
+=== RUN   TestClientTimeoutParsing/1H
+=== RUN   TestClientTimeoutParsing/12M
+=== RUN   TestClientTimeoutParsing/9S
+=== RUN   TestClientTimeoutParsing/3m
+=== RUN   TestClientTimeoutParsing/4u
+=== RUN   TestClientTimeoutParsing/0n
+=== RUN   TestClientTimeoutParsing/99999999H
+=== RUN   TestClientTimeoutParsing/#00
+=== RUN   TestClientTimeoutParsing/-1S
+=== RUN   TestClientTimeoutParsing/100000000S
+=== RUN   TestClientTimeoutParsing/1x
+=== RUN   TestClientTimeoutParsing/+1S
+--- PASS: TestClientTimeoutParsing (0.00s)
+    --- PASS: TestClientTimeoutParsing/1H (0.00s)
+    --- PASS: TestClientTimeoutParsing/12M (0.00s)
+    --- PASS: TestClientTimeoutParsing/9S (0.00s)
+    --- PASS: TestClientTimeoutParsing/3m (0.00s)
+    --- PASS: TestClientTimeoutParsing/4u (0.00s)
+    --- PASS: TestClientTimeoutParsing/0n (0.00s)
+    --- PASS: TestClientTimeoutParsing/99999999H (0.00s)
+    --- PASS: TestClientTimeoutParsing/#00 (0.00s)
+    --- PASS: TestClientTimeoutParsing/-1S (0.00s)
+    --- PASS: TestClientTimeoutParsing/100000000S (0.00s)
+    --- PASS: TestClientTimeoutParsing/1x (0.00s)
+    --- PASS: TestClientTimeoutParsing/+1S (0.00s)
+=== RUN   TestCanceledRPCKeepsCapacityThroughApplicationCleanup
+--- PASS: TestCanceledRPCKeepsCapacityThroughApplicationCleanup (0.00s)
+=== RUN   TestCanceledRPCKeepsCapacityThroughNativeSerialization
+--- PASS: TestCanceledRPCKeepsCapacityThroughNativeSerialization (0.00s)
+=== RUN   TestCanceledRPCBeforeNativeDispatchCannotStartApplication
+--- PASS: TestCanceledRPCBeforeNativeDispatchCannotStartApplication (0.00s)
+=== RUN   TestClosedRPCFencePreventsApplicationDispatch
+--- PASS: TestClosedRPCFencePreventsApplicationDispatch (0.00s)
+=== RUN   TestStoppedNativeRuntimeDoesNotWaitForMissingProcessingEnd
+--- PASS: TestStoppedNativeRuntimeDoesNotWaitForMissingProcessingEnd (0.00s)
+=== RUN   TestHTTPFailureCode
+=== RUN   TestHTTPFailureCode/Bad_Request
+=== RUN   TestHTTPFailureCode/Unauthorized
+=== RUN   TestHTTPFailureCode/Forbidden
+=== RUN   TestHTTPFailureCode/Not_Found
+=== RUN   TestHTTPFailureCode/Too_Many_Requests
+=== RUN   TestHTTPFailureCode/Bad_Gateway
+=== RUN   TestHTTPFailureCode/Service_Unavailable
+=== RUN   TestHTTPFailureCode/Gateway_Timeout
+=== RUN   TestHTTPFailureCode/Unsupported_Media_Type
+=== RUN   TestHTTPFailureCode/OK
+--- PASS: TestHTTPFailureCode (0.00s)
+    --- PASS: TestHTTPFailureCode/Bad_Request (0.00s)
+    --- PASS: TestHTTPFailureCode/Unauthorized (0.00s)
+    --- PASS: TestHTTPFailureCode/Forbidden (0.00s)
+    --- PASS: TestHTTPFailureCode/Not_Found (0.00s)
+    --- PASS: TestHTTPFailureCode/Too_Many_Requests (0.00s)
+    --- PASS: TestHTTPFailureCode/Bad_Gateway (0.00s)
+    --- PASS: TestHTTPFailureCode/Service_Unavailable (0.00s)
+    --- PASS: TestHTTPFailureCode/Gateway_Timeout (0.00s)
+    --- PASS: TestHTTPFailureCode/Unsupported_Media_Type (0.00s)
+    --- PASS: TestHTTPFailureCode/OK (0.00s)
+=== RUN   TestOverloadRejectsHeadersWithoutReadingBody
+--- PASS: TestOverloadRejectsHeadersWithoutReadingBody (0.00s)
+=== RUN   TestHeaderLimitRejectsWithoutReadingBody
+--- PASS: TestHeaderLimitRejectsWithoutReadingBody (0.00s)
+=== RUN   TestUnaryTailCannotReachRuntimeOrApplication
+--- PASS: TestUnaryTailCannotReachRuntimeOrApplication (0.00s)
+=== RUN   TestPartialUnaryBodyUsesWorkDeadlineAndCancellation
+=== RUN   TestPartialUnaryBodyUsesWorkDeadlineAndCancellation/missing_body
+=== RUN   TestPartialUnaryBodyUsesWorkDeadlineAndCancellation/partial_prefix
+=== RUN   TestPartialUnaryBodyUsesWorkDeadlineAndCancellation/root_cancellation
+--- PASS: TestPartialUnaryBodyUsesWorkDeadlineAndCancellation (2.01s)
+    --- PASS: TestPartialUnaryBodyUsesWorkDeadlineAndCancellation/missing_body (1.00s)
+    --- PASS: TestPartialUnaryBodyUsesWorkDeadlineAndCancellation/partial_prefix (1.00s)
+    --- PASS: TestPartialUnaryBodyUsesWorkDeadlineAndCancellation/root_cancellation (0.00s)
+=== RUN   TestRootAndClientCancellationKeepCanceledObservation
+=== RUN   TestRootAndClientCancellationKeepCanceledObservation/root
+=== RUN   TestRootAndClientCancellationKeepCanceledObservation/client
+--- PASS: TestRootAndClientCancellationKeepCanceledObservation (0.00s)
+    --- PASS: TestRootAndClientCancellationKeepCanceledObservation/root (0.00s)
+    --- PASS: TestRootAndClientCancellationKeepCanceledObservation/client (0.00s)
+=== RUN   TestReadUnaryFrameBounds
+=== RUN   TestReadUnaryFrameBounds/at_maximum
+=== RUN   TestReadUnaryFrameBounds/above_maximum
+=== RUN   TestReadUnaryFrameBounds/second_message
+--- PASS: TestReadUnaryFrameBounds (0.00s)
+    --- PASS: TestReadUnaryFrameBounds/at_maximum (0.00s)
+    --- PASS: TestReadUnaryFrameBounds/above_maximum (0.00s)
+    --- PASS: TestReadUnaryFrameBounds/second_message (0.00s)
+=== RUN   TestClientDeadlineHasTimeoutObservation
+--- PASS: TestClientDeadlineHasTimeoutObservation (1.00s)
+=== RUN   TestEarlierClientDeadlineAbortsFlowControlledSend
+--- PASS: TestEarlierClientDeadlineAbortsFlowControlledSend (1.03s)
+=== RUN   TestSlowReaderKeepsCapacityUntilReset
+--- PASS: TestSlowReaderKeepsCapacityUntilReset (0.05s)
+=== RUN   TestSlowReaderAbortsAtWriteDeadline
+--- PASS: TestSlowReaderAbortsAtWriteDeadline (2.01s)
+=== RUN   TestRealRPCSuccessAndUnknownFields
+--- PASS: TestRealRPCSuccessAndUnknownFields (0.01s)
+=== RUN   TestForcedCloseAbortsBlockedSend
+--- PASS: TestForcedCloseAbortsBlockedSend (0.03s)
+=== RUN   TestOversizedResponseHasRichStatus
+--- PASS: TestOversizedResponseHasRichStatus (0.01s)
+PASS
+ok  	market-data/internal/transport/grpc	8.817s
+?   	market-data/internal/application	[no test files]
+=== RUN   TestRefreshPanicPreservesPublicationState
+=== RUN   TestRefreshPanicPreservesPublicationState/first_fetch
+=== RUN   TestRefreshPanicPreservesPublicationState/first_write
+=== RUN   TestRefreshPanicPreservesPublicationState/fetch_after_publication
+=== RUN   TestRefreshPanicPreservesPublicationState/write_after_publication
+--- PASS: TestRefreshPanicPreservesPublicationState (0.00s)
+    --- PASS: TestRefreshPanicPreservesPublicationState/first_fetch (0.00s)
+    --- PASS: TestRefreshPanicPreservesPublicationState/first_write (0.00s)
+    --- PASS: TestRefreshPanicPreservesPublicationState/fetch_after_publication (0.00s)
+    --- PASS: TestRefreshPanicPreservesPublicationState/write_after_publication (0.00s)
+=== RUN   TestReaderFiltersEnabledScopes
+=== RUN   TestReaderFiltersEnabledScopes/all_sorted
+=== RUN   TestReaderFiltersEnabledScopes/exchange
+=== RUN   TestReaderFiltersEnabledScopes/market
+=== RUN   TestReaderFiltersEnabledScopes/symbol
+=== RUN   TestReaderFiltersEnabledScopes/status
+=== RUN   TestReaderFiltersEnabledScopes/absent
+=== RUN   TestReaderFiltersEnabledScopes/exact_symbol
+=== RUN   TestReaderFiltersEnabledScopes/unknown_exchange
+=== RUN   TestReaderFiltersEnabledScopes/uppercase_exchange
+=== RUN   TestReaderFiltersEnabledScopes/unknown_market
+=== RUN   TestReaderFiltersEnabledScopes/disabled_pair
+=== RUN   TestReaderFiltersEnabledScopes/bad_status
+=== RUN   TestReaderFiltersEnabledScopes/symbol_whitespace
+=== RUN   TestReaderFiltersEnabledScopes/symbol_control
+=== RUN   TestReaderFiltersEnabledScopes/symbol_invalid_UTF8
+=== RUN   TestReaderFiltersEnabledScopes/symbol_too_long
+=== RUN   TestReaderFiltersEnabledScopes/symbol_max_length
+=== RUN   TestReaderFiltersEnabledScopes/UTF8_symbol
+=== RUN   TestReaderFiltersEnabledScopes/filter_before_status
+--- PASS: TestReaderFiltersEnabledScopes (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/all_sorted (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/exchange (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/market (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/symbol (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/status (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/absent (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/exact_symbol (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/unknown_exchange (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/uppercase_exchange (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/unknown_market (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/disabled_pair (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/bad_status (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/symbol_whitespace (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/symbol_control (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/symbol_invalid_UTF8 (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/symbol_too_long (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/symbol_max_length (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/UTF8_symbol (0.00s)
+    --- PASS: TestReaderFiltersEnabledScopes/filter_before_status (0.00s)
+=== RUN   TestReaderCannotFilterAwayUnreadyScope
+--- PASS: TestReaderCannotFilterAwayUnreadyScope (0.00s)
+=== RUN   TestRefreshPreservesSnapshotOnFailure
+=== RUN   TestRefreshPreservesSnapshotOnFailure/fetch_failure
+=== RUN   TestRefreshPreservesSnapshotOnFailure/normalization_failure
+=== RUN   TestRefreshPreservesSnapshotOnFailure/repository_failure
+=== RUN   TestRefreshPreservesSnapshotOnFailure/cancellation
+--- PASS: TestRefreshPreservesSnapshotOnFailure (0.00s)
+    --- PASS: TestRefreshPreservesSnapshotOnFailure/fetch_failure (0.00s)
+    --- PASS: TestRefreshPreservesSnapshotOnFailure/normalization_failure (0.00s)
+    --- PASS: TestRefreshPreservesSnapshotOnFailure/repository_failure (0.00s)
+    --- PASS: TestRefreshPreservesSnapshotOnFailure/cancellation (0.00s)
+=== RUN   TestRefreshReplacesCompleteSnapshotWithOneUTCTime
+=== RUN   TestRefreshReplacesCompleteSnapshotWithOneUTCTime/replacement
+=== RUN   TestRefreshReplacesCompleteSnapshotWithOneUTCTime/empty_catalog
+--- PASS: TestRefreshReplacesCompleteSnapshotWithOneUTCTime (0.00s)
+    --- PASS: TestRefreshReplacesCompleteSnapshotWithOneUTCTime/replacement (0.00s)
+    --- PASS: TestRefreshReplacesCompleteSnapshotWithOneUTCTime/empty_catalog (0.00s)
+=== RUN   TestWorkerRefreshesImmediatelyThenWaitsAfterCompletion
+--- PASS: TestWorkerRefreshesImmediatelyThenWaitsAfterCompletion (0.00s)
+PASS
+ok  	market-data/internal/application/instrument	0.324s
+=== RUN   TestPlannerGapRanges
+=== RUN   TestPlannerGapRanges/complete_cache
+=== RUN   TestPlannerGapRanges/empty_cache_exact_limit
+=== RUN   TestPlannerGapRanges/empty_cache_one_over_limit
+=== RUN   TestPlannerGapRanges/beginning
+=== RUN   TestPlannerGapRanges/middle
+=== RUN   TestPlannerGapRanges/end
+=== RUN   TestPlannerGapRanges/merged_gaps
+=== RUN   TestPlannerGapRanges/split_gaps
+=== RUN   TestPlannerGapRanges/one_slot_pages
+--- PASS: TestPlannerGapRanges (0.00s)
+    --- PASS: TestPlannerGapRanges/complete_cache (0.00s)
+    --- PASS: TestPlannerGapRanges/empty_cache_exact_limit (0.00s)
+    --- PASS: TestPlannerGapRanges/empty_cache_one_over_limit (0.00s)
+    --- PASS: TestPlannerGapRanges/beginning (0.00s)
+    --- PASS: TestPlannerGapRanges/middle (0.00s)
+    --- PASS: TestPlannerGapRanges/end (0.00s)
+    --- PASS: TestPlannerGapRanges/merged_gaps (0.00s)
+    --- PASS: TestPlannerGapRanges/split_gaps (0.00s)
+    --- PASS: TestPlannerGapRanges/one_slot_pages (0.00s)
+=== RUN   TestPlannerSpecificationExample
+=== RUN   TestPlannerSpecificationExample/exact_limit
+=== RUN   TestPlannerSpecificationExample/larger_limit
+=== RUN   TestPlannerSpecificationExample/lower_configured_limit
+=== RUN   TestPlannerSpecificationExample/separate_gaps
+--- PASS: TestPlannerSpecificationExample (0.00s)
+    --- PASS: TestPlannerSpecificationExample/exact_limit (0.00s)
+    --- PASS: TestPlannerSpecificationExample/larger_limit (0.00s)
+    --- PASS: TestPlannerSpecificationExample/lower_configured_limit (0.00s)
+    --- PASS: TestPlannerSpecificationExample/separate_gaps (0.00s)
+=== RUN   TestPlannerFinalization
+=== RUN   TestPlannerFinalization/open_candle
+=== RUN   TestPlannerFinalization/local_close_alone
+=== RUN   TestPlannerFinalization/response_crosses_close
+=== RUN   TestPlannerFinalization/request_at_close
+=== RUN   TestPlannerFinalization/request_after_close
+=== RUN   TestPlannerFinalization/open_slot_always_refreshes
+--- PASS: TestPlannerFinalization (0.00s)
+    --- PASS: TestPlannerFinalization/open_candle (0.00s)
+    --- PASS: TestPlannerFinalization/local_close_alone (0.00s)
+    --- PASS: TestPlannerFinalization/response_crosses_close (0.00s)
+    --- PASS: TestPlannerFinalization/request_at_close (0.00s)
+    --- PASS: TestPlannerFinalization/request_after_close (0.00s)
+    --- PASS: TestPlannerFinalization/open_slot_always_refreshes (0.00s)
+=== RUN   TestPlannerCalendarRanges
+=== RUN   TestPlannerCalendarRanges/leap_February
+=== RUN   TestPlannerCalendarRanges/regular_February
+=== RUN   TestPlannerCalendarRanges/monthly_year_boundary
+=== RUN   TestPlannerCalendarRanges/Binance_spot_week
+=== RUN   TestPlannerCalendarRanges/Binance_linear_week
+=== RUN   TestPlannerCalendarRanges/Bybit_spot_week
+=== RUN   TestPlannerCalendarRanges/Bybit_linear_week
+=== RUN   TestPlannerCalendarRanges/Binance_spot_three_days
+=== RUN   TestPlannerCalendarRanges/Binance_linear_three_days
+--- PASS: TestPlannerCalendarRanges (0.00s)
+    --- PASS: TestPlannerCalendarRanges/leap_February (0.00s)
+    --- PASS: TestPlannerCalendarRanges/regular_February (0.00s)
+    --- PASS: TestPlannerCalendarRanges/monthly_year_boundary (0.00s)
+    --- PASS: TestPlannerCalendarRanges/Binance_spot_week (0.00s)
+    --- PASS: TestPlannerCalendarRanges/Binance_linear_week (0.00s)
+    --- PASS: TestPlannerCalendarRanges/Bybit_spot_week (0.00s)
+    --- PASS: TestPlannerCalendarRanges/Bybit_linear_week (0.00s)
+    --- PASS: TestPlannerCalendarRanges/Binance_spot_three_days (0.00s)
+    --- PASS: TestPlannerCalendarRanges/Binance_linear_three_days (0.00s)
+=== RUN   TestPlannerMergesMonthlyMissingAndIntermediateSlots
+--- PASS: TestPlannerMergesMonthlyMissingAndIntermediateSlots (0.00s)
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_6
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_1
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_2
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_3
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_4
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_5
+=== RUN   TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_6
+--- PASS: TestPlannerCoversEveryGapWithMinimumRequests (0.02s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000000_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000001_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000010_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000011_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000100_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000101_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000110_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_000111_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001000_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001001_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001010_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001011_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001100_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001101_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001110_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_001111_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010000_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010001_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010010_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010011_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010100_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010101_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010110_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_010111_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011000_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011001_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011010_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011011_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011100_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011101_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011110_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_011111_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100000_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100001_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100010_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100011_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100100_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100101_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100110_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_100111_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101000_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101001_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101010_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101011_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101100_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101101_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101110_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_101111_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110000_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110001_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110010_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110011_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110100_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110101_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110110_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_110111_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111000_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111001_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111010_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111011_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111100_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111101_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111110_limit_6 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_1 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_2 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_3 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_4 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_5 (0.00s)
+    --- PASS: TestPlannerCoversEveryGapWithMinimumRequests/missing_111111_limit_6 (0.00s)
+=== RUN   TestPlannerRangeValidation
+=== RUN   TestPlannerRangeValidation/full_history
+=== RUN   TestPlannerRangeValidation/current_candle
+=== RUN   TestPlannerRangeValidation/history_and_open_within_bound
+=== RUN   TestPlannerRangeValidation/open_consumes_history_request_slot
+=== RUN   TestPlannerRangeValidation/one_old_slot
+=== RUN   TestPlannerRangeValidation/size_before_history
+=== RUN   TestPlannerRangeValidation/empty_current
+=== RUN   TestPlannerRangeValidation/empty_next_boundary
+=== RUN   TestPlannerRangeValidation/empty_at_cutoff
+=== RUN   TestPlannerRangeValidation/empty_old
+=== RUN   TestPlannerRangeValidation/reversed
+=== RUN   TestPlannerRangeValidation/future_end
+=== RUN   TestPlannerRangeValidation/future_start
+=== RUN   TestPlannerRangeValidation/empty_future
+=== RUN   TestPlannerRangeValidation/shape_before_size
+=== RUN   TestPlannerRangeValidation/unaligned_start
+=== RUN   TestPlannerRangeValidation/unaligned_end
+=== RUN   TestPlannerRangeValidation/fractional_boundary
+=== RUN   TestPlannerRangeValidation/empty_unaligned
+=== RUN   TestPlannerRangeValidation/timezone_offset
+--- PASS: TestPlannerRangeValidation (0.00s)
+    --- PASS: TestPlannerRangeValidation/full_history (0.00s)
+    --- PASS: TestPlannerRangeValidation/current_candle (0.00s)
+    --- PASS: TestPlannerRangeValidation/history_and_open_within_bound (0.00s)
+    --- PASS: TestPlannerRangeValidation/open_consumes_history_request_slot (0.00s)
+    --- PASS: TestPlannerRangeValidation/one_old_slot (0.00s)
+    --- PASS: TestPlannerRangeValidation/size_before_history (0.00s)
+    --- PASS: TestPlannerRangeValidation/empty_current (0.00s)
+    --- PASS: TestPlannerRangeValidation/empty_next_boundary (0.00s)
+    --- PASS: TestPlannerRangeValidation/empty_at_cutoff (0.00s)
+    --- PASS: TestPlannerRangeValidation/empty_old (0.00s)
+    --- PASS: TestPlannerRangeValidation/reversed (0.00s)
+    --- PASS: TestPlannerRangeValidation/future_end (0.00s)
+    --- PASS: TestPlannerRangeValidation/future_start (0.00s)
+    --- PASS: TestPlannerRangeValidation/empty_future (0.00s)
+    --- PASS: TestPlannerRangeValidation/shape_before_size (0.00s)
+    --- PASS: TestPlannerRangeValidation/unaligned_start (0.00s)
+    --- PASS: TestPlannerRangeValidation/unaligned_end (0.00s)
+    --- PASS: TestPlannerRangeValidation/fractional_boundary (0.00s)
+    --- PASS: TestPlannerRangeValidation/empty_unaligned (0.00s)
+    --- PASS: TestPlannerRangeValidation/timezone_offset (0.00s)
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/unknown_exchange
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/different_exchange
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/unknown_market
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/different_market
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/empty_symbol
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/long_symbol
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/symbol_whitespace
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/symbol_control
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/symbol_encoding
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/zero_interval
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/unknown_interval
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/interval_whitespace
+=== RUN   TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/unsupported_interval
+--- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/unknown_exchange (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/different_exchange (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/unknown_market (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/different_market (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/empty_symbol (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/long_symbol (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/symbol_whitespace (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/symbol_control (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/symbol_encoding (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/zero_interval (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/unknown_interval (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/interval_whitespace (0.00s)
+    --- PASS: TestPlannerRejectsInvalidSeriesBeforeRangeOrCache/unsupported_interval (0.00s)
+=== RUN   TestPlannerCalendarBounds
+=== RUN   TestPlannerCalendarBounds/pre_epoch
+=== RUN   TestPlannerCalendarBounds/cutoff_before_epoch
+=== RUN   TestPlannerCalendarBounds/centuries_of_seconds
+=== RUN   TestPlannerCalendarBounds/history_overflow
+=== RUN   TestPlannerCalendarBounds/monthly_history_overflow
+=== RUN   TestPlannerCalendarBounds/monthly_depth
+=== RUN   TestPlannerCalendarBounds/monthly_cutoff
+=== RUN   TestPlannerCalendarBounds/wrong_weekly_anchor
+=== RUN   TestPlannerCalendarBounds/wrong_three_day_anchor
+--- PASS: TestPlannerCalendarBounds (0.00s)
+    --- PASS: TestPlannerCalendarBounds/pre_epoch (0.00s)
+    --- PASS: TestPlannerCalendarBounds/cutoff_before_epoch (0.00s)
+    --- PASS: TestPlannerCalendarBounds/centuries_of_seconds (0.00s)
+    --- PASS: TestPlannerCalendarBounds/history_overflow (0.00s)
+    --- PASS: TestPlannerCalendarBounds/monthly_history_overflow (0.00s)
+    --- PASS: TestPlannerCalendarBounds/monthly_depth (0.00s)
+    --- PASS: TestPlannerCalendarBounds/monthly_cutoff (0.00s)
+    --- PASS: TestPlannerCalendarBounds/wrong_weekly_anchor (0.00s)
+    --- PASS: TestPlannerCalendarBounds/wrong_three_day_anchor (0.00s)
+=== RUN   TestPlannerRejectsInvalidCachedRows
+=== RUN   TestPlannerRejectsInvalidCachedRows/exchange
+=== RUN   TestPlannerRejectsInvalidCachedRows/market
+=== RUN   TestPlannerRejectsInvalidCachedRows/symbol
+=== RUN   TestPlannerRejectsInvalidCachedRows/interval
+=== RUN   TestPlannerRejectsInvalidCachedRows/before_query
+=== RUN   TestPlannerRejectsInvalidCachedRows/at_query_end
+=== RUN   TestPlannerRejectsInvalidCachedRows/unaligned_open
+=== RUN   TestPlannerRejectsInvalidCachedRows/wrong_close
+=== RUN   TestPlannerRejectsInvalidCachedRows/missing_request_start
+=== RUN   TestPlannerRejectsInvalidCachedRows/missing_receipt
+=== RUN   TestPlannerRejectsInvalidCachedRows/receipt_before_start
+--- PASS: TestPlannerRejectsInvalidCachedRows (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/exchange (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/market (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/symbol (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/interval (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/before_query (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/at_query_end (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/unaligned_open (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/wrong_close (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/missing_request_start (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/missing_receipt (0.00s)
+    --- PASS: TestPlannerRejectsInvalidCachedRows/receipt_before_start (0.00s)
+=== RUN   TestPlannerRejectsDuplicateCachedRows
+=== RUN   TestPlannerRejectsDuplicateCachedRows/identical
+=== RUN   TestPlannerRejectsDuplicateCachedRows/different_evidence
+=== RUN   TestPlannerRejectsDuplicateCachedRows/different_timezone
+--- PASS: TestPlannerRejectsDuplicateCachedRows (0.00s)
+    --- PASS: TestPlannerRejectsDuplicateCachedRows/identical (0.00s)
+    --- PASS: TestPlannerRejectsDuplicateCachedRows/different_evidence (0.00s)
+    --- PASS: TestPlannerRejectsDuplicateCachedRows/different_timezone (0.00s)
+=== RUN   TestPlannerRechecksRetentionOnWarmCache
+--- PASS: TestPlannerRechecksRetentionOnWarmCache (0.00s)
+=== RUN   TestPlannerRejectsOversizedQueryBeforeCachedRows
+--- PASS: TestPlannerRejectsOversizedQueryBeforeCachedRows (0.00s)
+=== RUN   TestPlannerRejectsExcessCachedRows
+--- PASS: TestPlannerRejectsExcessCachedRows (0.00s)
+=== RUN   TestPlannerCopiesSupportList
+--- PASS: TestPlannerCopiesSupportList (0.00s)
+=== RUN   TestPlannerConstructorValidation
+=== RUN   TestPlannerConstructorValidation/invalid_exchange
+=== RUN   TestPlannerConstructorValidation/invalid_market
+=== RUN   TestPlannerConstructorValidation/empty_support
+=== RUN   TestPlannerConstructorValidation/invalid_interval
+=== RUN   TestPlannerConstructorValidation/unknown_calendar
+=== RUN   TestPlannerConstructorValidation/zero_history
+=== RUN   TestPlannerConstructorValidation/negative_history
+=== RUN   TestPlannerConstructorValidation/zero_limit
+=== RUN   TestPlannerConstructorValidation/negative_limit
+--- PASS: TestPlannerConstructorValidation (0.00s)
+    --- PASS: TestPlannerConstructorValidation/invalid_exchange (0.00s)
+    --- PASS: TestPlannerConstructorValidation/invalid_market (0.00s)
+    --- PASS: TestPlannerConstructorValidation/empty_support (0.00s)
+    --- PASS: TestPlannerConstructorValidation/invalid_interval (0.00s)
+    --- PASS: TestPlannerConstructorValidation/unknown_calendar (0.00s)
+    --- PASS: TestPlannerConstructorValidation/zero_history (0.00s)
+    --- PASS: TestPlannerConstructorValidation/negative_history (0.00s)
+    --- PASS: TestPlannerConstructorValidation/zero_limit (0.00s)
+    --- PASS: TestPlannerConstructorValidation/negative_limit (0.00s)
+=== RUN   TestRetentionUsesCalendarSlotsAndKeepsCutoff
+=== RUN   TestRetentionUsesCalendarSlotsAndKeepsCutoff/minute
+=== RUN   TestRetentionUsesCalendarSlotsAndKeepsCutoff/month
+=== RUN   TestRetentionUsesCalendarSlotsAndKeepsCutoff/weekly
+=== RUN   TestRetentionUsesCalendarSlotsAndKeepsCutoff/three_day
+--- PASS: TestRetentionUsesCalendarSlotsAndKeepsCutoff (0.00s)
+    --- PASS: TestRetentionUsesCalendarSlotsAndKeepsCutoff/minute (0.00s)
+    --- PASS: TestRetentionUsesCalendarSlotsAndKeepsCutoff/month (0.00s)
+    --- PASS: TestRetentionUsesCalendarSlotsAndKeepsCutoff/weekly (0.00s)
+    --- PASS: TestRetentionUsesCalendarSlotsAndKeepsCutoff/three_day (0.00s)
+=== RUN   TestRetentionUsesOneClockAndContinuesAfterStorageFailure
+--- PASS: TestRetentionUsesOneClockAndContinuesAfterStorageFailure (0.00s)
+=== RUN   TestRetentionStopsCanceledPass
+--- PASS: TestRetentionStopsCanceledPass (0.00s)
+=== RUN   TestRetentionRejectsCanceledContextBeforeClock
+--- PASS: TestRetentionRejectsCanceledContextBeforeClock (0.00s)
+=== RUN   TestRetentionReportsCalendarOverflowWithoutDeletion
+--- PASS: TestRetentionReportsCalendarOverflowWithoutDeletion (0.00s)
+=== RUN   TestServiceColdWarmAndPartialCache
+=== RUN   TestServiceColdWarmAndPartialCache/cold
+=== RUN   TestServiceColdWarmAndPartialCache/partial
+=== RUN   TestServiceColdWarmAndPartialCache/warm
+--- PASS: TestServiceColdWarmAndPartialCache (0.00s)
+    --- PASS: TestServiceColdWarmAndPartialCache/cold (0.00s)
+    --- PASS: TestServiceColdWarmAndPartialCache/partial (0.00s)
+    --- PASS: TestServiceColdWarmAndPartialCache/warm (0.00s)
+=== RUN   TestServiceFiftyIdenticalMissesShareOnePagedFill
+--- PASS: TestServiceFiftyIdenticalMissesShareOnePagedFill (0.00s)
+=== RUN   TestServiceOverlapReusesSavedRange
+--- PASS: TestServiceOverlapReusesSavedRange (0.00s)
+=== RUN   TestServiceFinalHitAndOtherSeriesDoNotWait
+--- PASS: TestServiceFinalHitAndOtherSeriesDoNotWait (0.00s)
+=== RUN   TestServiceCallerCancellationDoesNotCancelFill
+=== RUN   TestServiceCallerCancellationDoesNotCancelFill/leader
+=== RUN   TestServiceCallerCancellationDoesNotCancelFill/waiter
+=== RUN   TestServiceCallerCancellationDoesNotCancelFill/all_callers
+--- PASS: TestServiceCallerCancellationDoesNotCancelFill (0.00s)
+    --- PASS: TestServiceCallerCancellationDoesNotCancelFill/leader (0.00s)
+    --- PASS: TestServiceCallerCancellationDoesNotCancelFill/waiter (0.00s)
+    --- PASS: TestServiceCallerCancellationDoesNotCancelFill/all_callers (0.00s)
+=== RUN   TestServiceFillFailureHasNoRetryBurstAndPreservesPages
+--- PASS: TestServiceFillFailureHasNoRetryBurstAndPreservesPages (0.00s)
+=== RUN   TestServiceEmptyAndShortResponsesEndWithoutInventingRows
+=== RUN   TestServiceEmptyAndShortResponsesEndWithoutInventingRows/empty
+=== RUN   TestServiceEmptyAndShortResponsesEndWithoutInventingRows/short_then_no_progress
+--- PASS: TestServiceEmptyAndShortResponsesEndWithoutInventingRows (0.00s)
+    --- PASS: TestServiceEmptyAndShortResponsesEndWithoutInventingRows/empty (0.00s)
+    --- PASS: TestServiceEmptyAndShortResponsesEndWithoutInventingRows/short_then_no_progress (0.00s)
+=== RUN   TestServiceOpenCandleSharedOnceAndNextCallerRefreshes
+--- PASS: TestServiceOpenCandleSharedOnceAndNextCallerRefreshes (0.00s)
+=== RUN   TestServiceCrossingCloseRequiresNewAttempt
+--- PASS: TestServiceCrossingCloseRequiresNewAttempt (0.00s)
+=== RUN   TestServiceDeadlinesAndShutdown
+=== RUN   TestServiceDeadlinesAndShutdown/fill_deadline
+=== RUN   TestServiceDeadlinesAndShutdown/caller_deadline
+=== RUN   TestServiceDeadlinesAndShutdown/shutdown
+--- PASS: TestServiceDeadlinesAndShutdown (0.00s)
+    --- PASS: TestServiceDeadlinesAndShutdown/fill_deadline (0.00s)
+    --- PASS: TestServiceDeadlinesAndShutdown/caller_deadline (0.00s)
+    --- PASS: TestServiceDeadlinesAndShutdown/shutdown (0.00s)
+=== RUN   TestServiceRejectsOverloadAndReleasesCapacity
+=== RUN   TestServiceRejectsOverloadAndReleasesCapacity/callers
+=== RUN   TestServiceRejectsOverloadAndReleasesCapacity/global_fills
+=== RUN   TestServiceRejectsOverloadAndReleasesCapacity/exchange_fills
+--- PASS: TestServiceRejectsOverloadAndReleasesCapacity (0.00s)
+    --- PASS: TestServiceRejectsOverloadAndReleasesCapacity/callers (0.00s)
+    --- PASS: TestServiceRejectsOverloadAndReleasesCapacity/global_fills (0.00s)
+    --- PASS: TestServiceRejectsOverloadAndReleasesCapacity/exchange_fills (0.00s)
+=== RUN   TestServiceRejectsImpossiblePlanBeforeFetching
+--- PASS: TestServiceRejectsImpossiblePlanBeforeFetching (0.00s)
+=== RUN   TestServiceCallerAttemptBudgetSurvivesOverlappingFills
+--- PASS: TestServiceCallerAttemptBudgetSurvivesOverlappingFills (0.00s)
+=== RUN   TestServiceRetentionExpiresWhileWaiting
+--- PASS: TestServiceRetentionExpiresWhileWaiting (0.00s)
+=== RUN   TestServiceValidatesBeforeStorage
+=== RUN   TestServiceValidatesBeforeStorage/too_many_slots
+=== RUN   TestServiceValidatesBeforeStorage/old_single_slot
+=== RUN   TestServiceValidatesBeforeStorage/unsupported
+=== RUN   TestServiceValidatesBeforeStorage/bad_symbol
+=== RUN   TestServiceValidatesBeforeStorage/disabled_scope
+=== RUN   TestServiceValidatesBeforeStorage/unaligned
+--- PASS: TestServiceValidatesBeforeStorage (0.00s)
+    --- PASS: TestServiceValidatesBeforeStorage/too_many_slots (0.00s)
+    --- PASS: TestServiceValidatesBeforeStorage/old_single_slot (0.00s)
+    --- PASS: TestServiceValidatesBeforeStorage/unsupported (0.00s)
+    --- PASS: TestServiceValidatesBeforeStorage/bad_symbol (0.00s)
+    --- PASS: TestServiceValidatesBeforeStorage/disabled_scope (0.00s)
+    --- PASS: TestServiceValidatesBeforeStorage/unaligned (0.00s)
+=== RUN   TestServiceEmptyRangeStillValidatesCatalog
+=== RUN   TestServiceEmptyRangeStillValidatesCatalog/known
+=== RUN   TestServiceEmptyRangeStillValidatesCatalog/unknown
+--- PASS: TestServiceEmptyRangeStillValidatesCatalog (0.00s)
+    --- PASS: TestServiceEmptyRangeStillValidatesCatalog/known (0.00s)
+    --- PASS: TestServiceEmptyRangeStillValidatesCatalog/unknown (0.00s)
+=== RUN   TestServiceRepositoryFailures
+=== RUN   TestServiceRepositoryFailures/read
+=== RUN   TestServiceRepositoryFailures/save
+--- PASS: TestServiceRepositoryFailures (0.00s)
+    --- PASS: TestServiceRepositoryFailures/read (0.00s)
+    --- PASS: TestServiceRepositoryFailures/save (0.00s)
+=== RUN   TestServiceDoesNotShareRefreshEvidenceInheritedFromEarlierFill
+--- PASS: TestServiceDoesNotShareRefreshEvidenceInheritedFromEarlierFill (0.00s)
+=== RUN   TestServiceCanceledWaiterChurnDoesNotUseUpCapacity
+--- PASS: TestServiceCanceledWaiterChurnDoesNotUseUpCapacity (0.00s)
+=== RUN   TestServiceMonthlyWindowUsesCalendarSlots
+--- PASS: TestServiceMonthlyWindowUsesCalendarSlots (0.00s)
+=== RUN   TestServiceRejectsCallerBudgetExhaustionEvenIfSharedFillCompletes
+--- PASS: TestServiceRejectsCallerBudgetExhaustionEvenIfSharedFillCompletes (0.00s)
+PASS
+ok  	market-data/internal/application/kline	0.843s
+=== RUN   TestRefreshPreservesReceiptTimeAndPriorSnapshot
+=== RUN   TestRefreshPreservesReceiptTimeAndPriorSnapshot/success
+=== RUN   TestRefreshPreservesReceiptTimeAndPriorSnapshot/empty
+=== RUN   TestRefreshPreservesReceiptTimeAndPriorSnapshot/fetch_error
+=== RUN   TestRefreshPreservesReceiptTimeAndPriorSnapshot/normalization
+=== RUN   TestRefreshPreservesReceiptTimeAndPriorSnapshot/write_error
+=== RUN   TestRefreshPreservesReceiptTimeAndPriorSnapshot/canceled
+--- PASS: TestRefreshPreservesReceiptTimeAndPriorSnapshot (0.00s)
+    --- PASS: TestRefreshPreservesReceiptTimeAndPriorSnapshot/success (0.00s)
+    --- PASS: TestRefreshPreservesReceiptTimeAndPriorSnapshot/empty (0.00s)
+    --- PASS: TestRefreshPreservesReceiptTimeAndPriorSnapshot/fetch_error (0.00s)
+    --- PASS: TestRefreshPreservesReceiptTimeAndPriorSnapshot/normalization (0.00s)
+    --- PASS: TestRefreshPreservesReceiptTimeAndPriorSnapshot/write_error (0.00s)
+    --- PASS: TestRefreshPreservesReceiptTimeAndPriorSnapshot/canceled (0.00s)
+=== RUN   TestUnsupportedWindowFailsBeforeRepositoryAccess
+--- PASS: TestUnsupportedWindowFailsBeforeRepositoryAccess (0.00s)
+PASS
+ok  	market-data/internal/application/marketstats	1.392s
+=== RUN   TestFundingCountdown
+=== RUN   TestFundingCountdown/absent
+=== RUN   TestFundingCountdown/future
+=== RUN   TestFundingCountdown/less_than_one_second
+=== RUN   TestFundingCountdown/reached
+=== RUN   TestFundingCountdown/past
+--- PASS: TestFundingCountdown (0.00s)
+    --- PASS: TestFundingCountdown/absent (0.00s)
+    --- PASS: TestFundingCountdown/future (0.00s)
+    --- PASS: TestFundingCountdown/less_than_one_second (0.00s)
+    --- PASS: TestFundingCountdown/reached (0.00s)
+    --- PASS: TestFundingCountdown/past (0.00s)
+=== RUN   TestFundingCountdownUsesOneClockValuePerResponse
+--- PASS: TestFundingCountdownUsesOneClockValuePerResponse (0.00s)
+=== RUN   TestReadModelPreservesExactValuesAndOwnership
+--- PASS: TestReadModelPreservesExactValuesAndOwnership (0.00s)
+=== RUN   TestReadModelEmptyAndMissingOptionalValues
+--- PASS: TestReadModelEmptyAndMissingOptionalValues (0.00s)
+=== RUN   TestIndependentPublication
+=== RUN   TestIndependentPublication/both_succeed
+=== RUN   TestIndependentPublication/empty_success
+=== RUN   TestIndependentPublication/ticker_normalization
+=== RUN   TestIndependentPublication/stats_normalization
+=== RUN   TestIndependentPublication/ticker_write
+=== RUN   TestIndependentPublication/stats_write
+=== RUN   TestIndependentPublication/transport_error
+=== RUN   TestIndependentPublication/envelope_error
+=== RUN   TestIndependentPublication/missing_shared_branch
+=== RUN   TestIndependentPublication/canceled
+--- PASS: TestIndependentPublication (0.00s)
+    --- PASS: TestIndependentPublication/both_succeed (0.00s)
+    --- PASS: TestIndependentPublication/empty_success (0.00s)
+    --- PASS: TestIndependentPublication/ticker_normalization (0.00s)
+    --- PASS: TestIndependentPublication/stats_normalization (0.00s)
+    --- PASS: TestIndependentPublication/ticker_write (0.00s)
+    --- PASS: TestIndependentPublication/stats_write (0.00s)
+    --- PASS: TestIndependentPublication/transport_error (0.00s)
+    --- PASS: TestIndependentPublication/envelope_error (0.00s)
+    --- PASS: TestIndependentPublication/missing_shared_branch (0.00s)
+    --- PASS: TestIndependentPublication/canceled (0.00s)
+=== RUN   TestIndependentTickerDoesNotPublishStatistics
+--- PASS: TestIndependentTickerDoesNotPublishStatistics (0.00s)
+PASS
+ok  	market-data/internal/application/ticker	1.104s
+=== RUN   TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots
+=== RUN   TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots/shutdown_during_deferral
+=== RUN   TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots/ordinary_work_resumes_at_expiry
+=== RUN   TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots/real_cooldown_outlasts_budget
+--- PASS: TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots (0.00s)
+    --- PASS: TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots/shutdown_during_deferral (0.00s)
+    --- PASS: TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots/ordinary_work_resumes_at_expiry (0.00s)
+    --- PASS: TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots/real_cooldown_outlasts_budget (0.00s)
+=== RUN   TestKlineBudgetRejectionKeepsPagesWithoutPartialHTTPSuccess
+--- PASS: TestKlineBudgetRejectionKeepsPagesWithoutPartialHTTPSuccess (0.00s)
+=== RUN   TestParallelKlineCallersAllowOneCrossingAndKeepCacheReadable
+--- PASS: TestParallelKlineCallersAllowOneCrossingAndKeepCacheReadable (0.00s)
+=== RUN   TestCatalogScheduleReusesInstrumentResponses
+=== RUN   TestCatalogScheduleReusesInstrumentResponses/hourly_catalog_and_two_hour_instruments
+=== RUN   TestCatalogScheduleReusesInstrumentResponses/frequent_instruments_reuse_catalogs
+--- PASS: TestCatalogScheduleReusesInstrumentResponses (0.00s)
+    --- PASS: TestCatalogScheduleReusesInstrumentResponses/hourly_catalog_and_two_hour_instruments (0.00s)
+    --- PASS: TestCatalogScheduleReusesInstrumentResponses/frequent_instruments_reuse_catalogs (0.00s)
+=== RUN   TestCatalogScheduleRecoversAfterFailureWithoutBacklog
+--- PASS: TestCatalogScheduleRecoversAfterFailureWithoutBacklog (0.00s)
+=== RUN   TestCatalogFreshnessSurvivesInstrumentNormalizationFailure
+--- PASS: TestCatalogFreshnessSurvivesInstrumentNormalizationFailure (0.00s)
+=== RUN   TestScheduledCatalogHasOneOwnerAndCancelsInflight
+--- PASS: TestScheduledCatalogHasOneOwnerAndCancelsInflight (0.00s)
+=== RUN   TestCatalogAdmissionDelayRemainsBounded
+--- PASS: TestCatalogAdmissionDelayRemainsBounded (0.00s)
+=== RUN   TestLinearCatalogRefreshDoesNotFetchFundingOrPublishInstruments
+--- PASS: TestLinearCatalogRefreshDoesNotFetchFundingOrPublishInstruments (0.00s)
+=== RUN   TestFailedFirstCatalogKeepsBootstrapAndRetriesOnSchedule
+--- PASS: TestFailedFirstCatalogKeepsBootstrapAndRetriesOnSchedule (0.00s)
+=== RUN   TestCurrentWorkersAreCapabilityDrivenAndIndependent
+=== RUN   TestCurrentWorkersAreCapabilityDrivenAndIndependent/all_scopes
+=== RUN   TestCurrentWorkersAreCapabilityDrivenAndIndependent/Binance_only
+=== RUN   TestCurrentWorkersAreCapabilityDrivenAndIndependent/Bybit_only
+--- PASS: TestCurrentWorkersAreCapabilityDrivenAndIndependent (0.01s)
+    --- PASS: TestCurrentWorkersAreCapabilityDrivenAndIndependent/all_scopes (0.01s)
+    --- PASS: TestCurrentWorkersAreCapabilityDrivenAndIndependent/Binance_only (0.00s)
+    --- PASS: TestCurrentWorkersAreCapabilityDrivenAndIndependent/Bybit_only (0.00s)
+=== RUN   TestStatisticsWorkerWaitsAfterCompletionAndStopsDuringWait
+--- PASS: TestStatisticsWorkerWaitsAfterCompletionAndStopsDuringWait (0.00s)
+=== RUN   TestTickerWorkerKeepsBackoffAcrossFailedCycles
+--- PASS: TestTickerWorkerKeepsBackoffAcrossFailedCycles (0.00s)
+=== RUN   TestExchangeInitializationUsesEnabledScopes
+=== RUN   TestExchangeInitializationUsesEnabledScopes/all_clients_enabled
+=== RUN   TestExchangeInitializationUsesEnabledScopes/only_Binance_linear_selected
+=== RUN   TestExchangeInitializationUsesEnabledScopes/Bybit_disabled
+=== RUN   TestExchangeInitializationUsesEnabledScopes/Binance_disabled
+--- PASS: TestExchangeInitializationUsesEnabledScopes (0.00s)
+    --- PASS: TestExchangeInitializationUsesEnabledScopes/all_clients_enabled (0.00s)
+    --- PASS: TestExchangeInitializationUsesEnabledScopes/only_Binance_linear_selected (0.00s)
+    --- PASS: TestExchangeInitializationUsesEnabledScopes/Bybit_disabled (0.00s)
+    --- PASS: TestExchangeInitializationUsesEnabledScopes/Binance_disabled (0.00s)
+=== RUN   TestExchangeAdmissionRejectsUnsupportedOperations
+=== RUN   TestExchangeAdmissionRejectsUnsupportedOperations/disabled_Binance_market
+=== RUN   TestExchangeAdmissionRejectsUnsupportedOperations/independent_Bybit_statistics
+--- PASS: TestExchangeAdmissionRejectsUnsupportedOperations (0.00s)
+    --- PASS: TestExchangeAdmissionRejectsUnsupportedOperations/disabled_Binance_market (0.00s)
+    --- PASS: TestExchangeAdmissionRejectsUnsupportedOperations/independent_Bybit_statistics (0.00s)
+=== RUN   TestExchangeInitializationRejectsAllExchangesDisabled
+--- PASS: TestExchangeInitializationRejectsAllExchangesDisabled (0.00s)
+=== RUN   TestDualListenerBindFailureCleansOwnedResources
+=== RUN   TestDualListenerBindFailureCleansOwnedResources/first_listener
+=== RUN   TestDualListenerBindFailureCleansOwnedResources/second_listener
+--- PASS: TestDualListenerBindFailureCleansOwnedResources (0.00s)
+    --- PASS: TestDualListenerBindFailureCleansOwnedResources/first_listener (0.00s)
+    --- PASS: TestDualListenerBindFailureCleansOwnedResources/second_listener (0.00s)
+=== RUN   TestDualListenerServeFailureStopsBothServersAndWorker
+--- PASS: TestDualListenerServeFailureStopsBothServersAndWorker (0.00s)
+=== RUN   TestDualShutdownUsesOneDeadlineForServersAndWorkers
+--- PASS: TestDualShutdownUsesOneDeadlineForServersAndWorkers (0.02s)
+=== RUN   TestGRPCCompositionServesOperationsAndMetrics
+--- PASS: TestGRPCCompositionServesOperationsAndMetrics (0.01s)
+=== RUN   TestOperationalHTTPStaysAvailableDuringSaturatedRPCAndShutdown
+--- PASS: TestOperationalHTTPStaysAvailableDuringSaturatedRPCAndShutdown (5.32s)
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/invalid_input
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/missing_symbol
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/unready_snapshot
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/canceled_caller
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/unknown_method
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/internal_error
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/upstream_error
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/request_timeout
+=== RUN   TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/panic
+--- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/invalid_input (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/missing_symbol (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/unready_snapshot (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/canceled_caller (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/unknown_method (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/internal_error (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/upstream_error (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/request_timeout (0.00s)
+    --- PASS: TestRPCExpectedFailuresStayInMetricsWithoutErrorReports/panic (0.00s)
+=== RUN   TestInstrumentWorkersKeepExchangeFailuresIndependent
+--- PASS: TestInstrumentWorkersKeepExchangeFailuresIndependent (0.00s)
+=== RUN   TestServeExposesInstrumentReadinessSeparately
+--- PASS: TestServeExposesInstrumentReadinessSeparately (0.00s)
+=== RUN   TestEnabledScopesExcludeDisabledExchanges
+--- PASS: TestEnabledScopesExcludeDisabledExchanges (0.00s)
+=== RUN   TestInstrumentProviderPublishesSelectedScope
+=== RUN   TestInstrumentProviderPublishesSelectedScope/Binance_spot
+=== RUN   TestInstrumentProviderPublishesSelectedScope/Binance_linear
+=== RUN   TestInstrumentProviderPublishesSelectedScope/Bybit_spot
+=== RUN   TestInstrumentProviderPublishesSelectedScope/Bybit_linear
+--- PASS: TestInstrumentProviderPublishesSelectedScope (0.00s)
+    --- PASS: TestInstrumentProviderPublishesSelectedScope/Binance_spot (0.00s)
+    --- PASS: TestInstrumentProviderPublishesSelectedScope/Binance_linear (0.00s)
+    --- PASS: TestInstrumentProviderPublishesSelectedScope/Bybit_spot (0.00s)
+    --- PASS: TestInstrumentProviderPublishesSelectedScope/Bybit_linear (0.00s)
+=== RUN   TestKlineCallerLimitIncludesResponseWrite
+=== RUN   TestKlineCallerLimitIncludesResponseWrite/successful_write
+=== RUN   TestKlineCallerLimitIncludesResponseWrite/failed_write
+=== RUN   TestKlineCallerLimitIncludesResponseWrite/canceled_caller
+=== RUN   TestKlineCallerLimitIncludesResponseWrite/error_response
+--- PASS: TestKlineCallerLimitIncludesResponseWrite (0.00s)
+    --- PASS: TestKlineCallerLimitIncludesResponseWrite/successful_write (0.00s)
+    --- PASS: TestKlineCallerLimitIncludesResponseWrite/failed_write (0.00s)
+    --- PASS: TestKlineCallerLimitIncludesResponseWrite/canceled_caller (0.00s)
+    --- PASS: TestKlineCallerLimitIncludesResponseWrite/error_response (0.00s)
+=== RUN   TestKlineValidationPrecedesCallerLimit
+=== RUN   TestKlineValidationPrecedesCallerLimit/reversed_range
+=== RUN   TestKlineValidationPrecedesCallerLimit/too_many_slots
+=== RUN   TestKlineValidationPrecedesCallerLimit/expired_range
+=== RUN   TestKlineValidationPrecedesCallerLimit/caller_deadline
+--- PASS: TestKlineValidationPrecedesCallerLimit (0.00s)
+    --- PASS: TestKlineValidationPrecedesCallerLimit/reversed_range (0.00s)
+    --- PASS: TestKlineValidationPrecedesCallerLimit/too_many_slots (0.00s)
+    --- PASS: TestKlineValidationPrecedesCallerLimit/expired_range (0.00s)
+    --- PASS: TestKlineValidationPrecedesCallerLimit/caller_deadline (0.00s)
+=== RUN   TestKlineColdWarmPartialHTTPThroughExchangeAdapters
+=== RUN   TestKlineColdWarmPartialHTTPThroughExchangeAdapters/binance/spot
+=== RUN   TestKlineColdWarmPartialHTTPThroughExchangeAdapters/binance/linear
+=== RUN   TestKlineColdWarmPartialHTTPThroughExchangeAdapters/bybit/spot
+=== RUN   TestKlineColdWarmPartialHTTPThroughExchangeAdapters/bybit/linear
+--- PASS: TestKlineColdWarmPartialHTTPThroughExchangeAdapters (0.08s)
+    --- PASS: TestKlineColdWarmPartialHTTPThroughExchangeAdapters/binance/spot (0.02s)
+    --- PASS: TestKlineColdWarmPartialHTTPThroughExchangeAdapters/binance/linear (0.03s)
+    --- PASS: TestKlineColdWarmPartialHTTPThroughExchangeAdapters/bybit/spot (0.01s)
+    --- PASS: TestKlineColdWarmPartialHTTPThroughExchangeAdapters/bybit/linear (0.01s)
+=== RUN   TestKlineRetryAttemptsAreCountedAcrossPages
+--- PASS: TestKlineRetryAttemptsAreCountedAcrossPages (0.00s)
+=== RUN   TestServeExposesKlinesAndCancelsOwnedFill
+--- PASS: TestServeExposesKlinesAndCancelsOwnedFill (0.00s)
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/unready_catalog
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/unknown_symbol
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/disabled_scope
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/unsupported_interval
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/unaligned_start
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/reversed_range
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/future_range
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/too_large_before_readiness
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/expired_before_readiness
+=== RUN   TestKlineHTTPValidationBeforeCandleAccess/empty_range
+--- PASS: TestKlineHTTPValidationBeforeCandleAccess (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/unready_catalog (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/unknown_symbol (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/disabled_scope (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/unsupported_interval (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/unaligned_start (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/reversed_range (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/future_range (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/too_large_before_readiness (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/expired_before_readiness (0.00s)
+    --- PASS: TestKlineHTTPValidationBeforeCandleAccess/empty_range (0.00s)
+=== RUN   TestOperationRoutesAreIndependentAndDisabledByDefault
+=== RUN   TestOperationRoutesAreIndependentAndDisabledByDefault/disabled
+=== RUN   TestOperationRoutesAreIndependentAndDisabledByDefault/prometheus
+=== RUN   TestOperationRoutesAreIndependentAndDisabledByDefault/debug
+=== RUN   TestOperationRoutesAreIndependentAndDisabledByDefault/both
+--- PASS: TestOperationRoutesAreIndependentAndDisabledByDefault (0.01s)
+    --- PASS: TestOperationRoutesAreIndependentAndDisabledByDefault/disabled (0.00s)
+    --- PASS: TestOperationRoutesAreIndependentAndDisabledByDefault/prometheus (0.00s)
+    --- PASS: TestOperationRoutesAreIndependentAndDisabledByDefault/debug (0.00s)
+    --- PASS: TestOperationRoutesAreIndependentAndDisabledByDefault/both (0.00s)
+=== RUN   TestRetentionWorkerPreservesSnapshotsAndStopsWithoutStatisticsLogs
+--- PASS: TestRetentionWorkerPreservesSnapshotsAndStopsWithoutStatisticsLogs (0.00s)
+=== RUN   TestPeriodicWaitsAfterCompletion
+--- PASS: TestPeriodicWaitsAfterCompletion (0.00s)
+=== RUN   TestWorkerPanicStopsServerWithoutLeakingValue
+--- PASS: TestWorkerPanicStopsServerWithoutLeakingValue (0.00s)
+=== RUN   TestServeFlushUsesRemainingShutdownTimeAfterWorkersStop
+--- PASS: TestServeFlushUsesRemainingShutdownTimeAfterWorkersStop (0.00s)
+=== RUN   TestExchangeCooldownDoesNotBlockReadinessOrShutdown
+--- PASS: TestExchangeCooldownDoesNotBlockReadinessOrShutdown (0.00s)
+=== RUN   TestKlinePanicReleasesAdmissionForNextFill
+--- PASS: TestKlinePanicReleasesAdmissionForNextFill (0.00s)
+=== RUN   TestKlineCountersNeedStandaloneStatsOrAnExporter
+=== RUN   TestKlineCountersNeedStandaloneStatsOrAnExporter/disabled
+=== RUN   TestKlineCountersNeedStandaloneStatsOrAnExporter/standalone
+=== RUN   TestKlineCountersNeedStandaloneStatsOrAnExporter/prometheus_only
+=== RUN   TestKlineCountersNeedStandaloneStatsOrAnExporter/debug_only
+--- PASS: TestKlineCountersNeedStandaloneStatsOrAnExporter (0.00s)
+    --- PASS: TestKlineCountersNeedStandaloneStatsOrAnExporter/disabled (0.00s)
+    --- PASS: TestKlineCountersNeedStandaloneStatsOrAnExporter/standalone (0.00s)
+    --- PASS: TestKlineCountersNeedStandaloneStatsOrAnExporter/prometheus_only (0.00s)
+    --- PASS: TestKlineCountersNeedStandaloneStatsOrAnExporter/debug_only (0.00s)
+=== RUN   TestReleaseContainerProbe
+    release_container_test.go:17: run with make docker-verify
+--- SKIP: TestReleaseContainerProbe (0.00s)
+=== RUN   TestReleaseLoad
+    release_load_test.go:41: set MDS_RELEASE_LOAD=main or broad to measure release capacity
+--- SKIP: TestReleaseLoad (0.00s)
+=== RUN   TestServeBecomesReadyAfterLocalInitialization
+--- PASS: TestServeBecomesReadyAfterLocalInitialization (0.00s)
+=== RUN   TestServeCancelsAndWaitsForWorkers
+--- PASS: TestServeCancelsAndWaitsForWorkers (0.00s)
+=== RUN   TestWorkerFailureStopsServer
+--- PASS: TestWorkerFailureStopsServer (0.00s)
+=== RUN   TestShutdownStopsWaitingAtTheDeadline
+--- PASS: TestShutdownStopsWaitingAtTheDeadline (0.00s)
+=== RUN   TestRunRejectsInvalidConfigBeforeStartingWorkers
+--- PASS: TestRunRejectsInvalidConfigBeforeStartingWorkers (0.00s)
+=== RUN   TestRunRejectsCanceledContext
+--- PASS: TestRunRejectsCanceledContext (0.00s)
+=== RUN   TestServeReturnsListenerFailure
+--- PASS: TestServeReturnsListenerFailure (0.00s)
+=== RUN   TestWorkerShutdownFailureIsPreserved
+--- PASS: TestWorkerShutdownFailureIsPreserved (0.00s)
+=== RUN   TestShutdownClosesAnIdleConnection
+--- PASS: TestShutdownClosesAnIdleConnection (0.00s)
+=== RUN   TestLocalStorageStartsWithUnreadySnapshots
+--- PASS: TestLocalStorageStartsWithUnreadySnapshots (0.00s)
+=== RUN   TestLocalStorageSnapshotReadinessIsIndependent
+--- PASS: TestLocalStorageSnapshotReadinessIsIndependent (0.00s)
+=== RUN   TestLocalStorageUsesConfiguredHistoryAndClock
+--- PASS: TestLocalStorageUsesConfiguredHistoryAndClock (0.00s)
+=== RUN   TestLocalStorageRejectsInvalidHistory
+--- PASS: TestLocalStorageRejectsInvalidHistory (0.00s)
+PASS
+ok  	market-data/internal/bootstrap	7.098s
+=== RUN   TestAdmissionMetricsBoundDiscoveredWindowsWithoutDuplicateSeries
+--- PASS: TestAdmissionMetricsBoundDiscoveredWindowsWithoutDuplicateSeries (0.00s)
+=== RUN   TestAdmissionDebugAndMetricsUseSameControllerState
+--- PASS: TestAdmissionDebugAndMetricsUseSameControllerState (0.01s)
+=== RUN   TestOversizedAttemptHasOneExchangeErrorAndSeparateCounter
+--- PASS: TestOversizedAttemptHasOneExchangeErrorAndSeparateCounter (0.00s)
+=== RUN   TestCurrentMetricsTrackIndependentPublications
+--- PASS: TestCurrentMetricsTrackIndependentPublications (0.00s)
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/unready_snapshot
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/overload
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/cooldown
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/upstream
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/normalization
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/attempt_limit
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/incomplete
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/deadline
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/application_timeout
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/wrapped_cancellation
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/joined_cancellation
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/canceled_HTTP_request
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/storage
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/invalid_filter
+=== RUN   TestSentryHTTPPreservesApplicationFailureCodes/success
+--- PASS: TestSentryHTTPPreservesApplicationFailureCodes (0.29s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/unready_snapshot (0.03s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/overload (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/cooldown (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/upstream (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/normalization (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/attempt_limit (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/incomplete (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/deadline (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/application_timeout (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/wrapped_cancellation (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/joined_cancellation (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/canceled_HTTP_request (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/storage (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/invalid_filter (0.02s)
+    --- PASS: TestSentryHTTPPreservesApplicationFailureCodes/success (0.02s)
+=== RUN   TestSentryHTTPUnclassifiedFailureRetainsStatus
+--- PASS: TestSentryHTTPUnclassifiedFailureRetainsStatus (0.02s)
+=== RUN   TestInstrumentMetricsFollowPublication
+--- PASS: TestInstrumentMetricsFollowPublication (0.00s)
+=== RUN   TestEmptySnapshotUpdatesMetrics
+--- PASS: TestEmptySnapshotUpdatesMetrics (0.00s)
+=== RUN   TestKlineStatisticsCountBehaviorByScope
+--- PASS: TestKlineStatisticsCountBehaviorByScope (0.00s)
+=== RUN   TestRPCObservationsTrackLifetimeAndBoundLabels
+--- PASS: TestRPCObservationsTrackLifetimeAndBoundLabels (0.00s)
+=== RUN   TestNativeRPCFailuresReachObserverAndExporter
+=== RUN   TestNativeRPCFailuresReachObserverAndExporter/unknown_service
+=== RUN   TestNativeRPCFailuresReachObserverAndExporter/unknown_method
+=== RUN   TestNativeRPCFailuresReachObserverAndExporter/malformed_path
+--- PASS: TestNativeRPCFailuresReachObserverAndExporter (0.00s)
+    --- PASS: TestNativeRPCFailuresReachObserverAndExporter/unknown_service (0.00s)
+    --- PASS: TestNativeRPCFailuresReachObserverAndExporter/unknown_method (0.00s)
+    --- PASS: TestNativeRPCFailuresReachObserverAndExporter/malformed_path (0.00s)
+=== RUN   TestNativeHTTPFailuresReachObserverAndExporter
+=== RUN   TestNativeHTTPFailuresReachObserverAndExporter/malformed_timeout
+=== RUN   TestNativeHTTPFailuresReachObserverAndExporter/malformed_binary_metadata
+=== RUN   TestNativeHTTPFailuresReachObserverAndExporter/wrong_content_type
+--- PASS: TestNativeHTTPFailuresReachObserverAndExporter (0.00s)
+    --- PASS: TestNativeHTTPFailuresReachObserverAndExporter/malformed_timeout (0.00s)
+    --- PASS: TestNativeHTTPFailuresReachObserverAndExporter/malformed_binary_metadata (0.00s)
+    --- PASS: TestNativeHTTPFailuresReachObserverAndExporter/wrong_content_type (0.00s)
+=== RUN   TestSentryReportsErrorsPanicAndTracesWithoutPayloads
+--- PASS: TestSentryReportsErrorsPanicAndTracesWithoutPayloads (0.02s)
+=== RUN   TestSentryFlushHonorsDeadline
+--- PASS: TestSentryFlushHonorsDeadline (0.02s)
+=== RUN   TestDisabledSentryDoesNotCreateClient
+--- PASS: TestDisabledSentryDoesNotCreateClient (0.00s)
+=== RUN   TestSentryZeroTraceRateKeepsErrors
+--- PASS: TestSentryZeroTraceRateKeepsErrors (0.02s)
+=== RUN   TestStatisticsExportsIndependentBybitOutcomes
+--- PASS: TestStatisticsExportsIndependentBybitOutcomes (0.00s)
+=== RUN   TestExchangeStatisticsAreSafeDuringAggregateReads
+--- PASS: TestExchangeStatisticsAreSafeDuringAggregateReads (0.00s)
+=== RUN   TestStatisticsStorageFailureDoesNotReturnPartialMetrics
+=== RUN   TestStatisticsStorageFailureDoesNotReturnPartialMetrics/debug
+=== RUN   TestStatisticsStorageFailureDoesNotReturnPartialMetrics/prometheus
+--- PASS: TestStatisticsStorageFailureDoesNotReturnPartialMetrics (0.00s)
+    --- PASS: TestStatisticsStorageFailureDoesNotReturnPartialMetrics/debug (0.00s)
+    --- PASS: TestStatisticsStorageFailureDoesNotReturnPartialMetrics/prometheus (0.00s)
+PASS
+ok  	market-data/internal/infrastructure/observability	2.268s

@@ -2,7 +2,7 @@
 
 A Go REST service for Binance and Bybit spot and linear market data. It provides instruments, current tickers, 24-hour market statistics, and cached candles through one API. Binance linear means USDⓈ-M.
 
-**Status:** the current HTTP implementation was verified for the agreed workload; its results are recorded in the [release audit](docs/release-verification-v1.md). The first release is pending the [gRPC and Protobuf migration](docs/grpc-migration-specification.md): all market-data APIs move to gRPC, with a separate operational HTTP listener and no legacy data API. The migration is specified, not implemented. The commands below describe the current implementation. Deployment remains an explicit operator action.
+**Status:** the current HTTP implementation was verified for the agreed workload; its results are recorded in the [release audit](docs/release-verification-v1.md). The first release is pending the [gRPC and Protobuf migration](docs/grpc-migration-specification.md): all market-data APIs move to gRPC, with a separate operational HTTP listener and no legacy data API. The contract and clients are complete; the replacement transport and lifecycle are complete after independent review. Production cutover is pending. The commands below describe the current implementation. Deployment remains an explicit operator action.
 
 ## Run locally
 

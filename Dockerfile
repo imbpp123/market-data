@@ -2,9 +2,11 @@ FROM golang:1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd2
 WORKDIR /src
 ENV GOTOOLCHAIN=local CGO_ENABLED=0
 COPY go.mod go.sum ./
+COPY api/go/go.mod api/go/go.sum ./api/go/
 RUN go mod download && go mod verify
 COPY cmd ./cmd
 COPY internal ./internal
+COPY api/go/marketdata ./api/go/marketdata
 RUN go build -trimpath -buildvcs=false -ldflags="-s -w" -o /out/market-data-service ./cmd/market-data-service
 
 FROM scratch

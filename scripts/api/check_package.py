@@ -40,8 +40,16 @@ def main():
         example_path = work / "go-example"
         run(["go", "build", "-o", server_path, "./cmd/contract-fixture"], cwd=ROOT / "api/go")
         run(["go", "build", "-o", example_path, "./examples/client"], cwd=ROOT / "api/go")
+        application_path = work / "application-fixture"
+        application_check = work / "application-check"
+        run(["go", "build", "-o", application_path, "./scripts/api/grpcfixture"], cwd=ROOT)
+        run(["go", "build", "-o", application_check, "./cmd/application-check"], cwd=ROOT / "api/go")
+        application = subprocess.Popen([application_path], stdout=subprocess.PIPE, text=True)
         server = subprocess.Popen([server_path], stdout=subprocess.PIPE, text=True)
         try:
+            application_address = application.stdout.readline().strip()
+            if not application_address:
+                raise RuntimeError("Application fixture failed to start")
             address = server.stdout.readline().strip()
             if not address:
                 raise RuntimeError("Contract fixture failed to start")
@@ -51,7 +59,9 @@ def main():
             (clean_bin / "git").symlink_to(shutil.which("git"))
             test_dir = work / "consumer"
             test_dir.mkdir()
-            for source in [ROOT / "scripts/api/test_contract.py", *sorted((ROOT / "api/examples").glob("*.py"))]:
+            with (test_dir / "application-go.json").open("w") as output:
+                run([application_check, application_address], stdout=output)
+            for source in [ROOT / "scripts/api/test_contract.py", ROOT / "scripts/api/test_application.py", *sorted((ROOT / "api/examples").glob("*.py"))]:
                 shutil.copyfile(source, test_dir / source.name)
             versions = os.environ.get("API_PYTHONS", "python3.13 python3.14").split()
             for version in versions:
@@ -62,7 +72,7 @@ def main():
                     environment = work / f"{version}-{mode}"
                     run([python, "-m", "venv", environment])
                     executable = environment / "bin/python"
-                    env = dict(os.environ, PATH=str(clean_bin), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", API_FIXTURE_ADDRESS=address)
+                    env = dict(os.environ, PATH=str(clean_bin), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", API_FIXTURE_ADDRESS=address, API_APPLICATION_ADDRESS=application_address)
                     env.pop("PYTHONPATH", None)
                     target = str(wheel) if mode == "wheel" else f"market-data-api @ git+{project.as_uri()}@{revision}#subdirectory=api/python"
                     run([executable, "-m", "pip", "install", "--disable-pip-version-check", target], cwd=test_dir, env=env)
@@ -73,11 +83,14 @@ def main():
                         if direct["vcs_info"]["commit_id"] != revision or direct["subdirectory"] != "api/python":
                             raise RuntimeError("Installed Git identity differs")
                     run([executable, "test_contract.py", "-v"], cwd=test_dir, env=env)
+                    run([executable, "test_application.py", "-v"], cwd=test_dir, env=env)
                     for example in ("client.py", "client_async.py"):
                         run([executable, example, address], cwd=test_dir, env=env)
         finally:
             server.terminate()
             server.wait(timeout=10)
+            application.terminate()
+            application.wait(timeout=10)
         print("Wheel and pinned local Git installations passed:", ", ".join(versions))
 
 

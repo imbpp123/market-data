@@ -1,0 +1,14 @@
+Base revision: 23521fa186fee05bcf07a216e591d4891413b585
+Working directory: /tmp/market-data-phase2-base-60so2uu0
+Command: go test -race ./internal/bootstrap -run TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots -count=20
+Exit code: 1
+
+--- FAIL: TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots (0.01s)
+    --- FAIL: TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots/real_cooldown_outlasts_budget (0.00s)
+        budget_rejection_test.go:144:
+            Error Trace: /private/tmp/market-data-phase2-base-60so2uu0/internal/bootstrap/budget_rejection_test.go:144
+            Error: "0" is not positive
+            Test: TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots/real_cooldown_outlasts_budget
+FAIL
+FAIL market-data/internal/bootstrap 0.578s
+FAIL
