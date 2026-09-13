@@ -271,6 +271,29 @@ func TestUsageHeadersOnlyTightenTrustedEndpoints(t *testing.T) {
 	}
 }
 
+func TestSpotCatalogResponseUpdatesLimitsAndChargesOnce(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		body := `{"rateLimits":[{"rateLimitType":"REQUEST_WEIGHT","interval":"MINUTE","intervalNum":1,"limit":2000},{"rateLimitType":"RAW_REQUESTS","interval":"MINUTE","intervalNum":5,"limit":300000},{"rateLimitType":"ORDERS","interval":"SECOND","intervalNum":10,"limit":100}],"symbols":[{"symbol":"BTCUSDT","baseAsset":"BTC","quoteAsset":"USDT","status":"TRADING","filters":[{"filterType":"PRICE_FILTER","tickSize":"0.01"},{"filterType":"LOT_SIZE","stepSize":"0.00001"}]}]}`
+		base := &recorder{handle: func(*http.Request) (*http.Response, error) {
+			return response(http.StatusOK, nil, body), nil
+		}}
+		c, transport := setup(t, config.Defaults(), BinanceSpot, base)
+		ctx := begin(t, c, BinanceSpot, Instruments)
+
+		got, err := send(ctx, transport, "/api/v3/exchangeInfo?showPermissionSets=false")
+
+		require.NoError(t, err)
+		assert.Equal(t, body, string(got))
+		assert.Len(t, base.sent(), 1)
+		assert.Equal(t, 1, c.Attempts(ctx))
+		state := c.scopes[BinanceSpot]
+		assert.Equal(t, 1600, state.windows["request_weight_1m"].limit)
+		require.Len(t, state.history, 1)
+		assert.Equal(t, 20, state.history[0].cost.weight)
+		assert.Equal(t, Instruments, state.history[0].cost.operation)
+	})
+}
+
 func TestCatalogUpdatesKeepUsageAndRejectStaleResults(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		recorder := &recorder{}

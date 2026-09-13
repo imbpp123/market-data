@@ -1,6 +1,6 @@
 # Binance request-limit rework
 
-September 13, 2026. Main design and all five phase plans approved by the user. Implementation has not started. Proposed details are marked below.
+September 13, 2026. Main design and all five phase plans approved by the user. Phase 1 is complete; see its [implementation report](request-budget-rework/01-exchange-info.md#implementation-report). Phases 2–5 have not started. Proposed details are marked below.
 
 ## Summary / Overview
 
@@ -16,7 +16,7 @@ Today, the limiter keeps local request history, gives operations fixed shares, a
 
 A successful Binance response can report more usage than our local counter. The service then pauses the scope for a full window, even when usage is low. This can happen after restart, when local history is empty. A newly found window with too little history can cause the same pause.
 
-There is also a separate loading problem: the reported full Spot exchangeInfo response exceeds the current 16 MiB decoded-body limit. This prevents instrument and limit loading. Fixing this size issue does not fix the accounting rule.
+There was also a separate loading problem: the full Spot exchangeInfo response exceeded the current 16 MiB decoded-body limit. Phase 1 resolved it by sending `showPermissionSets=false`, with a measured complete response of 6,703,095 bytes. Fixing this size issue does not fix the accounting rule.
 
 ## Goals
 
@@ -146,13 +146,13 @@ Other traffic on the same IP, unknown usage after restart, delayed charging, and
 
 The following engineering details still need verification. They do not change the agreed threshold behavior:
 
-- Is `showPermissionSets=false` enough to fit the complete Spot response? If not, which measured body limit or bounded decoder should be used?
+- Phase 1 confirmed that `showPermissionSets=false` fits the measured complete Spot response within 16 MiB. Recheck if the catalog grows beyond that bound.
 - Which response timing proves that a local request is included in a counter? Define and test the conservative fallback for unclear cases.
 - Confirm final configuration field names, validation, and handling of legacy overrides before implementation.
 
 ## Earlier requirements replaced
 
-The current code and historical release evidence remain unchanged until implementation.
+Phase 1 changes only Spot catalog loading. The current limiter rules and historical release evidence remain unchanged until later phases are implemented.
 
 - [Implementation contract](implementation-contract-v1.md), “Bootstrap, discovered limits, and cooldown”: replace discrepancy/new-window pauses, malformed-catalog blocking and permanent bootstrap caps with the rules above.
 - [Specification](technical-specification-v1.md), sections 32–33: replace Binance's hard common 80% budget and budget waiting with a configurable stop line, permitted crossing and immediate rejection. Keep strict operation caps.

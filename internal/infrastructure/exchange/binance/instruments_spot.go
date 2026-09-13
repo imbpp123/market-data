@@ -3,6 +3,7 @@ package binance
 import (
 	"context"
 	"log/slog"
+	"net/url"
 
 	"market-data/internal/application"
 	"market-data/internal/application/instrument"
@@ -26,7 +27,7 @@ func (*spotInstrumentProvider) Scope() application.Scope {
 }
 
 func (p *spotInstrumentProvider) GetInstruments(ctx context.Context) ([]domain.Instrument, error) {
-	sources, err := fetchInstruments(ctx, p.client, "/api/v3/exchangeInfo")
+	sources, err := fetchInstruments(ctx, p.client, "/api/v3/exchangeInfo", url.Values{"showPermissionSets": {"false"}})
 	if err != nil {
 		return nil, err
 	}

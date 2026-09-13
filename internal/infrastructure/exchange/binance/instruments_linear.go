@@ -28,7 +28,7 @@ func (*linearInstrumentProvider) Scope() application.Scope {
 }
 
 func (p *linearInstrumentProvider) GetInstruments(ctx context.Context) ([]domain.Instrument, error) {
-	sources, err := fetchInstruments(ctx, p.client, "/fapi/v1/exchangeInfo")
+	sources, err := fetchInstruments(ctx, p.client, "/fapi/v1/exchangeInfo", nil)
 	if err != nil {
 		return nil, err
 	}

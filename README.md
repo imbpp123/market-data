@@ -116,4 +116,4 @@ There is no trading execution, order/account/position/balance API, strategy calc
 
 Further documentation: [development guide](docs/development.md), [technical specification](docs/technical-specification-v1.md), [decision register](docs/specification-decisions-v1.md), and [development rules](AGENTS.md).
 
-Proposed change under review: [request budget accounting rework](docs/request-budget-rework-specification.md). It records the revised limit-discovery and usage-accounting design; it does not change the implemented v1 behavior.
+Ongoing change: [request budget accounting rework](docs/request-budget-rework-specification.md). [Phase 1](docs/request-budget-rework/01-exchange-info.md#implementation-report) is complete: Spot exchangeInfo omits unused permission sets and keeps the full catalog within the existing 16 MiB decoded-body bound in the measured response. Limit-discovery and usage-accounting changes in phases 2–5 have not started.

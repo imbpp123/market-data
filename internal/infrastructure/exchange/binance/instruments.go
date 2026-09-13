@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/url"
 
 	"market-data/internal/application"
 	"market-data/internal/domain"
@@ -29,12 +30,12 @@ type instrumentFilter struct {
 	Notional    string `json:"notional"`
 }
 
-func fetchInstruments(ctx context.Context, client Client, path string) ([]instrumentRow, error) {
+func fetchInstruments(ctx context.Context, client Client, path string, parameters url.Values) ([]instrumentRow, error) {
 	if client == nil {
 		return nil, application.ErrUnsupportedOperation
 	}
 
-	response, err := client.Fetch(ctx, path, nil)
+	response, err := client.Fetch(ctx, path, parameters)
 	if err != nil {
 		return nil, err
 	}
