@@ -1,6 +1,6 @@
 # Phase 5. Add diagnostics and verify the complete change
 
-Status: awaiting approval. Depends on phase 4.
+Status: approved by the user. Implementation has not started. Depends on phase 4.
 
 See the [phase list](README.md) and [main specification](../request-budget-rework-specification.md).
 

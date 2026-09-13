@@ -1,6 +1,6 @@
 # Binance request-limit rework
 
-September 13, 2026. Main design and phase 1 plan approved. Phases 2–5 await user approval; implementation has not started. Proposed details are marked below.
+September 13, 2026. Main design and all five phase plans approved by the user. Implementation has not started. Proposed details are marked below.
 
 ## Summary / Overview
 
@@ -112,7 +112,7 @@ Keep threshold rejection, exhausted operation share, exchange cooldown, refresh 
 
 ## Migration / Rollout Plan
 
-The [phase plans](request-budget-rework/README.md) describe the work, expected results, and test cases. Each phase waits for user approval before implementation.
+The [phase plans](request-budget-rework/README.md) describe the work, expected results, and test cases. All five phase plans are approved by the user; implementation has not started.
 
 1. [Read exchangeInfo](request-budget-rework/01-exchange-info.md): fix the separate response-size issue and check complete catalogs.
 2. [Limits and settings](request-budget-rework/02-limits-and-settings.md): add settings, user caps, and catalog updates.

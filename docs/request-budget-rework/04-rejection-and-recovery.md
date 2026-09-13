@@ -1,6 +1,6 @@
 # Phase 4. Reject after crossing and resume by time
 
-Status: awaiting approval. Depends on phase 3.
+Status: approved by the user. Implementation has not started. Depends on phase 3.
 
 See the [phase list](README.md) and [main specification](../request-budget-rework-specification.md).
 

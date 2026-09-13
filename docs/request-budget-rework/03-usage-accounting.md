@@ -1,6 +1,6 @@
 # Phase 3. Count local requests and exchange observations
 
-Status: awaiting approval. Depends on phase 2.
+Status: approved by the user. Implementation has not started. Depends on phase 2.
 
 See the [phase list](README.md) and [main specification](../request-budget-rework-specification.md). This phase prepares the usage state used by admission in phase 4.
 

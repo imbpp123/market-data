@@ -1,16 +1,16 @@
 # Binance request-limit rework: phase plans
 
-Status: phase 1 is approved by the user. Phases 2–5 await approval. No phase has started.
+Status: all five phase plans are approved by the user. No phase has started.
 
 The [main specification](../request-budget-rework-specification.md) defines the behavior. These plans explain the work and tests. They do not add new agreed requirements. Proposed details are marked in each phase.
 
 | Phase | Work | Expected result | Status |
 | --- | --- | --- | --- |
 | [1. Read exchangeInfo](01-exchange-info.md) | Reduce the Spot response and check body limits. | Complete catalogs load within memory bounds. | Approved; not started |
-| [2. Limits and settings](02-limits-and-settings.md) | Separate starting limits from user caps and add catalog refresh. | Current limits and configuration produce the right stop lines. | Awaiting approval |
-| [3. Usage accounting](03-usage-accounting.md) | Combine exchange counters with local requests. | Parallel and failed requests keep correct local charges. | Awaiting approval |
-| [4. Rejection and recovery](04-rejection-and-recovery.md) | Apply immediate rejection and resume by time. | Callers fail quickly; workers resume without polling. | Awaiting approval |
-| [5. Diagnostics and final checks](05-diagnostics-and-validation.md) | Add diagnostics, test complete flows, and update documents. | The change has clear evidence and migration instructions. | Awaiting approval |
+| [2. Limits and settings](02-limits-and-settings.md) | Separate starting limits from user caps and add catalog refresh. | Current limits and configuration produce the right stop lines. | Approved; not started |
+| [3. Usage accounting](03-usage-accounting.md) | Combine exchange counters with local requests. | Parallel and failed requests keep correct local charges. | Approved; not started |
+| [4. Rejection and recovery](04-rejection-and-recovery.md) | Apply immediate rejection and resume by time. | Callers fail quickly; workers resume without polling. | Approved; not started |
+| [5. Diagnostics and final checks](05-diagnostics-and-validation.md) | Add diagnostics, test complete flows, and update documents. | The change has clear evidence and migration instructions. | Approved; not started |
 
 ## How we will work
 

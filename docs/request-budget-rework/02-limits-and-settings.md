@@ -1,6 +1,6 @@
 # Phase 2. Load current limits and apply settings
 
-Status: awaiting approval. Depends on phase 1.
+Status: approved by the user. Implementation has not started. Depends on phase 1.
 
 See the [phase list](README.md) and [main specification](../request-budget-rework-specification.md). This phase prepares limit data and refresh scheduling. Phase 4 changes request rejection.
 
