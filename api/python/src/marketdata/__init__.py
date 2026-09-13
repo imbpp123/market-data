@@ -1,0 +1,1 @@
+"""Generated market data API."""

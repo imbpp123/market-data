@@ -1,19 +1,19 @@
 # gRPC migration: execution phases
 
-September 13, 2026. The user approved the [main specification](../grpc-migration-specification.md), including Python installation from this repository. These execution plans are prepared for review. No phase is implemented yet.
+September 13, 2026. The user approved the [main specification](../grpc-migration-specification.md), including Python installation from this repository. Phase 1 is complete after independent review and correction of one finding. Phases 2–4 are planned.
 
 The specification owns the requirements. These files explain implementation order, affected areas, test cases, and completion evidence. They do not add streaming, an HTTP compatibility period, or a separate client repository.
 
 | Phase | Work | Result to review | Dependency | Status |
 | --- | --- | --- | --- | --- |
-| [1. Contract and clients](01-contract-and-clients.md) | Protobuf schema, generated Go/Python packages, Git installation, compatibility checks, HTTP baseline | Installable client packages and measured contract sizes | None | Planned |
+| [1. Contract and clients](01-contract-and-clients.md) | Protobuf schema, generated Go/Python packages, Git installation, compatibility checks, HTTP baseline | Installable client packages and measured contract sizes | None | Complete; independently reviewed |
 | [2. Transport and lifecycle](02-transport-and-lifecycle.md) | Four RPC handlers, errors, bounds, send ownership, telemetry, two-server lifecycle | Real local gRPC calls preserve application behavior and release resources | Phase 1 | Planned |
 | [3. HTTP removal and operational cutover](03-cutover-and-operations.md) | Switch startup, replace config, remove HTTP data handlers, update containers and CI | The executable serves data only through gRPC and operations through HTTP | Phase 2 | Planned |
 | [4. Acceptance and measurements](04-validation-and-measurements.md) | Cross-language acceptance, combined upstream behavior, load and traffic comparison, final documentation | A reproducible verification report and explicit release readiness decision | Phase 3 and completed request-budget rework | Planned |
 
 ## How to execute
 
-Work in order. Keep each phase's implementation and tests together. Start implementation in a later task; this change creates plans only. Read the current Git state and applicable instructions again before each phase, since the request-budget work is changing some of the same files.
+Work in order. Keep each phase's implementation and tests together. Phase 1 prepares the contract and clients; continue to later implementation only after its review. Read the current Git state and applicable instructions again before each phase, since the request-budget work is changing some of the same files.
 
 Phases 1–2 prepare and test the replacement. Phase 2 exercises the new composition in local test servers; the production entry point switches once in phase 3. Do not introduce a production mode with both data APIs. These phases are not separate releases, and no phase publishes packages, tags, images, or deployments as part of this plan.
 

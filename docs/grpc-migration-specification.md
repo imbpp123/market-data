@@ -1,6 +1,6 @@
 # gRPC and Protobuf API migration
 
-September 13, 2026. The user approved this specification, including Python installation from this repository. [Execution phase plans](grpc-migration/README.md) are prepared for review; implementation has not started.
+September 13, 2026. The user approved this specification, including Python installation from this repository. [Phase 1](grpc-migration/01-contract-and-clients.md) is complete after independent review and correction of one finding. Generated clients and the HTTP baseline are available; production transport is still HTTP. Phases 2–4 are not implemented.
 
 The user confirmed full replacement of the market-data HTTP API with gRPC and Protobuf. HTTP remains only for operations on a separate listener. There are no existing clients or published first version, so no compatibility period is needed. Python client code must be generated and kept in this repository; consuming projects install the library from this repository. Ports, schema layout, limits, and tooling below are engineering defaults adopted with this design. The stated implementation verification gates still apply.
 
@@ -16,7 +16,7 @@ The current implementation uses HTTP/JSON. Application readers, the candle servi
 
 The agreed workload is 3–4 clients, up to 50 symbols, and the history windows in [specification section 1](technical-specification-v1.md#1-service-goals). The process memory limit remains 1,000,000,000 bytes. The [previous release audit](release-verification-v1.md) is evidence for the HTTP implementation, not acceptance of this migration. Its latency measurements call HTTP handlers in process; they do not measure a network path.
 
-The [Binance request-limit rework](request-budget-rework-specification.md) is a separate change in progress. Preserve its agreed behavior and current work. Changing the client protocol does not change exchange protocols, budgets, refresh schedules, storage, or retention.
+The Binance request-limit rework is complete. Preserve the current [admission rules](implementation-contract-v1.md#bootstrap-discovered-limits-and-cooldown). Changing the client protocol does not change exchange protocols, budgets, refresh schedules, storage, or retention.
 
 ## Problem Statement
 
@@ -118,7 +118,7 @@ market-data-api @ git+https://github.com/imbpp123/market-data.git@COMMIT_SHA#sub
 
 Consumers import `market_data_pb2` and `market_data_pb2_grpc` from `marketdata.v1`. The library provides messages and a stub; callers still create a channel to the running service's gRPC address and set their deadline. For a private repository, use the consumer's existing Git authentication or SSH access; do not put credentials in dependency files.
 
-Extend `make check-api` with an installation from a local Git URL pinned to a test commit and `#subdirectory=api/python`. Run outside the source checkout in a clean environment, then import the installed package and call a local Go test server. This checks the same package selection and VCS installation path without GitHub access or credentials. Also inspect the built wheel for generated modules and type files. No client package exists yet; the URL above is the target installation contract, not a working installation claim.
+Extend `make check-api` with an installation from a local Git URL pinned to a test commit and `#subdirectory=api/python`. Run outside the source checkout in a clean environment, then import the installed package and call a local Go test server. This checks the same package selection and VCS installation path without GitHub access or credentials. Also inspect the built wheel for generated modules and type files. The local client package is implemented and verified in phase 1. The URL above still needs a real project commit containing it; this phase creates no project commit or tag.
 
 ## Alternatives Considered
 

@@ -21,8 +21,8 @@ These anchors are an inference from consistent examples across both symbols and 
 | [exchange-limits.json](exchange-limits.json) | Live Binance Spot and USDⓈ-M exchangeInfo rateLimits excerpts, source URLs, capture times, and full-response checksums. ORDERS limits are not service budgets. |
 | [binance-spot-full-statistics.json](binance-spot-full-statistics.json) | Successful public type=FULL bulk statistics request, 3,701-row count, required-field checks, checksum, and excerpt. The full response is not stored. |
 | [binance-funding-info.json](../../../testdata/exchange/binance-funding-info.json) | Full 782-record fundingInfo response and selected exchangeInfo metadata; expected explicit 1/4/8-hour values converted to seconds and missing-symbol null behavior. |
-| [funding-failure-cases.json](funding-failure-cases.json) | Synthetic HTTP failure, invalid interval, and successful empty cases. These are not live failures. |
-| [go-toolchain.json](go-toolchain.json) | Official release catalog excerpt confirming Go 1.27.1 availability, published archive checksums, and separately observed local Go 1.26.0. No downloaded archive or executed pinned build is claimed. |
+
+Synthetic funding failure cases are covered by the [adapter tests](../../../internal/infrastructure/exchange/binance/instruments_test.go). Executed Go toolchain checks are recorded in the [release audit](../../release-verification-v1.md).
 
 The [HTTP examples](../../examples/http-contract-v1.json) are synthetic contract cases, not live service responses.
 

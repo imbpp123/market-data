@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market-data-api"
+version = "0.1.0"
+description = "Generated marketdata.v1 Protobuf messages and gRPC clients"
+readme = "README.md"
+requires-python = ">=3.13,<3.15"
+dependencies = [
+  "protobuf==6.33.5",
+  "grpcio==1.76.0",
+  "grpcio-status==1.76.0",
+  "googleapis-common-protos==1.70.0",
+  "typing-extensions==4.15.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+marketdata = ["py.typed", "v1/*.pyi"]

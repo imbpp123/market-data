@@ -1,6 +1,6 @@
 # v1 implementation decisions
 
-Status: engineering decisions adopted during phase 01, September 11, 2026. Binance admission policies were replaced by the approved [request-budget rework](request-budget-rework-specification.md) on September 13, 2026. These complete the open implementation details in the [specification](technical-specification-v1.md). User-confirmed requirements are identified in the [decision register](specification-decisions-v1.md); the additional defaults below are engineering choices within that scope. This document does not claim that the service is implemented.
+Current implementation contract. Initial decisions were adopted on September 11, 2026; Binance admission rules were updated on September 13, 2026. This document fills in the engineering details of the [specification](technical-specification-v1.md). The [decision register](specification-decisions-v1.md) identifies user requirements and engineering defaults. See the [verification record](release-verification-v1.md) for completed checks and their limits.
 
 The [complete configuration example](examples/config-v1.yaml) is the normative field/default inventory for phase 02. This contract takes precedence over superseded illustrative configuration fragments. All durations are elapsed Go-style duration strings (ns, us, ms, s, m, h); days are no longer needed by the history policy. Markets and intervals use canonical strings. Market data remains in memory.
 

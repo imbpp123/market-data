@@ -41,6 +41,14 @@ jobs:
           go-version: '1.27.1'
           cache: true
 
+      - name: Set up supported Python versions
+        uses: actions/setup-python@v6
+        with:
+          python-version: |
+            3.13
+            3.14
+      - name: Verify generated API and installed clients
+        run: make check-api
       - name: Test
         run: make check
 

@@ -1854,7 +1854,7 @@ Tests control event order and do not depend on random delays:
 
 ### Purpose
 
-This mechanism has two jobs: apply the local exchange-admission rules and prevent the continuous ticker collector from spending the budget assigned to instruments, klines, and independent market_stats loading. The approved [Binance request-budget rework](request-budget-rework-specification.md) replaces the earlier hard common-budget policy; Bybit is unchanged.
+This mechanism has two jobs: apply the local exchange-admission rules and prevent the continuous ticker collector from spending the budget assigned to instruments, klines, and independent market_stats loading. The Binance rules below replace the earlier hard common-budget policy as agreed on September 13, 2026; Bybit is unchanged.
 
 The exchange limits actual HTTP requests, not calls to our API or provider methods. One fetch plan may create several requests. One Binance ticker cycle also has several requests. Each request needs separate admission. Reading ready data from the repository does not use the exchange budget.
 

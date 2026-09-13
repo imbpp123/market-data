@@ -108,3 +108,39 @@ The broad profile requests 50 symbols in every supported interval: 16 Binance Sp
 3. Respect the measured workload and 1 GB memory envelope. Broader interval demand failed capacity verification. No global count limit protects against arbitrary series requests in v1.
 
 For startup, configuration precedence, diagnosis, shutdown, and unsupported features, use the [operating guide](../README.md).
+
+## Binance request-limit validation
+
+Recorded on September 13, 2026 after the completed Binance rework. The whole-service and container measurements above predate this change. They are not measurements of the combined final code. The [operating contract](implementation-contract-v1.md#bootstrap-discovered-limits-and-cooldown) defines current admission behavior. No deployment was performed.
+
+`make check` and `make vet` passed, including configuration, lint, unit/integration tests, and race tests. Independent review found no confirmed defects and repeated race checks for exchange, observability, application, and bootstrap packages. Tests cover parallel threshold crossing, cache reads during rejection, quiet worker recovery, catalog response order, and real cooldowns. Complete-catalog and body-bound tests passed for plain, gzip, deflate, and Brotli responses, including overflow and truncated input. These are recorded results, not a new run during documentation cleanup.
+
+### Saved catalog replay
+
+The saved Spot exchangeInfo response with `showPermissionSets=false` contains 6,703,095 decoded bytes with 3,698 symbols. SHA-256 is `3a3e8a5c5598b5f0ebf42b7781239f87bfed4926e7397dca7f3368ba2801b7f5`, matching the original report. Replayed on macOS arm64, Apple M1 Pro, Go 1.27.1, default 16 MiB decoded-body bound:
+
+```sh
+go test -c -o /tmp/market-data-binance-replay.test ./internal/infrastructure/exchange/binance
+MDS_SPOT_EXCHANGE_INFO_FILE=/tmp/market-data-spot-reduced.json \
+  /usr/bin/time -l /tmp/market-data-binance-replay.test \
+  -test.run '^$' -test.bench '^BenchmarkSpotExchangeInfo$' \
+  -test.benchtime 5x -test.benchmem
+```
+
+| Measurement | Result |
+| --- | --- |
+| Complete load and publication | 82,161,525 ns/op |
+| Allocated bytes per load | 62,705,982 |
+| Allocations per load | 213,991 |
+| Maximum process RSS | 72,761,344 bytes |
+| Peak memory footprint | 60,801,672 bytes |
+
+All five timed loads passed. The benchmark includes real admitted transport, SDK parsing, normalization, and snapshot publication. Fixture loading/server setup are outside allocation timing but remain in RSS. Allocated bytes are not retained heap or peak RSS. This is a new final-code replay of the earlier capture, not a fresh live-size measurement or a whole-service memory test. Catalog growth and broad workload memory remain subject to the documented limits and historical release audit.
+
+The full response is kept outside the repository. To repeat the benchmark, provide a complete Spot `/api/v3/exchangeInfo?showPermissionSets=false` response in a local file and set `MDS_SPOT_EXCHANGE_INFO_FILE` to its path. A new capture will have different size and content; record its date, byte count, checksum, and symbol count with the results. The commands above use the original local filename. On macOS, `time -l` reports process memory; use the equivalent measurement tool on other systems. The benchmark skips when no file is set. Normal offline tests use small local cases and the shared [exchange fixtures](../testdata/exchange/README.md).
+
+Completed phase plans and the separate rework specification are archived in Git at commit `5c185e0`. For example, read the original final report with:
+
+```sh
+git show 5c185e0:docs/request-budget-rework/05-diagnostics-and-validation.md
+```

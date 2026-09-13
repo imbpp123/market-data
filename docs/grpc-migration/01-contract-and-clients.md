@@ -1,6 +1,6 @@
 # Phase 1. Define the contract and generate clients
 
-Status: planned; not implemented. No prior migration phase is required. See the [phase list](README.md) and the approved [client and schema design](../grpc-migration-specification.md#client-generation).
+Status: complete after independent review on September 13, 2026. One P2 finding was corrected by the implementation agent and verified by the reviewer. See the [phase list](README.md) and the approved [client and schema design](../grpc-migration-specification.md#client-generation).
 
 ## Summary / Overview
 
@@ -73,3 +73,50 @@ Completion requires working packages, meaningful compatibility failures, passing
 ## Risks / Trade-offs
 
 Installing from Git still needs repository access and Git; subdirectory selection is a packaging boundary, not a promise to fetch only Python files. Package version and wire package version have different purposes. If fixture sizes exceed the default cap, resolve the cap/capacity issue before completing this phase; do not add pagination or trim the fixtures implicitly.
+
+
+## Implementation report — September 13, 2026
+
+Phase 1 is implemented and independently reviewed. This is not a release readiness decision. The production entry point, transport, configuration, root module and exchange behavior remain unchanged.
+
+### Delivered
+
+- Added the numbered schema, generated Go/Python messages and RPC clients, Python type files, generated descriptor and separate initial compatibility baseline under `api/`.
+- Added the separate Go module and Python `market-data-api` 0.1.0 package. Python 3.13 and 3.14 are the supported, verified boundary minor versions. Runtime/build/generator pins and their trade-offs are documented in `api/README.md`.
+- Added `make generate-api`, `make check-api` and `make api-http-baseline`, with isolated tools and no generator needed by a normal service build. Both ordinary and release CI invoke the real API check before publication can proceed.
+- Added a local Go contract-fixture server, Go client example, and installed synchronous/async Python examples. Tests cover four methods, exact decimal/count/nanosecond values, optional absent/zero values, a 1,024-character decimal, unknown fields/details, native errors, receive limits, cancellation and deadlines.
+- Added Buf FILE compatibility regression fixtures and generated-file drift checks. The initial baseline is separate and is never updated by generation.
+- Captured the existing HTTP handlers over real TCP with Go/Python clients, one/four reused connections, full/small snapshots and 1/100/1,000 candles. Fixed response bodies, hashes, message sizes, raw timings, connection counters and process costs are in [phase 1 evidence](../evidence/grpc-migration/README.md).
+
+### Verification
+
+`make check-api` passed: byte-identical regeneration, Buf baseline and breaking/compatible fixtures, nested Go build/vet/test/race, wheel inspection, clean wheel and pinned local-Git installs on Python 3.13.12 and Python 3.14.6, 11 cross-language tests per installation and all three examples. Package installs run outside the source directory with no Go/protoc/grpcio-tools and no `PYTHONPATH` shortcut. The wheel is saved locally in ignored `bin/api-dist/`.
+
+`make check` passed formatting, service build/config, configured lint, root tests and race checks, including the HTTP harness tests. `make vet` and `git diff --check` passed. `make api-http-baseline` passed all nine full-message semantic comparisons and recorded 45 measurement rows / 1,980 latency samples. Exact command results and source identity are in the evidence files.
+
+The maximum full snapshot is 4,240,000 Protobuf bytes; the other full snapshots are 4,160,000 and 3,820,000 bytes. All fit 16 MiB. The 100/1,000-candle responses are 20,330/203,030 Protobuf bytes versus 44,111/441,011 HTTP JSON bytes. The agreed counts and precision were preserved.
+
+### Changed files and scope
+
+Owned changes are `api/**`, `scripts/api/**`, `docs/evidence/grpc-migration/**`, Makefile, `.gitignore`, both GitHub check/release workflows, this phase report, the phase index, and only migration implementation-status wording in the main gRPC specification. Concurrent edits to other specifications, request-budget reports/evidence and the root README were preserved and are not phase 1 changes.
+
+### Limits and next phase
+
+The HTTP baseline uses fixed reader slices and 20 samples per worker. It is transport evidence, not application/storage, overload, partial-fill or 600,000-candle container acceptance. Python allocation counts are not measured; Go allocation and per-process CPU/RSS counters are. Full Linux/container checks and the final traffic/capacity matrix belong to phase 4. Docker build/verification were not run in this phase because no container or production composition changed; they remain later migration acceptance checks.
+
+Independent review found one reconstruction-instruction defect. The implementation agent corrected it and the reviewer verified the fix; no actionable findings remain. Phase 2 must implement real handlers, error mapping, finite sends and admission ownership before phase 3 switches production. No project commit, tag, package publication, image publication or deployment was made.
+
+
+### Review correction — baseline reconstruction
+
+Independent review found one P2 issue: the documented `git archive` reconstruction had no Git metadata. The harness completed the fixture calls but failed at `git rev-parse HEAD`, before writing the final measurement JSON files. The instructions now use a separate local clone, a detached checkout of the fixed HTTP base, and the phase 1 contract/harness overlay. No implementation code changed.
+
+The exact corrected reconstruction path passed end to end with the default 20 samples per worker: exit 0, both final JSON files written, 45 measurement rows and 1,980 latency samples. All nine response bodies, message sizes, HTTP/Protobuf hashes and relevant source hashes match the original baseline. The clone retained Git metadata and recorded the correct detached base plus overlay. Raw output and assertions are in [reconstruction evidence](../evidence/grpc-migration/reconstruction/verification.json).
+
+Documentation links and `git diff --check` passed. Full Go/Python and container suites were not repeated for this documentation-only fix.
+
+### Independent review result
+
+The high-reasoning implementation agent completed the work; a separate xhigh-reasoning agent reviewed it. The reviewer independently passed `make check-api`, repeated nested Go and HTTP harness tests without cache including race checks, and verified the measurement counts and hashes. After the implementation agent corrected P2, the same reviewer inspected the corrected instructions, retained reconstruction clone, detached base, output files, and matching hashes, then closed the finding. No actionable findings remain.
+
+The reviewer did not repeat the full root `make check` or run Linux CI/container capacity checks. Root checks passed during implementation; production gRPC and container/load acceptance remain later phases. The final review changed no implementation code.

@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package marketdata.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/imbpp123/market-data/api/go/marketdata/v1;marketdatav1";
+
+service MarketDataService {
+  rpc ListInstruments(ListInstrumentsRequest) returns (ListInstrumentsResponse);
+  rpc ListTickers(ListTickersRequest) returns (ListTickersResponse);
+  rpc ListMarketStats(ListMarketStatsRequest) returns (ListMarketStatsResponse);
+  rpc GetKlines(GetKlinesRequest) returns (GetKlinesResponse);
+}
+
+// Present empty filters are different from omitted filters.
+message ListInstrumentsRequest {
+  optional string exchange = 1;
+  optional string market = 2;
+  optional string symbol = 3;
+  optional string status = 4;
+}
+
+message ListTickersRequest {
+  optional string exchange = 1;
+  optional string market = 2;
+  optional string symbol = 3;
+}
+
+message ListMarketStatsRequest {
+  optional string exchange = 1;
+  optional string market = 2;
+  optional string symbol = 3;
+  optional string window = 4;
+}
+
+// All fields are required by application validation, including both timestamps.
+message GetKlinesRequest {
+  optional string exchange = 1;
+  optional string market = 2;
+  optional string symbol = 3;
+  optional string interval = 4;
+  google.protobuf.Timestamp from = 5;
+  google.protobuf.Timestamp to = 6;
+}
+
+message ListInstrumentsResponse {
+  repeated Instrument instruments = 1;
+}
+
+message ListTickersResponse {
+  repeated Ticker tickers = 1;
+}
+
+message ListMarketStatsResponse {
+  repeated MarketStats market_stats = 1;
+}
+
+message GetKlinesResponse {
+  string exchange = 1;
+  string market = 2;
+  string symbol = 3;
+  string interval = 4;
+  repeated Kline klines = 5;
+}
+
+// Decimals are exact canonical strings, limited to 1,024 characters by the application.
+// Timestamp fields track presence. The application guarantees updated_at.
+message Instrument {
+  string exchange = 1;
+  string market = 2;
+  string symbol = 3;
+  string base_asset = 4;
+  string quote_asset = 5;
+  string status = 6;
+  string price_tick = 7;
+  string qty_step = 8;
+  optional string min_qty = 9;
+  optional string max_qty = 10;
+  optional string min_notional = 11;
+  optional int64 funding_interval_seconds = 12;
+  google.protobuf.Timestamp delisting_time = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message Ticker {
+  string exchange = 1;
+  string market = 2;
+  string symbol = 3;
+  string last_price = 4;
+  optional string bid_price = 5;
+  optional string bid_size = 6;
+  optional string ask_price = 7;
+  optional string ask_size = 8;
+  optional string funding_rate = 9;
+  optional int64 next_funding_in_seconds = 10;
+  google.protobuf.Timestamp fetched_at = 11;
+}
+
+message MarketStats {
+  string exchange = 1;
+  string market = 2;
+  string symbol = 3;
+  string window = 4;
+  string high = 5;
+  string low = 6;
+  string volume = 7;
+  string turnover = 8;
+  optional string price_change = 9;
+  optional int64 trade_count = 10;
+  google.protobuf.Timestamp fetched_at = 11;
+}
+
+message Kline {
+  google.protobuf.Timestamp open_time = 1;
+  google.protobuf.Timestamp close_time = 2;
+  string open = 3;
+  string high = 4;
+  string low = 5;
+  string close = 6;
+  string volume = 7;
+  string turnover = 8;
+  optional int64 trades_count = 9;
+  google.protobuf.Timestamp fetched_at = 10;
+}
+
+message ErrorDetail {
+  string reason = 1;
+}

@@ -1,6 +1,6 @@
 # Phase 4. Validate behavior, traffic, and capacity
 
-Status: planned; not implemented. Depends on [phase 3](03-cutover-and-operations.md) and completed verification of the [request-budget rework](../request-budget-rework-specification.md). See the [phase list](README.md) and approved [acceptance criteria](../grpc-migration-specification.md#testing--validation).
+Status: planned; not implemented. Depends on [phase 3](03-cutover-and-operations.md) and the completed [Binance request-limit validation](../release-verification-v1.md#binance-request-limit-validation). See the [phase list](README.md) and approved [acceptance criteria](../grpc-migration-specification.md#testing--validation).
 
 ## Summary / Overview
 

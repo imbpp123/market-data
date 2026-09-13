@@ -13,7 +13,7 @@ run:
 	$(GO) run ./cmd/market-data-service -config docs/examples/config-v1.yaml
 
 fmt-check:
-	@files=$$(gofmt -l cmd internal) || exit $$?; \
+	@files=$$(gofmt -l cmd internal scripts/api/httpfixture api/go) || exit $$?; \
 	if [ -n "$$files" ]; then \
 		printf 'Go files need formatting:\n%s\n' "$$files"; \
 		exit 1; \
@@ -69,3 +69,41 @@ check:
 	$(MAKE) lint
 	$(MAKE) test
 	$(MAKE) test-race
+
+# Client tooling is isolated from normal service builds.
+API_PYTHON ?= python3.13
+API_VENV := $(CURDIR)/bin/api-tools
+API_GO_TOOLS := $(CURDIR)/bin/api-tools-go
+export BUF_CACHE_DIR := $(CURDIR)/bin/buf-cache
+
+.PHONY: install-api-tools generate-api check-api api-http-baseline
+install-api-tools: $(API_VENV)/.installed $(API_GO_TOOLS)/protoc-gen-go $(API_GO_TOOLS)/protoc-gen-go-grpc $(API_GO_TOOLS)/buf
+
+$(API_VENV)/.installed: scripts/api/requirements.txt
+	$(API_PYTHON) -m venv "$(API_VENV)"
+	"$(API_VENV)/bin/python" -m pip install -r scripts/api/requirements.txt
+	touch "$@"
+
+$(API_GO_TOOLS)/protoc-gen-go:
+	GOBIN="$(API_GO_TOOLS)" $(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
+
+$(API_GO_TOOLS)/protoc-gen-go-grpc:
+	GOBIN="$(API_GO_TOOLS)" $(GO) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+
+$(API_GO_TOOLS)/buf:
+	GOBIN="$(API_GO_TOOLS)" $(GO) install github.com/bufbuild/buf/cmd/buf@v1.59.0
+
+generate-api: install-api-tools
+	"$(API_VENV)/bin/python" scripts/api/generate.py
+
+check-api: install-api-tools
+	"$(API_VENV)/bin/python" scripts/api/generate.py --check
+	@test "$$("$(API_GO_TOOLS)/buf" --version)" = "1.59.0"
+	"$(API_GO_TOOLS)/buf" breaking api/descriptor.binpb --against api/compatibility/baseline.binpb --config api/compatibility/buf.yaml
+	"$(API_VENV)/bin/python" scripts/api/test_generation.py
+	"$(API_VENV)/bin/python" scripts/api/test_baseline.py
+	cd api/go && $(GO) build ./... && $(GO) vet ./... && $(GO) test ./... && $(GO) test -race ./...
+	"$(API_VENV)/bin/python" scripts/api/check_package.py
+
+api-http-baseline: install-api-tools
+	"$(API_VENV)/bin/python" scripts/api/http_baseline.py
