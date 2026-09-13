@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -87,4 +90,33 @@ func TestConnectionByteCounters(t *testing.T) {
 	require.NoError(t, <-done)
 	assert.Equal(t, []byte("reply"), received)
 	assert.Equal(t, int64(5), counts.read.Load())
+}
+
+// These bytes are the committed phase 1 evidence, not newly generated expectations.
+func TestArchivedHTTPMatchesRecordedBaseline(t *testing.T) {
+	cases := []struct{ name, path string }{
+		{"instruments-1", "/api/v1/instruments"}, {"instruments-20000", "/api/v1/instruments?symbol=full"},
+		{"tickers-1", "/api/v1/tickers"}, {"tickers-20000", "/api/v1/tickers?symbol=full"},
+		{"market-stats-1", "/api/v1/market-stats"}, {"market-stats-20000", "/api/v1/market-stats?symbol=full"},
+		{"klines-1", "/api/v1/klines?exchange=binance&market=spot&symbol=S0000USDT&interval=1m&from=2026-09-11T19:20:00Z&to=2026-09-11T19:21:00Z"},
+		{"klines-100", "/api/v1/klines?exchange=binance&market=spot&symbol=S0000USDT&interval=1m&from=2026-09-11T19:20:00Z&to=2026-09-11T21:00:00Z"},
+		{"klines-1000", "/api/v1/klines?exchange=binance&market=spot&symbol=S0000USDT&interval=1m&from=2026-09-11T19:20:00Z&to=2026-09-12T12:00:00Z"},
+	}
+	target := handler()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			file, err := os.Open(filepath.Join("../../../docs/evidence/grpc-migration", tc.name+".http.json.gz"))
+			require.NoError(t, err)
+			defer func() { _ = file.Close() }()
+			reader, err := gzip.NewReader(file)
+			require.NoError(t, err)
+			defer func() { _ = reader.Close() }()
+			expected, err := io.ReadAll(reader)
+			require.NoError(t, err)
+			response := httptest.NewRecorder()
+			target.ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", tc.path, nil))
+			require.Equal(t, http.StatusOK, response.Code)
+			assert.Equal(t, expected, response.Body.Bytes())
+		})
+	}
 }

@@ -1,4 +1,4 @@
-package httptransport
+package grpctransport
 
 import (
 	"fmt"
@@ -20,8 +20,10 @@ import (
 	"market-data/internal/infrastructure/exchange/upstream"
 	"market-data/internal/infrastructure/storage/memory"
 
+	pb "github.com/imbpp123/market-data/api/go/marketdata/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestCurrentAdaptersPublishSeparateCacheOnlyAPIs(t *testing.T) {
@@ -122,30 +124,31 @@ func TestCurrentAdaptersPublishSeparateCacheOnlyAPIs(t *testing.T) {
 				assert.Equal(t, 1, controller.Attempts(ctx))
 			}
 
-			handler := NewAPIHandler(func() bool { return true }, 8192, NewSnapshotHandlers(nil, ticker.NewReader(tickers, []application.Scope{scope}, time.Now), marketstats.NewReader(stats, []application.Scope{scope}), time.Second, 2))
+			readers := fixtureReaders(applicationFixture(t, nil))
+			readers.Tickers = ticker.NewReader(tickers, []application.Scope{scope}, time.Now)
+			readers.MarketStats = marketstats.NewReader(stats, []application.Scope{scope})
+			settings := testSettings()
+			settings.MaxSnapshots = 2
+			_, address := startServer(t, readers, settings, nil)
+			api := client(t, address)
 			for range 2 {
-				tickerResponse := httptest.NewRecorder()
-				handler.ServeHTTP(tickerResponse, httptest.NewRequestWithContext(t.Context(), "GET", "/api/v1/tickers", nil))
-				require.Equal(t, 200, tickerResponse.Code)
-				assert.Contains(t, tickerResponse.Body.String(), `"last_price":"105.25"`)
-				assert.NotContains(t, tickerResponse.Body.String(), `"volume"`)
-				statsResponse := httptest.NewRecorder()
-				handler.ServeHTTP(statsResponse, httptest.NewRequestWithContext(t.Context(), "GET", "/api/v1/market-stats", nil))
-				require.Equal(t, 200, statsResponse.Code)
-				assert.Contains(t, statsResponse.Body.String(), `"turnover":"305.1234567890123456789"`)
-				assert.Contains(t, statsResponse.Body.String(), `"price_change":"5.25"`)
-				assert.Contains(t, statsResponse.Body.String(), `"trade_count":null`)
-				assert.NotContains(t, statsResponse.Body.String(), `"last_price"`)
+				tickers, err := api.ListTickers(t.Context(), &pb.ListTickersRequest{})
+				require.NoError(t, err)
+				require.Len(t, tickers.Tickers, 1)
+				assert.Equal(t, "105.25", tickers.Tickers[0].LastPrice)
+				stats, err := api.ListMarketStats(t.Context(), &pb.ListMarketStatsRequest{})
+				require.NoError(t, err)
+				require.Len(t, stats.MarketStats, 1)
+				assert.Equal(t, "305.1234567890123456789", stats.MarketStats[0].Turnover)
+				assert.Equal(t, "5.25", stats.MarketStats[0].GetPriceChange())
+				assert.Nil(t, stats.MarketStats[0].TradeCount)
 			}
-
 			assert.Equal(t, int64(tt.attempts), requests.Load(), "cache reads must not fetch upstream")
-			read := func(path string) string {
-				response := httptest.NewRecorder()
-				handler.ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", path, nil))
-				require.Equal(t, 200, response.Code)
-				return response.Body.String()
-			}
-			oldTicker, oldStats := read("/api/v1/tickers"), read("/api/v1/market-stats")
+			oldTicker, err := api.ListTickers(t.Context(), &pb.ListTickersRequest{})
+			require.NoError(t, err)
+			oldStats, err := api.ListMarketStats(t.Context(), &pb.ListMarketStatsRequest{})
+			require.NoError(t, err)
+
 			failed.Store(true)
 			next, stop, err := controller.Begin(t.Context(), tt.scope, upstream.Tickers)
 			require.NoError(t, err)
@@ -168,14 +171,18 @@ func TestCurrentAdaptersPublishSeparateCacheOnlyAPIs(t *testing.T) {
 				}
 			}
 			count := requests.Load()
-			newTicker, newStats := read("/api/v1/tickers"), read("/api/v1/market-stats")
+			newTicker, err := api.ListTickers(t.Context(), &pb.ListTickersRequest{})
+			require.NoError(t, err)
+			newStats, err := api.ListMarketStats(t.Context(), &pb.ListMarketStatsRequest{})
+			require.NoError(t, err)
 			if tt.failing == "ticker" {
-				assert.JSONEq(t, oldTicker, newTicker, "failed refresh must preserve values and fetched_at")
-				assert.Contains(t, newStats, `"volume":"5"`)
+				assert.True(t, proto.Equal(oldTicker, newTicker), "failed refresh must preserve values and fetched_at")
+				assert.Equal(t, "5", newStats.MarketStats[0].Volume)
 			} else {
-				assert.JSONEq(t, oldStats, newStats, "failed refresh must preserve values and fetched_at")
-				assert.Contains(t, newTicker, `"last_price":"106.25"`)
+				assert.True(t, proto.Equal(oldStats, newStats), "failed refresh must preserve values and fetched_at")
+				assert.Equal(t, "106.25", newTicker.Tickers[0].LastPrice)
 			}
+
 			assert.Equal(t, count, requests.Load(), "reads after a failed refresh stay cache-only")
 
 		})

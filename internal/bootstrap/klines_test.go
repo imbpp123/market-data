@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,12 +14,17 @@ import (
 	"testing/synctest"
 	"time"
 
+	pb "github.com/imbpp123/market-data/api/go/marketdata/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"market-data/internal/application"
 	"market-data/internal/application/kline"
 	"market-data/internal/config"
 	"market-data/internal/domain"
 	"market-data/internal/infrastructure/exchange/upstream"
-	httptransport "market-data/internal/transport/http"
+	grpctransport "market-data/internal/transport/grpc"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,14 +47,7 @@ func candleFixture(exchange domain.Exchange, market domain.Market, from, to time
 	return body
 }
 
-func candleURL(scope application.Scope, from, to time.Time) string {
-	return "/api/v1/klines?" + url.Values{
-		"exchange": {string(scope.Exchange)}, "market": {string(scope.Market)}, "symbol": {"BTCUSDT"}, "interval": {"1m"},
-		"from": {from.Format(time.RFC3339Nano)}, "to": {to.Format(time.RFC3339Nano)},
-	}.Encode()
-}
-
-func TestKlineColdWarmPartialHTTPThroughExchangeAdapters(t *testing.T) {
+func TestKlineColdWarmPartialGRPCThroughExchangeAdapters(t *testing.T) {
 	for _, exchange := range []domain.Exchange{domain.ExchangeBinance, domain.ExchangeBybit} {
 		for _, market := range []domain.Market{domain.MarketSpot, domain.MarketLinear} {
 			t.Run(string(exchange)+"/"+string(market), func(t *testing.T) {
@@ -100,7 +97,7 @@ func TestKlineColdWarmPartialHTTPThroughExchangeAdapters(t *testing.T) {
 					cancel()
 					service.Wait()
 				}()
-				handler := httptransport.NewAPIHandler(func() bool { return true }, 8192, map[string]http.Handler{"/api/v1/klines": httptransport.NewKlinesHandler(service, time.Second, cfg.Klines.MaxCallers)})
+				api := startTestAPI(t, grpctransport.Readers{Klines: service}, configuredGRPC(cfg).Transport)
 				for _, tc := range []struct {
 					name  string
 					from  time.Time
@@ -111,24 +108,13 @@ func TestKlineColdWarmPartialHTTPThroughExchangeAdapters(t *testing.T) {
 					{"warm", end.Add(-2 * time.Minute), 2, 1},
 					{"partial", end.Add(-4 * time.Minute), 4, 2},
 				} {
-					response := httptest.NewRecorder()
-					handler.ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", candleURL(scope, tc.from, end), nil))
-					require.Equal(t, 200, response.Code, "%s: %s", tc.name, response.Body.String())
-					assert.Equal(t, "application/json", response.Header().Get("Content-Type"))
-					var body struct {
-						Data []struct {
-							OpenTime       time.Time `json:"open_time"`
-							CloseTime      time.Time `json:"close_time"`
-							Open, Turnover string
-							TradesCount    *int64 `json:"trades_count"`
-						}
-					}
-					require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
-					require.Len(t, body.Data, tc.size)
-					assert.Equal(t, tc.from, body.Data[0].OpenTime)
-					assert.Equal(t, end, body.Data[tc.size-1].CloseTime)
-					for i, row := range body.Data {
-						assert.Equal(t, tc.from.Add(time.Duration(i)*time.Minute), row.OpenTime)
+					response, err := api.GetKlines(t.Context(), klineRequest(scope, tc.from, end))
+					require.NoError(t, err, tc.name)
+					require.Len(t, response.Klines, tc.size)
+					assert.Equal(t, tc.from, response.Klines[0].OpenTime.AsTime())
+					assert.Equal(t, end, response.Klines[tc.size-1].CloseTime.AsTime())
+					for i, row := range response.Klines {
+						assert.Equal(t, tc.from.Add(time.Duration(i)*time.Minute), row.OpenTime.AsTime())
 						assert.Equal(t, "1.1234567890123456789", row.Open)
 						assert.Equal(t, "4.1234567890123456789", row.Turnover)
 						if exchange == domain.ExchangeBinance {
@@ -138,7 +124,7 @@ func TestKlineColdWarmPartialHTTPThroughExchangeAdapters(t *testing.T) {
 							assert.Nil(t, row.TradesCount)
 						}
 					}
-					assert.NotContains(t, response.Body.String(), "RequestStartedAt")
+
 					assert.Equal(t, tc.calls, calls.Load())
 				}
 				stats := state.klineMetrics.Snapshot()[scope]
@@ -181,94 +167,44 @@ func TestKlineRetryAttemptsAreCountedAcrossPages(t *testing.T) {
 			cancel()
 			service.Wait()
 		}()
-		handler := httptransport.NewKlinesHandler(service, cfg.Klines.RequestTimeout, cfg.Klines.MaxCallers)
-		response := httptest.NewRecorder()
+		query := kline.Query{Series: kline.Series{Scope: scope, Symbol: "BTCUSDT", Interval: domain.Timeframe1m}, From: end.Add(-4 * time.Minute), To: end}
+		response, err := service.Get(t.Context(), query)
+		assert.ErrorIs(t, err, application.ErrUpstreamAttemptLimit)
+		assert.Empty(t, response)
 
-		handler.ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", candleURL(scope, end.Add(-4*time.Minute), end), nil))
-
-		assert.Equal(t, 502, response.Code)
-		assert.Contains(t, response.Body.String(), "upstream_attempt_limit")
-		assert.NotContains(t, response.Body.String(), `"data"`)
 		assert.Equal(t, int64(3), calls.Load())
 		assert.Equal(t, uint64(3), state.klineMetrics.Snapshot()[scope].Attempts)
 		assert.Equal(t, uint64(2), state.klineMetrics.Snapshot()[scope].Downloaded)
-		query := kline.Query{Series: kline.Series{Scope: scope, Symbol: "BTCUSDT", Interval: domain.Timeframe1m}, From: end.Add(-4 * time.Minute), To: end}
 		stored, err := state.klines.GetRange(t.Context(), query)
 		require.NoError(t, err)
 		assert.Len(t, stored, 2)
 	})
 }
 
-func TestServeExposesKlinesAndCancelsOwnedFill(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		cfg := config.Defaults()
-		state, err := newLocalState(1000, time.Now)
-		require.NoError(t, err)
-		started := make(chan struct{})
-		stopped := make(chan struct{})
-		state.exchanges, err = newExchangeClients(cfg, instrumentTransport(func(r *http.Request) (*http.Response, error) {
-			close(started)
-			defer close(stopped)
-			<-r.Context().Done()
-			return nil, r.Context().Err()
-		}), upstream.SystemClock{}, func(time.Duration) time.Duration { return 0 }, nil)
-		require.NoError(t, err)
-		scope := application.Scope{Exchange: domain.ExchangeBinance, Market: domain.MarketSpot}
-		require.NoError(t, state.instruments.ReplaceSnapshot(t.Context(), scope, []domain.Instrument{{Exchange: scope.Exchange, Market: scope.Market, Symbol: "BTCUSDT"}}))
-		root, cancel := context.WithCancel(t.Context())
-		defer cancel()
-		listener := newPipeListener()
-		serverDone := make(chan error, 1)
-		go func() { serverDone <- state.serve(root, cfg, testLogger(), listener) }()
-		synctest.Wait()
-		transport := &http.Transport{DialContext: listener.dial}
-		defer transport.CloseIdleConnections()
-		client := &http.Client{Transport: transport}
-		end := time.Now().UTC().Truncate(time.Minute)
-		request, err := http.NewRequestWithContext(t.Context(), "GET", "http://local"+candleURL(scope, end.Add(-time.Minute), end), nil)
-		require.NoError(t, err)
-		responseDone := make(chan struct{})
-		go func() {
-			defer close(responseDone)
-			response, err := client.Do(request)
-			if err == nil {
-				_ = response.Body.Close()
-			}
-		}()
-		<-started
-
-		cancel()
-
-		require.NoError(t, <-serverDone)
-		assert.True(t, channelClosed(stopped))
-		<-responseDone
-	})
-}
-
-func TestKlineHTTPValidationBeforeCandleAccess(t *testing.T) {
+func TestKlineGRPCValidationBeforeCandleAccess(t *testing.T) {
 	cases := []struct {
 		name   string
-		change func(url.Values)
+		change func(*pb.GetKlinesRequest)
 		ready  bool
-		status int
+		status codes.Code
 		code   string
 	}{
-		{"unready catalog", func(url.Values) {}, false, 503, "data_not_ready"},
-		{"unknown symbol", func(q url.Values) { q.Set("symbol", "UNKNOWN") }, true, 404, "symbol_not_found"},
-		{"disabled scope", func(q url.Values) { q.Set("exchange", "bybit") }, true, 400, "invalid_filter"},
-		{"unsupported interval", func(q url.Values) {
-			q.Set("interval", "1s")
-			q.Set("market", "linear")
-		}, true, 400, "invalid_interval"},
-		{"unaligned start", func(q url.Values) { q.Set("from", "2026-09-12T11:56:01Z") }, true, 400, "invalid_range"},
-		{"reversed range", func(q url.Values) { q.Set("from", "2026-09-12T12:01:00Z") }, true, 400, "invalid_range"},
-		{"future range", func(q url.Values) { q.Set("to", "2026-09-12T12:02:00Z") }, true, 400, "invalid_range"},
-		{"too large before readiness", func(q url.Values) { q.Set("from", "2026-09-12T11:55:00Z") }, false, 400, "request_too_large"},
-		{"expired before readiness", func(q url.Values) {
-			q.Set("from", "2026-09-12T11:55:00Z")
-			q.Set("to", "2026-09-12T11:56:00Z")
-		}, false, 400, "range_out_of_retention"},
-		{"empty range", func(q url.Values) { q.Set("from", q.Get("to")) }, true, 200, ""},
+		{"unready catalog", func(*pb.GetKlinesRequest) {}, false, codes.Unavailable, "data_not_ready"},
+		{"unknown symbol", func(q *pb.GetKlinesRequest) { q.Symbol = proto.String("UNKNOWN") }, true, codes.NotFound, "symbol_not_found"},
+		{"disabled scope", func(q *pb.GetKlinesRequest) { q.Exchange = proto.String("bybit") }, true, codes.InvalidArgument, "invalid_filter"},
+		{"unsupported interval", func(q *pb.GetKlinesRequest) {
+			q.Interval = proto.String("1s")
+			q.Market = proto.String("linear")
+		}, true, codes.InvalidArgument, "invalid_interval"},
+		{"unaligned start", func(q *pb.GetKlinesRequest) { q.From = timestamppb.New(time.Date(2026, 9, 12, 11, 56, 1, 0, time.UTC)) }, true, codes.InvalidArgument, "invalid_range"},
+		{"reversed range", func(q *pb.GetKlinesRequest) { q.From = timestamppb.New(time.Date(2026, 9, 12, 12, 1, 0, 0, time.UTC)) }, true, codes.InvalidArgument, "invalid_range"},
+		{"future range", func(q *pb.GetKlinesRequest) { q.To = timestamppb.New(time.Date(2026, 9, 12, 12, 2, 0, 0, time.UTC)) }, true, codes.InvalidArgument, "invalid_range"},
+		{"too large before readiness", func(q *pb.GetKlinesRequest) { q.From = timestamppb.New(time.Date(2026, 9, 12, 11, 55, 0, 0, time.UTC)) }, false, codes.InvalidArgument, "request_too_large"},
+		{"expired before readiness", func(q *pb.GetKlinesRequest) {
+			q.From = timestamppb.New(time.Date(2026, 9, 12, 11, 55, 0, 0, time.UTC))
+			q.To = timestamppb.New(time.Date(2026, 9, 12, 11, 56, 0, 0, time.UTC))
+		}, false, codes.InvalidArgument, "range_out_of_retention"},
+		{"empty range", func(q *pb.GetKlinesRequest) { q.From = q.To }, true, codes.OK, ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -286,20 +222,19 @@ func TestKlineHTTPValidationBeforeCandleAccess(t *testing.T) {
 			}
 			service, err := state.klineService(t.Context(), cfg, func() time.Time { return now })
 			require.NoError(t, err)
-			address, err := url.Parse(candleURL(scope, now.Truncate(time.Minute).Add(-4*time.Minute), now.Truncate(time.Minute)))
-			require.NoError(t, err)
-			parameters := address.Query()
-			tc.change(parameters)
-			response := httptest.NewRecorder()
-
-			httptransport.NewKlinesHandler(service, time.Second, cfg.Klines.MaxCallers).ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", "/api/v1/klines?"+parameters.Encode(), nil))
-
-			assert.Equal(t, tc.status, response.Code)
+			request := klineRequest(scope, now.Truncate(time.Minute).Add(-4*time.Minute), now.Truncate(time.Minute))
+			tc.change(request)
+			api := startTestAPI(t, grpctransport.Readers{Klines: service}, configuredGRPC(cfg).Transport)
+			response, err := api.GetKlines(t.Context(), request)
+			assert.Equal(t, tc.status, status.Code(err))
 			if tc.code == "" {
-				assert.JSONEq(t, `{"data":[]}`, response.Body.String())
+				require.NoError(t, err)
+				assert.Empty(t, response.Klines)
 			} else {
-				assert.Contains(t, response.Body.String(), `"code":"`+tc.code+`"`)
+				require.Error(t, err)
+				assert.Equal(t, tc.code, status.Convert(err).Details()[0].(*pb.ErrorDetail).Reason)
 			}
+
 			assert.Zero(t, state.klineMetrics.Snapshot()[scope].Attempts)
 		})
 	}

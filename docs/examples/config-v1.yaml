@@ -1,5 +1,5 @@
 # Complete, runnable v1 configuration reference. Every value below is its default.
-# Validate without starting HTTP or workers:
+# Validate without starting listeners or workers:
 #   go run ./cmd/market-data-service -config docs/examples/config-v1.yaml -check-config
 #
 # Field comments use Description, Values, Default, and Required in that order.
@@ -17,7 +17,7 @@
 # changing this file or the environment requires a process restart.
 #
 # Environment names are MDS_ plus the uppercase dot path with dots replaced by _.
-# For example: server.port -> MDS_SERVER_PORT=8081.
+# For example: server.http.port -> MDS_SERVER_HTTP_PORT=8081.
 # List overrides are JSON arrays, for example:
 #   MDS_EXCHANGES_BYBIT_MARKETS='["spot","linear"]'
 # Booleans are true/false; environment integers use base-10 text.
@@ -26,60 +26,15 @@
 # Counts and byte limits are positive integers that fit Go int; additional bounds
 # and relationships are documented below. Zero does not mean unlimited or disabled.
 #
-# Implementation status after phase 11:
-# - Data APIs, memory storage, upstream admission/retries, periodic retention,
-#   health/readiness, graceful shutdown, and optional observability are implemented.
-# - Release verification and packaging remain phase 12 work.
-# See ../implementation-contract-v1.md and ../technical-specification-v1.md.
+# Implementation status: gRPC data and separate operational HTTP are active.
+# Migration acceptance and workload measurements remain phase 4 work.
+# See ../grpc-migration-specification.md and ../implementation-contract-v1.md.
 
-# Incoming HTTP listener, request bounds, and process shutdown.
+# gRPC data and independent operational HTTP listeners.
 server:
-  # Description: Bind address for incoming HTTP connections. 0.0.0.0 listens on all IPv4
-  #              interfaces; 127.0.0.1 restricts access to this host. The port is
-  #              configured separately below.
-  #
-  # Values: IPv4/IPv6 address, hostname, or an empty string for all interfaces. Use a
-  #         bare host without a URL scheme, path, or port.
-  #
-  # Default: "0.0.0.0"
-  #
-  # Required: no
-  host: "0.0.0.0"
-
-  # Description: TCP listening port. Startup fails if the address/port cannot be bound.
-  #
-  # Values: Integer from 1 to 65535. Zero does not select an automatic port.
-  #
-  # Default: 8080
-  #
-  # Required: no
-  port: 8080
-
-  # Description: Maximum time to read incoming HTTP request headers. Limits slow header
-  #              senders; it does not set the lifetime of a data request or an outgoing
-  #              exchange attempt.
-  #
-  # Values: Positive Go duration; see duration syntax at the top of this file.
-  #
-  # Default: 5s
-  #
-  # Required: no
-  read_header_timeout: 5s
-
-  # Description: How long an HTTP keep-alive connection may wait for its next request
-  #              before being closed. Increasing this retains idle connections for
-  #              longer.
-  #
-  # Values: Positive Go duration; see duration syntax at the top of this file.
-  #
-  # Default: 60s
-  #
-  # Required: no
-  idle_timeout: 60s
-
   # Description: Total grace period after cancellation, SIGINT, or SIGTERM. Root work is
-  #              canceled, new HTTP requests stop, and owned workers/active requests are
-  #              awaited; remaining HTTP connections are closed when the grace period
+  #              canceled, new RPC admission stops, and owned workers/active requests are
+  #              awaited; both servers are force-closed when the grace period
   #              ends. This is one process-wide shutdown bound, not an extra timeout per
   #              worker.
   #
@@ -90,29 +45,6 @@ server:
   #
   # Required: no
   shutdown_timeout: 35s
-
-  # Description: Incoming request-header parsing limit in bytes (32768 = 32 KiB). Larger
-  #              values permit larger headers and increase per-connection resource use.
-  #              The upper bound leaves room for the HTTP server's internal arithmetic.
-  #
-  # Values: Positive integer in bytes; must be <= MaxInt - 4096.
-  #
-  # Default: 32768
-  #
-  # Required: no
-  max_header_bytes: 32768
-
-  # Description: Maximum raw query-string length in bytes, including percent-encoded
-  #              text. Queries over this bound return HTTP 414 / request_too_large. This
-  #              is separate from header size and from the number of candle slots
-  #              requested.
-  #
-  # Values: Positive integer that fits Go int.
-  #
-  # Default: 8192
-  #
-  # Required: no
-  max_query_bytes: 8192
 
   # Description: Maximum concurrent snapshot API requests across instruments, tickers,
   #              and market statistics. Excess requests fail immediately with
@@ -127,9 +59,8 @@ server:
   max_snapshot_requests: 64
 
   # Description: Total lifetime of a snapshot API read; these reads never fetch from an
-  #              exchange. Together with klines.request_timeout this derives the HTTP
-  #              write timeout: max(klines.request_timeout, snapshot_timeout) + 5s.
-  #              There is no separate YAML write_timeout field. Increasing this may
+  #              exchange. The absolute transport bound adds a 5s write grace from
+  #              admission. An earlier client deadline wins. Increasing this may
   #              require a larger shutdown_timeout.
   #
   # Values: Positive Go duration; see duration syntax at the top of this file.
@@ -139,7 +70,134 @@ server:
   # Required: no
   snapshot_timeout: 5s
 
-# Local market-data storage. This section does not configure exchange-side history.
+  grpc:
+    # Description: Bind address for incoming gRPC connections. 0.0.0.0 listens on all IPv4
+    #              interfaces; 127.0.0.1 restricts access to this host. The port is
+    #              configured separately below.
+    #
+    # Values: IPv4/IPv6 address, hostname, or an empty string for all interfaces. Use a
+    #         bare host without a URL scheme, path, or port.
+    #
+    # Default: "0.0.0.0"
+    #
+    # Required: no
+    host: "0.0.0.0"
+
+    # Description: TCP listening port. Startup fails if the address/port cannot be bound.
+    #
+    # Values: Integer from 1 to 65535. Zero does not select an automatic port.
+    #
+    # Default: 9090
+    #
+    # Required: no
+    port: 9090
+
+    # Description: Maximum uncompressed Protobuf request bytes.
+    #
+    # Values: Integer from 1 to 2147483647.
+    #
+    # Default: 8192
+    #
+    # Required: no
+    max_request_bytes: 8192
+
+    # Description: Maximum uncompressed Protobuf response bytes; larger results fail without truncation.
+    #
+    # Values: Integer from 1 to 2147483647.
+    #
+    # Default: 16777216
+    #
+    # Required: no
+    max_response_bytes: 16777216
+
+    # Description: Maximum accepted gRPC request metadata bytes.
+    #
+    # Values: Integer from 1 to 2147483647.
+    #
+    # Default: 32768
+    #
+    # Required: no
+    max_header_bytes: 32768
+
+  http:
+    # Description: Bind address for incoming HTTP connections. 0.0.0.0 listens on all IPv4
+    #              interfaces; 127.0.0.1 restricts access to this host. The port is
+    #              configured separately below.
+    #
+    # Values: IPv4/IPv6 address, hostname, or an empty string for all interfaces. Use a
+    #         bare host without a URL scheme, path, or port.
+    #
+    # Default: "0.0.0.0"
+    #
+    # Required: no
+    host: "0.0.0.0"
+
+    # Description: TCP listening port. Startup fails if the address/port cannot be bound.
+    #
+    # Values: Integer from 1 to 65535. Zero does not select an automatic port.
+    #
+    # Default: 8080
+    #
+    # Required: no
+    port: 8080
+
+    # Description: Maximum time to read incoming HTTP request headers. Limits slow header
+    #              senders; it does not set the lifetime of a data request or an outgoing
+    #              exchange attempt.
+    #
+    # Values: Positive Go duration; see duration syntax at the top of this file.
+    #
+    # Default: 5s
+    #
+    # Required: no
+    read_header_timeout: 5s
+
+    # Description: How long an HTTP keep-alive connection may wait for its next request
+    #              before being closed. Increasing this retains idle connections for
+    #              longer.
+    #
+    # Values: Positive Go duration; see duration syntax at the top of this file.
+    #
+    # Default: 60s
+    #
+    # Required: no
+    idle_timeout: 60s
+
+    # Description: Incoming request-header parsing limit in bytes (32768 = 32 KiB). Larger
+    #              values permit larger headers and increase per-connection resource use.
+    #              The upper bound leaves room for the HTTP server's internal arithmetic.
+    #
+    # Values: Positive integer in bytes; must be <= MaxInt - 4096.
+    #
+    # Default: 32768
+    #
+    # Required: no
+    max_header_bytes: 32768
+
+    # Description: Maximum raw query-string length in bytes, including percent-encoded
+    #              text. Queries over this bound return HTTP 414 / request_too_large. This
+    #              is separate from header size and from the number of candle slots
+    #              requested.
+    #
+    # Values: Positive integer that fits Go int.
+    #
+    # Default: 8192
+    #
+    # Required: no
+    max_query_bytes: 8192
+
+    # Description: Maximum operational HTTP response write time. Data RPC lifetimes
+    #              use snapshot_timeout or klines.request_timeout plus a 5s write grace.
+    #
+    # Values: Positive Go duration.
+    #
+    # Default: 5s
+    #
+    # Required: no
+    write_timeout: 5s
+
+# Local storage driver and periodic cleanup.
+
 storage:
   # Description: Storage implementation. With memory, data lives in this process and is
   #              lost on restart; there is no database or disk backend in v1. Memory
@@ -172,8 +230,8 @@ klines:
   # Description: Total deadline for one client kline request, including admission,
   #              waiting for shared fills, fetching, and result assembly. Expiry yields
   #              request_timeout. This is independent of http_client.timeout, which
-  #              bounds one HTTP attempt. Increasing it also raises the derived HTTP
-  #              write timeout and required shutdown grace period. Canceling one caller
+  #              bounds one HTTP attempt. Increasing it also raises the absolute RPC
+  #              transport bound and required shutdown grace period. Canceling one caller
   #              must not cancel work needed by other callers.
   #
   # Values: Positive Go duration; see duration syntax at the top of this file.

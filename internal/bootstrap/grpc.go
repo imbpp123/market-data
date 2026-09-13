@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -21,8 +22,6 @@ import (
 	httptransport "market-data/internal/transport/http"
 )
 
-// Explicit phase 2 composition. The production entry point remains HTTP until
-// configuration and operational cutover are implemented together in phase 3.
 type grpcSettings struct {
 	Address     string
 	HTTPAddress string
@@ -52,7 +51,7 @@ func (state *localState) serveGRPC(ctx context.Context, cfg config.Config, logge
 		return err
 	}
 	workers = append(workers, operationWorkers...)
-	operations := &http.Server{Handler: state.telemetry.HTTP(httptransport.NewAPIHandler(state.ready.Load, cfg.Server.MaxQueryBytes, routes), routes, logger), ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout, IdleTimeout: cfg.Server.IdleTimeout, WriteTimeout: 5 * time.Second, MaxHeaderBytes: cfg.Server.MaxHeaderBytes, BaseContext: func(net.Listener) context.Context { return root }}
+	operations := &http.Server{Handler: state.telemetry.HTTP(httptransport.NewAPIHandler(state.ready.Load, cfg.Server.HTTP.MaxQueryBytes, routes), routes, logger), ReadHeaderTimeout: cfg.Server.HTTP.ReadHeaderTimeout, IdleTimeout: cfg.Server.HTTP.IdleTimeout, WriteTimeout: cfg.Server.HTTP.WriteTimeout, MaxHeaderBytes: cfg.Server.HTTP.MaxHeaderBytes, BaseContext: func(net.Listener) context.Context { return root }}
 	return state.runDual(root, cancel, cfg.Server.ShutdownTimeout, settings.Address, settings.HTTPAddress, data, operations, listen, workers...)
 }
 
@@ -160,5 +159,18 @@ func reportRPCError(event grpctransport.Event) bool {
 		return false
 	default:
 		return true
+	}
+}
+
+func configuredGRPC(cfg config.Config) grpcSettings {
+	return grpcSettings{
+		Address:     net.JoinHostPort(cfg.Server.GRPC.Host, strconv.Itoa(cfg.Server.GRPC.Port)),
+		HTTPAddress: net.JoinHostPort(cfg.Server.HTTP.Host, strconv.Itoa(cfg.Server.HTTP.Port)),
+		Transport: grpctransport.Settings{
+			SnapshotTimeout: cfg.Server.SnapshotTimeout, KlineTimeout: cfg.Klines.RequestTimeout,
+			WriteGrace: config.WriteGrace, MaxSnapshots: cfg.Server.MaxSnapshotRequests, MaxKlines: cfg.Klines.MaxCallers,
+			MaxRequestBytes: cfg.Server.GRPC.MaxRequestBytes, MaxResponseBytes: cfg.Server.GRPC.MaxResponseBytes, MaxHeaderBytes: cfg.Server.GRPC.MaxHeaderBytes,
+			ReadHeaderTimeout: cfg.Server.HTTP.ReadHeaderTimeout, IdleTimeout: cfg.Server.HTTP.IdleTimeout,
+		},
 	}
 }

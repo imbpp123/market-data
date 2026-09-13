@@ -1,12 +1,8 @@
 package bootstrap
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"os"
 	"runtime"
 	"slices"
@@ -17,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	pb "github.com/imbpp123/market-data/api/go/marketdata/v1"
+	"google.golang.org/protobuf/proto"
 	"market-data/internal/application"
 	"market-data/internal/application/instrument"
 	"market-data/internal/application/kline"
@@ -26,15 +24,15 @@ import (
 	"market-data/internal/domain"
 	"market-data/internal/infrastructure/exchange/binance"
 	"market-data/internal/infrastructure/exchange/bybit"
-	httptransport "market-data/internal/transport/http"
+	grpctransport "market-data/internal/transport/grpc"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// This opt-in measurement uses real storage, fill coordination, and HTTP encoding.
-// Synthetic providers exclude exchange pacing and network latency from timings.
+// This opt-in measurement uses real storage, fill coordination, and gRPC encoding over a controlled in-memory connection.
+// Synthetic providers exclude exchange pacing. Phase 4 measures real TCP separately.
 func TestReleaseLoad(t *testing.T) {
 	profile := os.Getenv("MDS_RELEASE_LOAD")
 	if profile == "" {
@@ -92,9 +90,8 @@ func TestReleaseLoad(t *testing.T) {
 	require.NoError(t, err)
 	defer service.Wait()
 	defer cancel()
-	routes := httptransport.NewSnapshotHandlers(instrument.NewReader(state.instruments, scopes), ticker.NewReader(state.tickers, scopes, func() time.Time { return now }), marketstats.NewReader(state.marketStats, scopes), cfg.Server.SnapshotTimeout, cfg.Server.MaxSnapshotRequests)
-	routes["/api/v1/klines"] = httptransport.NewKlinesHandler(service, cfg.Klines.RequestTimeout, cfg.Klines.MaxCallers)
-	handler := httptransport.NewAPIHandler(func() bool { return true }, cfg.Server.MaxQueryBytes, routes)
+	api := startTestAPI(t, grpctransport.Readers{Instruments: instrument.NewReader(state.instruments, scopes), Tickers: ticker.NewReader(state.tickers, scopes, func() time.Time { return now }), MarketStats: marketstats.NewReader(state.marketStats, scopes), Klines: service}, configuredGRPC(cfg).Transport)
+
 	for _, pass := range []string{"partial fills", "warm reads"} {
 		before := attempts.Load()
 		var wg sync.WaitGroup
@@ -102,22 +99,31 @@ func TestReleaseLoad(t *testing.T) {
 		for client := range 4 {
 			wg.Go(func() {
 				for i, query := range queries {
-					values := url.Values{"exchange": {string(query.Exchange)}, "market": {string(query.Market)}, "symbol": {query.Symbol}, "interval": {string(query.Interval)}, "from": {query.From.Format(time.RFC3339)}, "to": {query.To.Format(time.RFC3339)}}
+					request := klineRequest(query.Scope, query.From, query.To)
+					request.Symbol = proto.String(query.Symbol)
+					request.Interval = proto.String(string(query.Interval))
 					begin := time.Now()
-					response := httptest.NewRecorder()
-					handler.ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", "/api/v1/klines?"+values.Encode(), nil))
+					response, err := api.GetKlines(t.Context(), request)
 					timings[client] = append(timings[client], time.Since(begin))
-					if !assert.Equal(t, http.StatusOK, response.Code, "%s", response.Body.String()) {
+					if !assert.NoError(t, err) {
 						return
 					}
-					assert.Equal(t, 1000, bytes.Count(response.Body.Bytes(), []byte(`"open_time":`)))
+					assert.Len(t, response.Klines, 1000)
 					if i%100 == 0 {
-						for _, path := range []string{"/api/v1/instruments", "/api/v1/tickers", "/api/v1/market-stats"} {
-							snapshot := httptest.NewRecorder()
-							handler.ServeHTTP(snapshot, httptest.NewRequestWithContext(t.Context(), "GET", path, nil))
-							assert.Equal(t, http.StatusOK, snapshot.Code)
+						instruments, err := api.ListInstruments(t.Context(), &pb.ListInstrumentsRequest{})
+						if assert.NoError(t, err) {
+							assert.Len(t, instruments.Instruments, 20000)
+						}
+						tickers, err := api.ListTickers(t.Context(), &pb.ListTickersRequest{})
+						if assert.NoError(t, err) {
+							assert.Len(t, tickers.Tickers, 20000)
+						}
+						stats, err := api.ListMarketStats(t.Context(), &pb.ListMarketStatsRequest{})
+						if assert.NoError(t, err) {
+							assert.Len(t, stats.MarketStats, 20000)
 						}
 					}
+
 				}
 			})
 		}

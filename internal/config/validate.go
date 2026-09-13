@@ -55,16 +55,27 @@ func (c Config) validateLocalSettings() error {
 		return fmt.Errorf("storage.driver must be memory")
 	}
 
-	if c.Server.Host != "" && net.ParseIP(c.Server.Host) == nil && !validHostname(c.Server.Host) {
-		return fmt.Errorf("server.host must be an IP address or hostname")
+	for _, listener := range []struct {
+		name, host string
+		port       int
+	}{
+		{"grpc", c.Server.GRPC.Host, c.Server.GRPC.Port}, {"http", c.Server.HTTP.Host, c.Server.HTTP.Port},
+	} {
+		if listener.host != "" && net.ParseIP(listener.host) == nil && !validHostname(listener.host) {
+			return fmt.Errorf("server.%s.host must be an IP address or hostname", listener.name)
+		}
+		if listener.port > 65535 {
+			return fmt.Errorf("server.%s.port must be in 1..65535", listener.name)
+		}
 	}
-
-	if c.Server.Port > 65535 {
-		return fmt.Errorf("server.port must be in 1..65535")
+	if c.Server.GRPC.Port == c.Server.HTTP.Port && overlappingHosts(c.Server.GRPC.Host, c.Server.HTTP.Host) {
+		return fmt.Errorf("server.grpc and server.http addresses overlap")
 	}
-
-	if c.Server.MaxHeaderBytes > math.MaxInt-4096 || c.HTTPClient.MaxResponseBytes == math.MaxInt {
+	if c.Server.HTTP.MaxHeaderBytes > math.MaxInt-4096 || c.HTTPClient.MaxResponseBytes == math.MaxInt {
 		return fmt.Errorf("HTTP byte limits overflow internal bounds")
+	}
+	if c.Server.GRPC.MaxRequestBytes > math.MaxInt32 || c.Server.GRPC.MaxResponseBytes > math.MaxInt32 || c.Server.GRPC.MaxHeaderBytes > math.MaxInt32 {
+		return fmt.Errorf("gRPC byte limits must not exceed 2147483647")
 	}
 
 	if c.Klines.MaxHistoryCandles > math.MaxInt64/(31*24*60*60) {
@@ -381,4 +392,22 @@ func linearKlineCost(limit int) int {
 	default:
 		return 10
 	}
+}
+
+// DNS names and platform-specific wildcard behavior are checked by binding both listeners.
+func overlappingHosts(first, second string) bool {
+	if strings.EqualFold(first, second) {
+		return true
+	}
+	a, b := net.ParseIP(first), net.ParseIP(second)
+	if first == "" || second == "" {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	if a.Equal(b) {
+		return true
+	}
+	return (a.IsUnspecified() || b.IsUnspecified()) && ((a.To4() == nil) == (b.To4() == nil))
 }

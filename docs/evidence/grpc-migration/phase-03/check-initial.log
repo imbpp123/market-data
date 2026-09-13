@@ -1,0 +1,15 @@
+/Library/Developer/CommandLineTools/usr/bin/make fmt-check
+/Library/Developer/CommandLineTools/usr/bin/make check-config
+go build -o bin/market-data-service ./cmd/market-data-service
+./bin/market-data-service -config docs/examples/config-v1.yaml -check-config
+{"time":"2026-09-13T16:50:02.159521+02:00","level":"INFO","msg":"Configuration is valid"}
+/Library/Developer/CommandLineTools/usr/bin/make lint
+"/Users/nkornushkov/Projects/market-data/bin/golangci-lint/v2.13.2/golangci-lint" config verify --config .golangci.yml
+"/Users/nkornushkov/Projects/market-data/bin/golangci-lint/v2.13.2/golangci-lint" run --config .golangci.yml ./...
+internal/bootstrap/klines_test.go:50:6: func candleURL is unused (unused)
+func candleURL(scope application.Scope, from, to time.Time) string {
+     ^
+1 issues:
+* unused: 1
+make[1]: *** [lint] Error 1
+make: *** [check] Error 2

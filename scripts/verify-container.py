@@ -33,6 +33,10 @@ class ContainerReleaseTest(unittest.TestCase):
                     self.fail(result.stdout)
                 return result.stdout.strip()
 
+            base = json.loads(command("docker", "compose", "-f", str(ROOT / "compose.yaml"), "config", "--format", "json"))
+            ports = base["services"]["market-data-service"]["ports"]
+            self.assertEqual({8080, 9090}, {int(port["target"]) for port in ports})
+            self.assertTrue(all(port["host_ip"] == "127.0.0.1" for port in ports))
             try:
                 command(*compose, "up", "-d", "--wait", "--wait-timeout", "30", "--no-build")
                 container = command(*compose, "ps", "-q", "market-data-service")
@@ -59,7 +63,7 @@ class ContainerReleaseTest(unittest.TestCase):
                 self.assertEqual(0, stopped["State"]["ExitCode"])
                 self.assertFalse(stopped["State"]["OOMKilled"])
                 self.assertLess(elapsed, 35)
-                print(json.dumps({"non_root": True, "config_read_only": True, "root_read_only": True, "certificates": True, "health": 200, "ready": 200, "unready_data": 503, "network": "internal", "stop_seconds": round(elapsed, 3), "exit_code": 0}))
+                print(json.dumps({"non_root": True, "config_read_only": True, "root_read_only": True, "certificates": True, "health": 200, "ready": 200, "grpc_unready_data": "UNAVAILABLE/data_not_ready", "legacy_http_data": 404, "network": "internal", "stop_seconds": round(elapsed, 3), "exit_code": 0}))
             finally:
                 command(*compose, "down")
 

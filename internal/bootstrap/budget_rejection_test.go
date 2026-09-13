@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -16,11 +15,11 @@ import (
 
 	"market-data/internal/application"
 	"market-data/internal/application/instrument"
+	"market-data/internal/application/kline"
 	"market-data/internal/application/marketstats"
 	"market-data/internal/config"
 	"market-data/internal/domain"
 	"market-data/internal/infrastructure/exchange/upstream"
-	httptransport "market-data/internal/transport/http"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -153,7 +152,7 @@ func TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots(t *testing.T) {
 	}
 }
 
-func TestKlineBudgetRejectionKeepsPagesWithoutPartialHTTPSuccess(t *testing.T) {
+func TestKlineBudgetRejectionKeepsPagesWithoutPartialSuccess(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		cfg := config.Defaults()
 		cfg.Klines.MaxHistoryCandles = 4
@@ -184,26 +183,21 @@ func TestKlineBudgetRejectionKeepsPagesWithoutPartialHTTPSuccess(t *testing.T) {
 			cancel()
 			service.Wait()
 		}()
-		handler := httptransport.NewKlinesHandler(service, time.Second, cfg.Klines.MaxCallers)
 		started := time.Now()
-		response := httptest.NewRecorder()
+		response, err := service.Get(t.Context(), kline.Query{Series: kline.Series{Scope: scope, Symbol: "BTCUSDT", Interval: domain.Timeframe1m}, From: end.Add(-4 * time.Minute), To: end})
+		assert.ErrorIs(t, err, application.ErrServiceOverloaded)
+		assert.Empty(t, response)
 
-		handler.ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", candleURL(scope, end.Add(-4*time.Minute), end), nil))
-
-		assert.Equal(t, 503, response.Code)
-		assert.Contains(t, response.Body.String(), `"code":"service_overloaded"`)
-		assert.NotContains(t, response.Body.String(), `"data"`)
 		assert.Equal(t, started, time.Now())
 		assert.Equal(t, int64(1), calls.Load())
 		metrics := state.klineMetrics.Snapshot()[scope]
 		assert.Equal(t, uint64(1), metrics.Attempts)
 		assert.Equal(t, uint64(2), metrics.Downloaded)
-		cached := httptest.NewRecorder()
+		cached, err := service.Get(t.Context(), kline.Query{Series: kline.Series{Scope: scope, Symbol: "BTCUSDT", Interval: domain.Timeframe1m}, From: fetchedFrom, To: fetchedTo})
+		require.NoError(t, err)
+		require.Len(t, cached, 2)
+		assert.Equal(t, "1.1234567890123456789", cached[0].Open.String())
 
-		handler.ServeHTTP(cached, httptest.NewRequestWithContext(t.Context(), "GET", candleURL(scope, fetchedFrom, fetchedTo), nil))
-
-		assert.Equal(t, 200, cached.Code, "%s", cached.Body.String())
-		assert.Contains(t, cached.Body.String(), "1.1234567890123456789")
 		assert.Equal(t, int64(1), calls.Load())
 		assert.Equal(t, uint64(1), state.klineMetrics.Snapshot()[scope].Attempts)
 	})
@@ -248,26 +242,21 @@ func TestParallelKlineCallersAllowOneCrossingAndKeepCacheReadable(t *testing.T) 
 			cancel()
 			service.Wait()
 		}()
-		handler := httptransport.NewKlinesHandler(service, time.Second, cfg.Klines.MaxCallers)
 		type outcome struct {
-			url      string
-			response *httptest.ResponseRecorder
+			query kline.Query
+			rows  []domain.Kline
+			err   error
 		}
 		results := make(chan outcome, 2)
 		for _, symbol := range []string{"BTCUSDT", "ETHUSDT"} {
-			url := strings.ReplaceAll(candleURL(scope, end.Add(-time.Minute), end), "BTCUSDT", symbol)
-			go func() {
-				r := httptest.NewRecorder()
-				handler.ServeHTTP(r, httptest.NewRequestWithContext(t.Context(), "GET", url, nil))
-				results <- outcome{url: url, response: r}
-			}()
+			query := kline.Query{Series: kline.Series{Scope: scope, Symbol: symbol, Interval: domain.Timeframe1m}, From: end.Add(-time.Minute), To: end}
+			go func() { rows, err := service.Get(t.Context(), query); results <- outcome{query, rows, err} }()
 		}
 		synctest.Wait()
-
 		rejected := <-results
+		assert.ErrorIs(t, rejected.err, application.ErrServiceOverloaded)
+		assert.Empty(t, rejected.rows)
 
-		assert.Equal(t, 503, rejected.response.Code)
-		assert.Contains(t, rejected.response.Body.String(), `"code":"service_overloaded"`)
 		assert.Equal(t, int64(2), calls.Load(), "one seed and one crossing request")
 		for _, w := range state.exchanges.admission.Diagnostics().Scopes[0].Windows {
 			if w.Name == "request_weight_1m" {
@@ -277,11 +266,12 @@ func TestParallelKlineCallersAllowOneCrossingAndKeepCacheReadable(t *testing.T) 
 		}
 		close(reply)
 		accepted := <-results
-		assert.Equal(t, 200, accepted.response.Code)
-		cached := httptest.NewRecorder()
-		handler.ServeHTTP(cached, httptest.NewRequestWithContext(t.Context(), "GET", accepted.url, nil))
-		assert.Equal(t, 200, cached.Code)
-		assert.JSONEq(t, accepted.response.Body.String(), cached.Body.String())
+		require.NoError(t, accepted.err)
+		require.Len(t, accepted.rows, 1)
+		cached, err := service.Get(t.Context(), accepted.query)
+		require.NoError(t, err)
+		assert.Equal(t, accepted.rows, cached)
+
 		assert.Equal(t, int64(2), calls.Load())
 		assert.Equal(t, uint64(1), state.klineMetrics.Snapshot()[scope].Attempts)
 		for _, stats := range state.exchangeMetrics.Snapshot() {

@@ -22,7 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	httptransport "market-data/internal/transport/http"
+	httptransport "market-data/scripts/api/httpfixture/legacyhttp"
 )
 
 type counters struct{ read, written atomic.Int64 }

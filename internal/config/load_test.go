@@ -42,15 +42,15 @@ func TestDefaultsAndExample(t *testing.T) {
 }
 
 func TestPartialYAMLAndEnvironmentPrecedence(t *testing.T) {
-	cfg := loadText(t, `server: {port: 8082}
+	cfg := loadText(t, `server: {http: {port: 8082}}
 klines: {max_history_candles: 500, request_timeout: 20s}
 exchanges:
   binance:
     instruments: {refresh_interval: 12m}
     klines:
       max_candles_per_request: {linear: 1000}
-`, "MDS_SERVER_PORT=8083", "MDS_KLINES_MAX_HISTORY_CANDLES=200", "MDS_KLINES_REQUEST_TIMEOUT=15s", "MDS_EXCHANGES_BYBIT_MARKETS=[\"linear\"]", "UNRELATED=ignored")
-	assert.Equal(t, 8083, cfg.Server.Port)
+`, "MDS_SERVER_HTTP_PORT=8083", "MDS_KLINES_MAX_HISTORY_CANDLES=200", "MDS_KLINES_REQUEST_TIMEOUT=15s", "MDS_EXCHANGES_BYBIT_MARKETS=[\"linear\"]", "UNRELATED=ignored")
+	assert.Equal(t, 8083, cfg.Server.HTTP.Port)
 	assert.Equal(t, 200, cfg.Klines.MaxHistoryCandles)
 	assert.Equal(t, 15*time.Second, cfg.Klines.RequestTimeout)
 	assert.Equal(t, 10*time.Second, cfg.HTTPClient.Timeout)
@@ -117,7 +117,7 @@ func TestInvalidConfigurationSources(t *testing.T) {
 		{"multiple documents", "{}\n---\n{}", nil},
 		{"unknown key", "server: {typo: 1}", nil},
 		{"unknown empty map", "missing: {}", nil},
-		{"duplicate", "server: {port: 1, port: 2}", nil},
+		{"duplicate", "server: {http: {port: 1, port: 2}}", nil},
 		{"duplicate section", "server: {}\nserver: {}", nil},
 		{"numeric key", "server: {1: 2}", nil},
 		{"null section", "server: null", nil},
@@ -126,17 +126,17 @@ func TestInvalidConfigurationSources(t *testing.T) {
 		{"obsolete statistics log interval env", "", []string{"MDS_OBSERVABILITY_STATS_LOG_INTERVAL=1m"}},
 		{"bybit schedule", "exchanges: {bybit: {market_stats: {refresh_interval: 30s}}}", nil},
 		{"unknown env", "", []string{"MDS_UNKNOWN=1"}},
-		{"bad env shape", "", []string{"MDS_SERVER_PORT"}},
-		{"duplicate env", "", []string{"MDS_SERVER_PORT=1", "MDS_SERVER_PORT=2"}},
+		{"bad env shape", "", []string{"MDS_SERVER_HTTP_PORT"}},
+		{"duplicate env", "", []string{"MDS_SERVER_HTTP_PORT=1", "MDS_SERVER_HTTP_PORT=2"}},
 		{"alias conflict", "", []string{"MDS_SENTRY_DSN=", "MDS_OBSERVABILITY_SENTRY_DSN="}},
 		{"list CSV", "", []string{"MDS_MARKET_STATS_WINDOWS=24h"}},
 		{"list null", "", []string{"MDS_MARKET_STATS_WINDOWS=null"}},
 		{"list number", "", []string{"MDS_MARKET_STATS_WINDOWS=[24]"}},
-		{"YAML numeric string", "server: {port: \"8080\"}", nil},
+		{"YAML numeric string", "server: {http: {port: \"8080\"}}", nil},
 		{"YAML boolean string", "exchanges: {bybit: {enabled: \"false\"}}", nil},
 		{"YAML sequence type", "market_stats: {windows: [24]}", nil},
 		{"alias", "server: &server {}", nil},
-		{"bad YAML remains error", "server: {port: true}", []string{"MDS_SERVER_PORT=8080"}},
+		{"bad YAML remains error", "server: {http: {port: true}}", []string{"MDS_SERVER_HTTP_PORT=8080"}},
 	}
 
 	for _, tc := range cases {
@@ -163,7 +163,7 @@ func TestAllDurationFields(t *testing.T) {
 	cfg := loadText(t, "http_client: {timeout: 2s}\nklines: {request_timeout: 25s}")
 	assert.Equal(t, 2*time.Second, cfg.HTTPClient.Timeout)
 	assert.Equal(t, 25*time.Second, cfg.Klines.RequestTimeout)
-	assert.Equal(t, 30*time.Second, cfg.WriteTimeout())
+	assert.Equal(t, 5*time.Second, cfg.Server.HTTP.WriteTimeout)
 }
 
 func TestSentryAndScalarTypes(t *testing.T) {

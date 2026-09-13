@@ -24,15 +24,29 @@ type Config struct {
 }
 
 type Server struct {
-	Host                string        `yaml:"host"`
-	Port                int           `yaml:"port"`
-	ReadHeaderTimeout   time.Duration `yaml:"read_header_timeout"`
-	IdleTimeout         time.Duration `yaml:"idle_timeout"`
+	GRPC                GRPCServer    `yaml:"grpc"`
+	HTTP                HTTPServer    `yaml:"http"`
 	ShutdownTimeout     time.Duration `yaml:"shutdown_timeout"`
-	MaxHeaderBytes      int           `yaml:"max_header_bytes"`
-	MaxQueryBytes       int           `yaml:"max_query_bytes"`
 	MaxSnapshotRequests int           `yaml:"max_snapshot_requests"`
 	SnapshotTimeout     time.Duration `yaml:"snapshot_timeout"`
+}
+
+type GRPCServer struct {
+	Host             string `yaml:"host"`
+	Port             int    `yaml:"port"`
+	MaxRequestBytes  int    `yaml:"max_request_bytes"`
+	MaxResponseBytes int    `yaml:"max_response_bytes"`
+	MaxHeaderBytes   int    `yaml:"max_header_bytes"`
+}
+
+type HTTPServer struct {
+	Host              string        `yaml:"host"`
+	Port              int           `yaml:"port"`
+	ReadHeaderTimeout time.Duration `yaml:"read_header_timeout"`
+	IdleTimeout       time.Duration `yaml:"idle_timeout"`
+	WriteTimeout      time.Duration `yaml:"write_timeout"`
+	MaxHeaderBytes    int           `yaml:"max_header_bytes"`
+	MaxQueryBytes     int           `yaml:"max_query_bytes"`
 }
 
 type Storage struct {
@@ -190,20 +204,12 @@ type Stats struct {
 	EndpointEnabled bool `yaml:"endpoint_enabled"`
 }
 
-func (c Config) WriteTimeout() time.Duration {
-	return max(c.Klines.RequestTimeout, c.Server.SnapshotTimeout) + WriteGrace
-}
-
 func Defaults() Config {
 	return Config{
 		Server: Server{
-			Host:                "0.0.0.0",
-			Port:                8080,
-			ReadHeaderTimeout:   5 * time.Second,
-			IdleTimeout:         time.Minute,
+			GRPC:                GRPCServer{Host: "0.0.0.0", Port: 9090, MaxRequestBytes: 8192, MaxResponseBytes: 16777216, MaxHeaderBytes: 32768},
+			HTTP:                HTTPServer{Host: "0.0.0.0", Port: 8080, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: time.Minute, WriteTimeout: 5 * time.Second, MaxHeaderBytes: 32768, MaxQueryBytes: 8192},
 			ShutdownTimeout:     35 * time.Second,
-			MaxHeaderBytes:      32768,
-			MaxQueryBytes:       8192,
 			MaxSnapshotRequests: 64,
 			SnapshotTimeout:     5 * time.Second,
 		},

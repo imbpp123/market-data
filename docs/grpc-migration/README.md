@@ -1,6 +1,6 @@
 # gRPC migration: execution phases
 
-September 13, 2026. The user approved the [main specification](../grpc-migration-specification.md), including Python installation from this repository. Phase 1 is complete after independent review and correction of one finding. Phase 2 is complete after independent review and correction of seven findings. Phases 3–4 are planned.
+September 13, 2026. The user approved the [main specification](../grpc-migration-specification.md), including Python installation from this repository. Phase 1 is complete after independent review and correction of one finding. Phase 2 is complete after independent review and correction of seven findings. Phase 3 is complete after independent review. Phase 4 is planned.
 
 The specification owns the requirements. These files explain implementation order, affected areas, test cases, and completion evidence. They do not add streaming, an HTTP compatibility period, or a separate client repository.
 
@@ -8,7 +8,7 @@ The specification owns the requirements. These files explain implementation orde
 | --- | --- | --- | --- | --- |
 | [1. Contract and clients](01-contract-and-clients.md) | Protobuf schema, generated Go/Python packages, Git installation, compatibility checks, HTTP baseline | Installable client packages and measured contract sizes | None | Complete; independently reviewed |
 | [2. Transport and lifecycle](02-transport-and-lifecycle.md) | Four RPC handlers, errors, bounds, send ownership, telemetry, two-server lifecycle | Real local gRPC calls preserve application behavior and release resources | Phase 1 | Complete; independently reviewed |
-| [3. HTTP removal and operational cutover](03-cutover-and-operations.md) | Switch startup, replace config, remove HTTP data handlers, update containers and CI | The executable serves data only through gRPC and operations through HTTP | Phase 2 | Planned |
+| [3. HTTP removal and operational cutover](03-cutover-and-operations.md) | Switch startup, replace config, remove HTTP data handlers, update containers and CI | The executable serves data only through gRPC and operations through HTTP | Phase 2 | Complete; independently reviewed |
 | [4. Acceptance and measurements](04-validation-and-measurements.md) | Cross-language acceptance, combined upstream behavior, load and traffic comparison, final documentation | A reproducible verification report and explicit release readiness decision | Phase 3 and completed request-budget rework | Planned |
 
 ## How to execute

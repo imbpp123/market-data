@@ -77,7 +77,7 @@ func TestInstrumentWorkersKeepExchangeFailuresIndependent(t *testing.T) {
 	})
 }
 
-func TestServeExposesInstrumentReadinessSeparately(t *testing.T) {
+func TestServeDoesNotExposeHTTPInstruments(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		cfg := config.Defaults()
 		state, err := newServerState(t, cfg)
@@ -99,10 +99,10 @@ func TestServeExposesInstrumentReadinessSeparately(t *testing.T) {
 
 		require.NoError(t, err)
 		defer func() { _ = response.Body.Close() }()
-		assert.Equal(t, 503, response.StatusCode)
+		assert.Equal(t, 404, response.StatusCode)
 		body, err := io.ReadAll(response.Body)
 		require.NoError(t, err)
-		assert.Contains(t, string(body), "data_not_ready")
+		assert.Contains(t, string(body), "not_found")
 		assert.True(t, state.ready.Load())
 	})
 }

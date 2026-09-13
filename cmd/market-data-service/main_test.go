@@ -22,7 +22,7 @@ func TestRunValidatesBeforeStartup(t *testing.T) {
 		args, env []string
 		wantError bool
 	}{
-		{"bad config", nil, []string{"MDS_SERVER_PORT=0"}, true},
+		{"bad config", nil, []string{"MDS_SERVER_HTTP_PORT=0"}, true},
 		{"unknown env", nil, []string{"MDS_UNKNOWN=1"}, true},
 		{"missing file", []string{"-config", filepath.Join(t.TempDir(), "missing.yaml")}, nil, true},
 		{"unknown flag", []string{"-missing"}, nil, true},
@@ -50,19 +50,19 @@ func TestRunValidatesBeforeStartup(t *testing.T) {
 
 func TestRunPassesFinalSettingsAndPreservesStartupError(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
-	require.NoError(t, os.WriteFile(path, []byte("server: {port: 8082}"), 0600))
+	require.NoError(t, os.WriteFile(path, []byte("server: {http: {port: 8082}}"), 0600))
 
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logs, nil))
 	expected := errors.New("listen failed")
 	var received config.Config
-	err := run(t.Context(), []string{"-config", path}, []string{"MDS_SERVER_PORT=8083"}, io.Discard, logger, func(_ context.Context, cfg config.Config, _ *slog.Logger) error {
+	err := run(t.Context(), []string{"-config", path}, []string{"MDS_SERVER_HTTP_PORT=8083"}, io.Discard, logger, func(_ context.Context, cfg config.Config, _ *slog.Logger) error {
 		received = cfg
 
 		return expected
 	})
 	assert.ErrorIs(t, err, expected)
-	assert.Equal(t, 8083, received.Server.Port)
+	assert.Equal(t, 8083, received.Server.HTTP.Port)
 
 	assert.NotContains(t, logs.String(), "not implemented")
 }

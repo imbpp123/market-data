@@ -150,8 +150,8 @@ def main():
             for row in results:
                 ordered = sorted(row["latency_ns"])
                 row["latency_percentiles_ns"] = {key: ordered[min(len(ordered)-1, (len(ordered)*percent+99)//100-1)] for key, percent in (("p50",50),("p95",95),("p99",99))}
-            source_files = [*sorted((ROOT / "scripts/api/httpfixture").glob("*.go")), ROOT / "scripts/api/http_baseline.py", ROOT / "go.mod", ROOT / "go.sum",
-                            *sorted((ROOT / "internal/transport/http").glob("*.go")), ROOT / "api/go/internal/fixture/server.go", ROOT / "api/proto/marketdata/v1/market_data.proto"]
+            source_files = [*sorted((ROOT / "scripts/api/httpfixture").rglob("*.go")), ROOT / "scripts/api/http_baseline.py", ROOT / "go.mod", ROOT / "go.sum",
+                            ROOT / "api/go/internal/fixture/server.go", ROOT / "api/proto/marketdata/v1/market_data.proto"]
             report = {"source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                       "source_status": subprocess.check_output(["git", "status", "--short"], cwd=ROOT, text=True),
                       "source_sha256": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in source_files},

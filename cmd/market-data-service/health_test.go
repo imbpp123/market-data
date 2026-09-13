@@ -84,7 +84,7 @@ func TestRunHealthcheckDoesNotStartService(t *testing.T) {
 	host, port, err := net.SplitHostPort(server.Listener.Addr().String())
 	require.NoError(t, err)
 
-	err = run(t.Context(), []string{"-healthcheck"}, []string{"MDS_SERVER_HOST=" + host, "MDS_SERVER_PORT=" + port}, io.Discard, slog.New(slog.NewJSONHandler(io.Discard, nil)), func(context.Context, config.Config, *slog.Logger) error {
+	err = run(t.Context(), []string{"-healthcheck"}, []string{"MDS_SERVER_HTTP_HOST=" + host, "MDS_SERVER_HTTP_PORT=" + port}, io.Discard, slog.New(slog.NewJSONHandler(io.Discard, nil)), func(context.Context, config.Config, *slog.Logger) error {
 		t.Error("healthcheck started the service")
 		return nil
 	})

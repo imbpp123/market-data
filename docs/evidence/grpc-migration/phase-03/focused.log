@@ -1,0 +1,6 @@
+ok  	market-data/internal/config	(cached)
+ok  	market-data/internal/transport/http	(cached)
+ok  	market-data/cmd/market-data-service	(cached)
+ok  	market-data/internal/bootstrap	0.629s
+ok  	market-data/internal/transport/grpc	(cached)
+ok  	market-data/scripts/api/httpfixture	(cached)

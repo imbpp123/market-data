@@ -133,7 +133,7 @@ func TestShutdownStopsWaitingAtTheDeadline(t *testing.T) {
 
 func TestRunRejectsInvalidConfigBeforeStartingWorkers(t *testing.T) {
 	cfg := config.Defaults()
-	cfg.Server.Port = 0
+	cfg.Server.HTTP.Port = 0
 	var started atomic.Bool
 	worker := func(context.Context) error {
 		started.Store(true)
@@ -289,4 +289,17 @@ func newServerState(t *testing.T, cfg config.Config) (*localState, error) {
 
 	state.exchanges, err = newExchangeClients(cfg, noExchangeCalls{t}, upstream.SystemClock{}, func(time.Duration) time.Duration { return 0 }, nil)
 	return state, err
+}
+
+// Existing operational lifecycle cases now exercise the production dual composition.
+func (state *localState) serve(ctx context.Context, cfg config.Config, logger *slog.Logger, listener net.Listener, workers ...Worker) error {
+	dataListener := newPipeListener()
+	settings := configuredGRPC(cfg)
+	listen := func(_ context.Context, _, address string) (net.Listener, error) {
+		if address == settings.Address {
+			return dataListener, nil
+		}
+		return listener, nil
+	}
+	return state.serveGRPC(ctx, cfg, logger, settings, listen, workers...)
 }

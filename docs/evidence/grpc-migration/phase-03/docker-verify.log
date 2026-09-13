@@ -1,0 +1,8 @@
+CGO_ENABLED=0 GOOS=linux go test -c -o bin/release-probe ./internal/bootstrap
+python3 scripts/verify-container.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 6.426s
+
+OK
+{"non_root": true, "config_read_only": true, "root_read_only": true, "certificates": true, "health": 200, "ready": 200, "grpc_unready_data": "UNAVAILABLE/data_not_ready", "legacy_http_data": 404, "network": "internal", "stop_seconds": 0.14, "exit_code": 0}

@@ -17,10 +17,10 @@ func TestInvalidSettings(t *testing.T) {
 		change func(*Config)
 	}{
 		{"driver", func(c *Config) { c.Storage.Driver = "redis" }},
-		{"port", func(c *Config) { c.Server.Port = 65536 }},
-		{"host URL", func(c *Config) { c.Server.Host = "https://localhost" }},
-		{"host label", func(c *Config) { c.Server.Host = "-invalid" }},
-		{"header overflow", func(c *Config) { c.Server.MaxHeaderBytes = math.MaxInt }},
+		{"port", func(c *Config) { c.Server.HTTP.Port = 65536 }},
+		{"host URL", func(c *Config) { c.Server.HTTP.Host = "https://localhost" }},
+		{"host label", func(c *Config) { c.Server.HTTP.Host = "-invalid" }},
+		{"header overflow", func(c *Config) { c.Server.HTTP.MaxHeaderBytes = math.MaxInt }},
 		{"body overflow", func(c *Config) { c.HTTPClient.MaxResponseBytes = math.MaxInt }},
 		{"shutdown", func(c *Config) { c.Server.ShutdownTimeout = 34 * time.Second }},
 		{"write overflow", func(c *Config) { c.Klines.RequestTimeout = time.Duration(math.MaxInt64) }},

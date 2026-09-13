@@ -74,7 +74,7 @@ func run(ctx context.Context, args, environment []string, output io.Writer, logg
 	}
 
 	if *health {
-		return checkHealth(ctx, cfg.Server.Host, cfg.Server.Port)
+		return checkHealth(ctx, cfg.Server.HTTP.Host, cfg.Server.HTTP.Port)
 	}
 
 	return start(ctx, cfg, logger)

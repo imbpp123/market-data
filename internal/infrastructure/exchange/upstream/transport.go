@@ -63,7 +63,7 @@ func NewTransport(controller *Controller, scope Scope, base http.RoundTripper, c
 	if !ok {
 		return nil, application.ErrUnsupportedOperation
 	}
-	t := &Transport{controller: controller, scope: scope, base: base, settings: cfg.HTTPClient, maxQuery: cfg.Server.MaxQueryBytes, clock: controller.clock, jitter: jitter, observe: observe}
+	t := &Transport{controller: controller, scope: scope, base: base, settings: cfg.HTTPClient, maxQuery: cfg.Server.HTTP.MaxQueryBytes, clock: controller.clock, jitter: jitter, observe: observe}
 	t.pageLimits = make(map[string]int)
 	if scope == Bybit {
 		for _, market := range cfg.Exchanges.Bybit.Markets {

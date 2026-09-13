@@ -1,6 +1,6 @@
 # gRPC and Protobuf API migration
 
-September 13, 2026. The user approved this specification, including Python installation from this repository. [Phase 1](grpc-migration/01-contract-and-clients.md) is complete after independent review and correction of one finding. Generated clients and the HTTP baseline are available; production transport is still HTTP. Phase 2 transport and lifecycle are complete after independent review and correction of seven findings. Phases 3–4 are not implemented.
+September 13, 2026. The user approved this specification, including Python installation from this repository. [Phase 1](grpc-migration/01-contract-and-clients.md) is complete after independent review and correction of one finding. Generated clients and the HTTP baseline are available; the production entry point now uses gRPC after the phase 3 cutover. Phase 2 transport and lifecycle are complete after independent review and correction of seven findings. Phase 3 is complete after independent review; phase 4 is not implemented.
 
 The user confirmed full replacement of the market-data HTTP API with gRPC and Protobuf. HTTP remains only for operations on a separate listener. There are no existing clients or published first version, so no compatibility period is needed. Python client code must be generated and kept in this repository; consuming projects install the library from this repository. Ports, schema layout, limits, and tooling below are engineering defaults adopted with this design. The stated implementation verification gates still apply.
 
@@ -12,7 +12,7 @@ Remove the old data routes in the same migration. Do not add a REST gateway, JSO
 
 ## Context / Background
 
-The current implementation uses HTTP/JSON. Application readers, the candle service, memory storage, and exchange adapters already have separate boundaries. Most changes belong to transport, process startup, configuration, clients, and tests.
+Before cutover, the implementation used HTTP/JSON. Application readers, the candle service, memory storage, and exchange adapters already have separate boundaries. Most changes belong to transport, process startup, configuration, clients, and tests.
 
 The agreed workload is 3–4 clients, up to 50 symbols, and the history windows in [specification section 1](technical-specification-v1.md#1-service-goals). The process memory limit remains 1,000,000,000 bytes. The [previous release audit](release-verification-v1.md) is evidence for the HTTP implementation, not acceptance of this migration. Its latency measurements call HTTP handlers in process; they do not measure a network path.
 
@@ -300,7 +300,7 @@ No product decision blocks specification work. Phase 1 must record the exact com
 
 This document supersedes the HTTP data transport requirements in [main specification](technical-specification-v1.md) sections 34–40, related transport configuration in 42–44, and data-request observability, startup/shutdown, tests, packaging, and acceptance references in 46–65. Preserve their business behavior unless an explicit change is stated here.
 
-The [implementation contract](implementation-contract-v1.md#http-contract), JSON examples, and [development guide](development.md) describe the current HTTP implementation until cutover. At cutover, replace active client examples and API contracts with the generated schema and this specification; historical audit files remain labeled as HTTP evidence. The Binance rework's phrase “public API keeps its response format” no longer applies to the client wire format; its business outcomes and failure reasons still apply.
+The [implementation contract](implementation-contract-v1.md#http-contract), JSON examples, and [development guide](development.md) retain historical HTTP transport details and preserved business rules. The generated schema and this specification now define the active data API; README and the development guide describe the current gRPC runtime. Historical audit files remain HTTP evidence. The Binance rework's phrase “public API keeps its response format” no longer applies to the client wire format; its business outcomes and failure reasons still apply.
 
 ## Sources
 

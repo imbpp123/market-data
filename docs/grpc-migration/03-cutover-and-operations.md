@@ -1,6 +1,6 @@
 # Phase 3. Remove HTTP data routes and switch operations
 
-Status: planned; not implemented. Depends on completed [phase 2](02-transport-and-lifecycle.md). See the [phase list](README.md) and approved [configuration contract](../grpc-migration-specification.md#configuration-and-size-bounds).
+Status: complete after independent review. Depends on completed [phase 2](02-transport-and-lifecycle.md). See the [phase list](README.md) and approved [configuration contract](../grpc-migration-specification.md#configuration-and-size-bounds).
 
 ## Summary / Overview
 
@@ -75,3 +75,19 @@ Completion requires a working executable/container with exactly the intended sur
 ## Risks / Trade-offs
 
 This is an intentional breaking config and wire change. Mixing an old example config with the new executable must fail clearly. Missing generated-module files in the container context or CI checks that cover only the root module are the main packaging risks.
+
+## Implementation report
+
+Completed September 13, 2026 after independent review. The executable now always constructs the reviewed gRPC transport and operational HTTP owner. The send/deadline/cleanup mechanism from phase 2 is unchanged. Configuration uses independent `server.grpc` and `server.http` sections; removed flat YAML/environment names fail. Existing shutdown arithmetic and operational exporter path restrictions remain enforced.
+
+Changed areas: config/defaults/tests, bootstrap/CLI, removed HTTP data handlers and migrated regressions, container ports/probe, active run/config/client documentation, and the historical benchmark fixture. Existing API CI checks and Docker nested-module copies were already present; their behavior and release ordering were verified rather than duplicated.
+
+All required checks passed: focused tests, `make check`, `make vet`, `make check-api`, `make docker-build`, and isolated `make docker-verify`. The [phase 3 evidence](../evidence/grpc-migration/phase-03/README.md) includes exact logs, source hashes, coverage mapping and the earlier known baseline flake. No live exchanges or deployment were used.
+
+Remaining gates: phase 4 full acceptance, actual TCP measurements and capacity verification. The historical HTTP benchmark remains reproducible from an isolated fixture; it is not a compatibility API.
+
+### Independent review result
+
+A separate xhigh review found no actionable issues and no lost business coverage. Independent config/operational HTTP, CLI, gRPC, historical fixture and selected bootstrap cutover/lifecycle/candle/budget tests passed. The initial loopback sandbox restriction was resolved with local access; whitespace checks passed. No implementation correction was required.
+
+The reviewer inspected the recorded broad checks without repeating all of them. Phase 4 capacity and real TCP measurements remain pending. See the [review scope and limitations](../evidence/grpc-migration/phase-03/README.md#independent-review). Only documentation and evidence metadata changed after review; no new production changes or publication were made.

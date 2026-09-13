@@ -1,8 +1,8 @@
 # market-data
 
-A Go REST service for Binance and Bybit spot and linear market data. It provides instruments, current tickers, 24-hour market statistics, and cached candles through one API. Binance linear means USDⓈ-M.
+A Go gRPC service for Binance and Bybit spot and linear market data. It provides instruments, current tickers, 24-hour market statistics, and cached candles through one API. Binance linear means USDⓈ-M.
 
-**Status:** the current HTTP implementation was verified for the agreed workload; its results are recorded in the [release audit](docs/release-verification-v1.md). The first release is pending the [gRPC and Protobuf migration](docs/grpc-migration-specification.md): all market-data APIs move to gRPC, with a separate operational HTTP listener and no legacy data API. The contract and clients are complete; the replacement transport and lifecycle are complete after independent review. Production cutover is pending. The commands below describe the current implementation. Deployment remains an explicit operator action.
+**Status:** gRPC is active for all market data, with a separate operational HTTP listener. Migration phase 3 is complete after independent review. Full migration acceptance and workload measurements remain phase 4. The [HTTP release audit](docs/release-verification-v1.md) is historical evidence. Deployment remains an explicit operator action.
 
 ## Run locally
 
@@ -14,7 +14,7 @@ make build
 make run
 ```
 
-The default listener is `0.0.0.0:8080`. Both markets on both exchanges are enabled. Startup initializes memory storage, binds HTTP, and starts independent collectors. No credentials are required for public exchange data. JSON logs go to stderr.
+The default listeners are gRPC `0.0.0.0:9090` and operational HTTP `0.0.0.0:8080`. Both markets on both exchanges are enabled. Startup initializes memory storage, binds both listeners, and starts independent collectors. No credentials are required for public exchange data. JSON logs go to stderr.
 
 ## Configuration
 
@@ -23,7 +23,7 @@ Precedence: **built-in defaults → YAML → explicit MDS_ environment values �
 Environment names are uppercase configuration paths with underscores. Lists are JSON arrays and replace the whole list:
 
 ```sh
-MDS_SERVER_PORT=8081 \
+MDS_SERVER_HTTP_PORT=8081 \
 MDS_EXCHANGES_BYBIT_MARKETS='["linear"]' \
 ./bin/market-data-service -config docs/examples/config-v1.yaml
 ```
@@ -34,23 +34,26 @@ See the [complete configuration example](docs/examples/config-v1.yaml) and [conf
 
 ## API
 
+Market data uses `marketdata.v1.MarketDataService`: `ListInstruments`, `ListTickers`, `ListMarketStats`, and `GetKlines`. Use the checked-in [schema and descriptor](api/README.md), [Go client](api/go/examples/client/main.go), and [Python installation guide](api/python/README.md). Reuse channels, set a deadline per call, and set the 16 MiB receive limit. Go and Python packages need no exchange SDK.
+
+Operational checks stay on HTTP:
+
 ```sh
 curl 'http://localhost:8080/health'
 curl 'http://localhost:8080/ready'
-curl 'http://localhost:8080/api/v1/instruments?exchange=bybit&market=linear&status=trading'
-curl 'http://localhost:8080/api/v1/tickers?exchange=binance&market=spot&symbol=BTCUSDT'
-curl 'http://localhost:8080/api/v1/market-stats?exchange=bybit&market=linear&window=24h'
 ```
 
-All decimal market values are JSON strings. Missing optional fields are explicit `null`. Snapshot APIs read only their repositories. An unavailable selected snapshot returns `503 data_not_ready`; a successfully loaded empty snapshot returns `{"data":[]}`. Snapshot filters select enabled scopes only. Only the `24h` statistics window is supported.
-
-Candles require exchange, market, symbol, interval, and aligned RFC 3339 half-open boundaries. For example, replace these timestamps with a recent closed range inside the configured history window:
+All old `/api/v1/*` HTTP paths return 404. No gateway or reflection is enabled. For command-line inspection with an installed `grpcurl`, use the descriptor:
 
 ```sh
-curl 'http://localhost:8080/api/v1/klines?exchange=binance&market=spot&symbol=BTCUSDT&interval=1m&from=2026-09-12T11:50:00Z&to=2026-09-12T12:00:00Z'
+grpcurl -plaintext -protoset api/descriptor.binpb -max-msg-sz 16777216 -max-time 5 \
+  -d '{"exchange":"binance","market":"spot","symbol":"BTCUSDT"}' \
+  localhost:9090 marketdata.v1.MarketDataService/ListTickers
 ```
 
-The default history bound is 1000 slots per series, measured backwards from the latest close. Complete final cached ranges need no upstream work. Missing or unconfirmed candles share bounded cache fills. Success always contains the complete requested range. See the [API guide](docs/development.md) and [HTTP examples](docs/examples/http-contract-v1.json) for validation, errors, and open-candle behavior.
+Decimal values are exact strings. Optional Protobuf values distinguish absence from zero; times use `google.protobuf.Timestamp`. Unready snapshot scopes return `UNAVAILABLE` with `ErrorDetail.reason=data_not_ready`; ready empty scopes return an empty repeated field. Snapshot reads stay cache-only and only the `24h` statistics window is supported.
+
+Candles use aligned half-open `[from, to)` ranges. The default history bound is 1000 calendar slots per series. Complete final cache ranges need no upstream work. Missing or unconfirmed candles share bounded fills; success always contains the complete requested range. See the [API guide](docs/development.md) and [gRPC contract](docs/grpc-migration-specification.md).
 
 ## Docker and Compose
 
@@ -63,19 +66,19 @@ docker compose logs --tail=100 -f
 make docker-down
 ```
 
-The image uses a digest-pinned Go builder and a `scratch` runtime with CA certificates, a static executable, and UID/GID 65532. Compose publishes only `127.0.0.1:8080`, mounts the example configuration read-only, drops capabilities, and makes the root filesystem read-only. Keep the mounted file readable by UID 65532. There is one service and no state volume.
+The image uses a digest-pinned Go builder and a `scratch` runtime with CA certificates, a static executable, and UID/GID 65532. Compose publishes only `127.0.0.1:9090` and `127.0.0.1:8080`, mounts the example configuration read-only, drops capabilities, and makes the root filesystem read-only. Keep the mounted file readable by UID 65532. There is one service and no state volume.
 
-Compose enforces 1,000,000,000 bytes of memory, disables swap, and sets `GOMEMLIMIT=700MiB`, a soft Go runtime memory target, not a process RSS limit. Capacity and its limits are documented in the [release audit](docs/release-verification-v1.md). Rebuild with `make docker-build` after source changes, then run `make docker-up` to recreate the service.
+Compose enforces 1,000,000,000 bytes of memory, disables swap, and sets `GOMEMLIMIT=700MiB`, a soft Go runtime memory target, not a process RSS limit. The [release audit](docs/release-verification-v1.md) records historical HTTP capacity. Current gRPC capacity acceptance remains phase 4. Rebuild with `make docker-build` after source changes, then run `make docker-up` to recreate the service.
 
-The image runs `/market-data-service -config /etc/market-data/config.yaml`. Its healthcheck uses the same file and environment with `-healthcheck`; it makes one local `/health` request with a two-second timeout and never starts collectors. When running the image directly, mount configuration at that path. Override configuration, ports, or environment with a local Compose override; host `MDS_` variables are not forwarded automatically by Compose. Change both the port mapping and service settings if changing the container's listener port.
+The image runs `/market-data-service -config /etc/market-data/config.yaml`. Its healthcheck uses the same file and environment with `-healthcheck`; it makes one local `/health` request with a two-second timeout and never starts collectors. When running the image directly, mount configuration at that path. Override configuration, ports, or environment with a local Compose override; host `MDS_` variables are not forwarded automatically by Compose. Change the matching port mapping and `server.grpc.port` or `server.http.port` together. Removed flat `server.host`, `server.port`, HTTP settings and their old environment names fail validation.
 
-SIGINT/SIGTERM cancel HTTP admission and owned work. The default internal shutdown bound is 35 seconds; Compose allows 40 seconds before forced termination. Increase `stop_grace_period` if increasing `server.shutdown_timeout`. The service does not restart automatically.
+SIGINT/SIGTERM close RPC admission and owned work. The default internal shutdown bound is 35 seconds; Compose allows 40 seconds before forced termination. Increase `stop_grace_period` if increasing `server.shutdown_timeout`. The service does not restart automatically.
 
 ## Publish a release image
 
 The [release workflow](.github/workflows/release.yml) builds the tagged source with the existing Dockerfile and pushes a Linux/amd64 image to `ghcr.io/<owner>/<repository>`. It runs when a version tag is pushed or a GitHub Release is published, including pre-releases. Use semantic versions with an optional `v` prefix: `v1.2.3` and `1.2.3` both publish `ghcr.io/imbpp123/market-data:1.2.3`; `v1.2.3-rc.1` publishes `:1.2.3-rc.1`. Invalid version tags fail before registry login. No `latest` tag is published.
 
-Before building or publishing the image, the workflow runs `make check` on the tagged commit with Go 1.27.1, just like the Checks workflow. Formatting, build, example configuration, lint, tests, and race checks must all pass. Any failure stops publication.
+Before building or publishing the image, the workflow runs `make check` on the tagged commit with Go 1.27.1, just like the Checks workflow. Formatting, build, example configuration, lint, tests, race checks, and `make check-api` must all pass. API checks cover the nested Go module and isolated Python installations before registry login. Any failure stops publication.
 
 After the workflow is merged, tag the commit to release and push the tag:
 

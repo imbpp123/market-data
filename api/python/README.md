@@ -2,7 +2,7 @@
 
 Generated `marketdata.v1` messages and gRPC stubs. Python 3.13 and 3.14 are supported and tested. Python installation needs no Go, protoc, or grpcio-tools. Version 0.1.0 is an initial local artifact, not a published release.
 
-After these files are committed, pin a full commit containing this package:
+Pin a full existing commit containing this package:
 
 ```text
 market-data-api @ git+https://github.com/imbpp123/market-data.git@COMMIT_SHA#subdirectory=api/python
@@ -22,4 +22,4 @@ with grpc.insecure_channel("localhost:9090", options=[("grpc.max_receive_message
         print(ticker.last_price, ticker.bid_price if ticker.HasField("bid_price") else None)
 ```
 
-Use TLS credentials for remote protected connections. Plaintext examples target local fixtures. Reuse a channel and set a deadline for each call. The generated stub also works with `grpc.aio`. See `api/examples` for complete sync/async examples with safe error details. Production still serves HTTP until migration phase 3.
+Use TLS credentials for remote protected connections. Plaintext examples target local fixtures. Reuse a channel and set a deadline for each call. The generated stub also works with `grpc.aio`. See `api/examples` for complete sync/async examples with safe error details. Production serves gRPC on port 9090; operational HTTP uses port 8080. The full example programs use fixed contract-fixture candle inputs; choose a real symbol and a recent aligned range when calling the service.

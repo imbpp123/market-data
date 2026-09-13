@@ -1,7 +1,6 @@
-package httptransport
+package grpctransport
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -19,8 +18,12 @@ import (
 	"market-data/internal/infrastructure/exchange/upstream"
 	"market-data/internal/infrastructure/storage/memory"
 
+	pb "github.com/imbpp123/market-data/api/go/marketdata/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const binanceCatalogRow = `{"symbol":"ABCUSDT","baseAsset":"ABC","quoteAsset":"USDT","status":"TRADING","contractType":"PERPETUAL","deliveryDate":4133404800000,"filters":[{"filterType":"LOT_SIZE","stepSize":"0.000001"},{"filterType":"PRICE_FILTER","tickSize":"0.000000000000000123"}]}`
@@ -138,11 +141,14 @@ func TestInstrumentsEndToEnd(t *testing.T) {
 			scope := application.Scope{Exchange: tt.exchange, Market: tt.market}
 			now := time.Date(2026, 9, 12, 12, 0, 0, 123, time.FixedZone("offset", 7200))
 			refresh := instrument.NewRefresher(provider, repo, func() time.Time { return now }, nil)
-			handler := instrumentHandler(instrument.NewReader(repo, []application.Scope{scope}), time.Second, 1)
-			unready := httptest.NewRecorder()
-			handler.ServeHTTP(unready, httptest.NewRequestWithContext(t.Context(), "GET", "/api/v1/instruments", nil))
-			require.Equal(t, 503, unready.Code)
+			readers := fixtureReaders(applicationFixture(t, nil))
+			readers.Instruments = instrument.NewReader(repo, []application.Scope{scope})
+			_, address := startServer(t, readers, testSettings(), nil)
+			api := client(t, address)
+			_, err = api.ListInstruments(t.Context(), &pb.ListInstrumentsRequest{})
+			require.Equal(t, codes.Unavailable, status.Code(err))
 			require.Equal(t, int64(0), calls.Load())
+
 			ctx, cancel, err := controller.Begin(t.Context(), transportScope, upstream.Instruments)
 			require.NoError(t, err)
 			defer cancel()
@@ -150,30 +156,25 @@ func TestInstrumentsEndToEnd(t *testing.T) {
 			require.NoError(t, refresh.Refresh(ctx))
 
 			count := calls.Load()
-			response := httptest.NewRecorder()
-			handler.ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", "/api/v1/instruments?symbol=ABCUSDT&status=trading", nil))
-			require.Equal(t, 200, response.Code)
-			var payload struct {
-				Data []map[string]any `json:"data"`
-			}
-			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &payload))
-			require.Len(t, payload.Data, 1)
-			row := payload.Data[0]
-			assert.Equal(t, "0.000000000000000123", row["price_tick"])
-			assert.Equal(t, "0.000001", row["qty_step"])
-			assert.Equal(t, "2026-09-12T10:00:00.000000123Z", row["updated_at"])
-			for _, key := range []string{"min_qty", "max_qty", "min_notional", "delisting_time"} {
-				assert.Contains(t, row, key)
-				assert.Nil(t, row[key])
-			}
-			assert.Contains(t, row, "funding_interval")
+			response, err := api.ListInstruments(t.Context(), &pb.ListInstrumentsRequest{Symbol: proto.String("ABCUSDT"), Status: proto.String("trading")})
+			require.NoError(t, err)
+			require.Len(t, response.Instruments, 1)
+			row := response.Instruments[0]
+			assert.Equal(t, "0.000000000000000123", row.PriceTick)
+			assert.Equal(t, "0.000001", row.QtyStep)
+			assert.Equal(t, "2026-09-12T10:00:00.000000123Z", row.UpdatedAt.AsTime().Format(time.RFC3339Nano))
+			assert.Nil(t, row.MinQty)
+			assert.Nil(t, row.MaxQty)
+			assert.Nil(t, row.MinNotional)
+			assert.Nil(t, row.DelistingTime)
 			if tt.market == domain.MarketSpot {
-				assert.Nil(t, row["funding_interval"])
+				assert.Nil(t, row.FundingIntervalSeconds)
 			} else if tt.exchange == domain.ExchangeBinance {
-				assert.Equal(t, float64(14400), row["funding_interval"])
+				assert.Equal(t, int64(14400), row.GetFundingIntervalSeconds())
 			} else {
-				assert.Equal(t, float64(28800), row["funding_interval"])
+				assert.Equal(t, int64(28800), row.GetFundingIntervalSeconds())
 			}
+
 			assert.Equal(t, count, calls.Load(), "reads must not fetch upstream")
 
 			mode.Store(1)
@@ -183,10 +184,10 @@ func TestInstrumentsEndToEnd(t *testing.T) {
 			defer stop()
 			assert.ErrorIs(t, refresh.Refresh(failedCtx), tt.want)
 			count = calls.Load()
-			stale := httptest.NewRecorder()
-			handler.ServeHTTP(stale, httptest.NewRequestWithContext(t.Context(), "GET", "/api/v1/instruments", nil))
-			assert.Equal(t, 200, stale.Code)
-			assert.JSONEq(t, response.Body.String(), stale.Body.String())
+			stale, err := api.ListInstruments(t.Context(), &pb.ListInstrumentsRequest{})
+			require.NoError(t, err)
+			assert.True(t, proto.Equal(response, stale))
+
 			assert.Equal(t, count, calls.Load())
 
 			mode.Store(2)
@@ -194,10 +195,10 @@ func TestInstrumentsEndToEnd(t *testing.T) {
 			require.NoError(t, err)
 			defer stopEmpty()
 			require.NoError(t, refresh.Refresh(emptyCtx))
-			empty := httptest.NewRecorder()
-			handler.ServeHTTP(empty, httptest.NewRequestWithContext(t.Context(), "GET", "/api/v1/instruments", nil))
-			assert.Equal(t, 200, empty.Code)
-			assert.JSONEq(t, `{"data":[]}`, empty.Body.String())
+			empty, err := api.ListInstruments(t.Context(), &pb.ListInstrumentsRequest{})
+			require.NoError(t, err)
+			assert.Empty(t, empty.Instruments)
+
 		})
 	}
 }

@@ -13,7 +13,7 @@ FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /out/market-data-service /market-data-service
 USER 65532:65532
-EXPOSE 8080
+EXPOSE 9090 8080
 STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 CMD ["/market-data-service", "-config", "/etc/market-data/config.yaml", "-healthcheck"]
 ENTRYPOINT ["/market-data-service"]

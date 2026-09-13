@@ -46,7 +46,7 @@ func TestOperationRoutesAreIndependentAndDisabledByDefault(t *testing.T) {
 			workers, err := state.operationWorkers(cfg, testLogger(), routes, time.Now)
 			require.NoError(t, err)
 			require.Len(t, workers, 1)
-			handler := httptransport.NewAPIHandler(func() bool { return true }, cfg.Server.MaxQueryBytes, routes)
+			handler := httptransport.NewAPIHandler(func() bool { return true }, cfg.Server.HTTP.MaxQueryBytes, routes)
 
 			for _, path := range []string{"/custom-metrics", "/debug/stats", "/metrics"} {
 				response := httptest.NewRecorder()
@@ -248,7 +248,7 @@ func TestExchangeCooldownDoesNotBlockReadinessOrShutdown(t *testing.T) {
 		require.NoError(t, err)
 		response, err = client.Do(request)
 		require.NoError(t, err)
-		assert.Equal(t, http.StatusServiceUnavailable, response.StatusCode)
+		assert.Equal(t, http.StatusNotFound, response.StatusCode)
 		_, err = io.Copy(io.Discard, response.Body)
 		require.NoError(t, err)
 		require.NoError(t, response.Body.Close())
