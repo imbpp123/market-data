@@ -10,7 +10,7 @@ build:
 	$(GO) build -o bin/market-data-service ./cmd/market-data-service
 
 run:
-	$(GO) run ./cmd/market-data-service -config docs/examples/config-v1.yaml
+	$(GO) run ./cmd/market-data-service -config config/config-v1.yaml
 
 fmt-check:
 	@files=$$(gofmt -l cmd internal scripts/api/httpfixture scripts/api/grpcfixture api/go) || exit $$?; \
@@ -20,7 +20,7 @@ fmt-check:
 	fi
 
 check-config: build
-	./bin/market-data-service -config docs/examples/config-v1.yaml -check-config
+	./bin/market-data-service -config config/config-v1.yaml -check-config
 
 test:
 	$(GO) test ./...

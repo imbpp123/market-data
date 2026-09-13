@@ -51,7 +51,7 @@ class ContainerReleaseTest(unittest.TestCase):
                 self.assertEqual("healthy", info["State"]["Health"]["Status"])
                 config = next(m for m in info["Mounts"] if m["Destination"] == "/etc/market-data/config.yaml")
                 self.assertFalse(config["RW"])
-                self.assertEqual(str(ROOT / "docs/examples/config-v1.yaml"), config["Source"])
+                self.assertEqual(str(ROOT / "config/config-v1.yaml"), config["Source"])
                 network = next(iter(info["NetworkSettings"]["Networks"]))
                 self.assertTrue(json.loads(command("docker", "network", "inspect", network))[0]["Internal"])
                 command("docker", "exec", "-e", "MDS_RELEASE_CONTAINER_PROBE=1", container, "/release-probe", "-test.run", "^TestReleaseContainerProbe$", "-test.v")

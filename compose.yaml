@@ -7,7 +7,7 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       - type: bind
-        source: ./docs/examples/config-v1.yaml
+        source: ./config/config-v1.yaml
         target: /etc/market-data/config.yaml
         read_only: true
         bind:

@@ -1,6 +1,6 @@
 # Complete, runnable v1 configuration reference. Every value below is its default.
 # Validate without starting listeners or workers:
-#   go run ./cmd/market-data-service -config docs/examples/config-v1.yaml -check-config
+#   go run ./cmd/market-data-service -config config/config-v1.yaml -check-config
 #
 # Field comments use Description, Values, Default, and Required in that order.
 # Default is the built-in value used when neither YAML nor ENV overrides the field.

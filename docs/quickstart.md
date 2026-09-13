@@ -10,9 +10,9 @@ Install Git, Make, and Go **1.27.1**, then clone and run:
 git clone https://github.com/imbpp123/market-data.git
 cd market-data
 make build
-./bin/market-data-service -config docs/examples/config-v1.yaml -check-config
+./bin/market-data-service -config config/config-v1.yaml -check-config
 MDS_SERVER_GRPC_HOST=127.0.0.1 MDS_SERVER_HTTP_HOST=127.0.0.1 \
-  ./bin/market-data-service -config docs/examples/config-v1.yaml
+  ./bin/market-data-service -config config/config-v1.yaml
 ```
 
 The host overrides keep the service on loopback. Stop it with Ctrl+C.
@@ -28,7 +28,7 @@ RELEASE_TAG=REPLACE_WITH_PUBLISHED_GIT_TAG
 SOURCE_URL="https://raw.githubusercontent.com/imbpp123/market-data/${RELEASE_TAG}"
 mkdir -p market-data-docker/api
 cd market-data-docker
-curl -fL "${SOURCE_URL}/docs/examples/config-v1.yaml" -o config.yaml
+curl -fL "${SOURCE_URL}/config/config-v1.yaml" -o config.yaml
 curl -fL "${SOURCE_URL}/api/descriptor.binpb" -o api/descriptor.binpb
 chmod a+r config.yaml
 ```
@@ -80,4 +80,4 @@ Until the first successful snapshot, the request returns `UNAVAILABLE` with `Err
 
 Clients should reuse channels, set call deadlines, and allow responses up to 16 MiB. Candle ranges must be aligned and half-open: `[from, to)`. See the [API guide](development.md#instruments) for filters, candle ranges, and error behavior, and the [operations guide](operations.md) for resource and rate-limit details.
 
-For settings and environment overrides, see the [configuration guide](development.md#configuration) and [complete example](examples/config-v1.yaml). For more guides, return to the [documentation index](../README.md#documentation).
+For settings and environment overrides, see the [configuration guide](development.md#configuration) and [complete example](../config/config-v1.yaml). For more guides, return to the [documentation index](../README.md#documentation).

@@ -224,7 +224,7 @@ server:
 
 Keep `klines.request_timeout`, `klines.max_callers`, and all fill settings. Byte limits are positive finite integers within the runtime's supported range; ports are in 1..65535. Preserve checked duration arithmetic and the existing shutdown-lifetime validation. Validate hosts and reject known overlapping listener addresses; binding both remains the final check for hostname and wildcard overlap.
 
-Apply existing defaults → YAML → explicit `MDS_` environment precedence and strict validation. For example, use `MDS_SERVER_GRPC_PORT` and `MDS_SERVER_HTTP_PORT`. Reject removed flat `server.host`, `server.port`, and moved HTTP settings, including old environment names; do not silently alias them. The [complete example](examples/config-v1.yaml) matches the loader.
+Apply existing defaults → YAML → explicit `MDS_` environment precedence and strict validation. For example, use `MDS_SERVER_GRPC_PORT` and `MDS_SERVER_HTTP_PORT`. Reject removed flat `server.host`, `server.port`, and moved HTTP settings, including old environment names; do not silently alias them. The [complete example](../config/config-v1.yaml) matches the loader.
 
 Limits apply to uncompressed Protobuf message bytes. Check response size before sending a success message; an oversized response returns `RESOURCE_EXHAUSTED / response_too_large`, with no truncation. Limit conversion/buffering as well as the final send; checking size only after unlimited construction is insufficient. Generated client examples set the matching 16 MiB receive limit explicitly. Verify this default against full synthetic catalogs and 1,000-candle responses with the [API checks](../api/README.md#reproduce-and-check).
 
@@ -289,7 +289,7 @@ Large snapshots and high concurrency remain a capacity risk. Message-size and ca
 
 This document supersedes the HTTP data transport requirements in [main specification](technical-specification-v1.md) sections 34–40, related transport configuration in 42–44, and data-request observability, startup/shutdown, tests, packaging, and acceptance references in 46–65. Preserve their business behavior unless an explicit change is stated here.
 
-The [implementation contract](implementation-contract-v1.md#http-contract) identifies the removed HTTP surface; JSON examples describe the historical contract. The generated schema and this specification define the active data API. The [quick start](quickstart.md) and [development guide](development.md) describe the current gRPC runtime. The Binance rework's phrase “public API keeps its response format” no longer applies to the client wire format; its business outcomes and failure reasons still apply.
+The [implementation contract](implementation-contract-v1.md#http-contract) identifies the removed HTTP surface. The generated schema and this specification define the active data API. The [quick start](quickstart.md) and [development guide](development.md) describe the current gRPC runtime. The Binance rework's phrase “public API keeps its response format” no longer applies to the client wire format; its business outcomes and failure reasons still apply.
 
 ## Sources
 

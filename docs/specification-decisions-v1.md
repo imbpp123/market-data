@@ -2,7 +2,7 @@
 
 Status: specification decisions recorded September 11, 2026; gRPC decisions updated September 13, 2026. Requirements: [technical specification](technical-specification-v1.md).
 
-This register separates user-confirmed requirements and adopted engineering defaults. The numbered implementation phases below are historical. The [gRPC contract](grpc-migration-specification.md) replaces the earlier client wire format while preserving business rules. See the [implementation contract](implementation-contract-v1.md), [configuration defaults](examples/config-v1.yaml), and [exchange fixtures](../testdata/exchange/README.md).
+This register separates user-confirmed requirements and adopted engineering defaults. The numbered implementation phases below are historical. The [gRPC contract](grpc-migration-specification.md) replaces the earlier client wire format while preserving business rules. See the [implementation contract](implementation-contract-v1.md), [configuration defaults](../config/config-v1.yaml), and [exchange fixtures](../testdata/exchange/README.md).
 
 ## Decision status and implementation gates
 

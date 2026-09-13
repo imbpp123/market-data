@@ -4,7 +4,7 @@
 >
 > This document keeps the content of the original 60 sections. Timeframe, MarketStats, and Market statistics API now have separate sections, with 65 sections in total. It includes Go 1.27.1 and request admission requirements, with matching changes in related sections.
 >
-> **Decision contract:** [Implementation decisions](implementation-contract-v1.md) and the [complete configuration](examples/config-v1.yaml) define implementation choices. The [decision register](specification-decisions-v1.md) distinguishes user requirements and engineering defaults.
+> **Decision contract:** [Implementation decisions](implementation-contract-v1.md) and the [complete configuration](../config/config-v1.yaml) define implementation choices. The [decision register](specification-decisions-v1.md) distinguishes user requirements and engineering defaults.
 
 Current decision status, evidence, and implementation gates are recorded in the [v1 decision register](specification-decisions-v1.md). Historical SDK checks reported below are not a reproducible test suite in this repository.
 
@@ -1950,7 +1950,7 @@ Several instances or other clients behind one outgoing IP need a coordinated com
 
 ### Default profile and restart policy
 
-The [implementation contract](implementation-contract-v1.md) and [configuration example](examples/config-v1.yaml) define the current profile. Binance uses the last valid exchange limit or a reviewed starting value, optionally reduced by an explicit user cap. Apply `upstream.binance.stop_threshold_percent` (default 90): starting stop lines are Spot 5,400 weight/minute and USD-M 2,160 weight/minute, plus raw-request and funding-family windows. Bybit keeps its 20% margin and 480 requests/5s. Derive strict operation shares from these values. Pacing is separate.
+The [implementation contract](implementation-contract-v1.md) and [configuration example](../config/config-v1.yaml) define the current profile. Binance uses the last valid exchange limit or a reviewed starting value, optionally reduced by an explicit user cap. Apply `upstream.binance.stop_threshold_percent` (default 90): starting stop lines are Spot 5,400 weight/minute and USD-M 2,160 weight/minute, plus raw-request and funding-family windows. Bybit keeps its 20% margin and 480 requests/5s. Derive strict operation shares from these values. Pacing is separate.
 
 The contract also defines finite lanes, attempts, deadlines, cooldown fallbacks, and catalog updates. User decision: all market data and admission state remain in memory in v1. Restart loses local usage, discovered limits, and cooldowns, uses configured bootstrap ceilings, and adds no automatic quiet period. Exchange-side limits may still apply. Persistence is deferred; implementation and restart tests belong to phase 05.
 
@@ -2069,7 +2069,7 @@ Current ticker and MarketStats snapshots store only the latest state per scope, 
 
 ## 42. Configuration
 
-Main config is YAML, with explicit MDS_ environment overrides. The [complete v1 configuration example](examples/config-v1.yaml) defines the active field/default inventory. The [implementation contract](implementation-contract-v1.md) explains units, scopes, capability handling, limits, restart behavior, and validation. The loader validates separate server.grpc and server.http settings; removed flat listener settings fail startup.
+Main config is YAML, with explicit MDS_ environment overrides. The [complete v1 configuration example](../config/config-v1.yaml) defines the active field/default inventory. The [implementation contract](implementation-contract-v1.md) explains units, scopes, capability handling, limits, restart behavior, and validation. The loader validates separate server.grpc and server.http settings; removed flat listener settings fail startup.
 
 The user-confirmed core defaults are:
 
@@ -2482,8 +2482,8 @@ market-data-service/
 │   │
 │   └── config/
 │
-├── configs/
-│   └── config.yaml
+├── config/
+│   └── config-v1.yaml
 │
 ├── Dockerfile
 ├── compose.yaml

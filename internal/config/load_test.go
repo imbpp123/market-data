@@ -28,7 +28,7 @@ func TestDefaultsAndExample(t *testing.T) {
 
 	assert.Equal(t, Defaults(), cfg)
 
-	file, err := os.Open("../../docs/examples/config-v1.yaml")
+	file, err := os.Open("../../config/config-v1.yaml")
 	require.NoError(t, err)
 
 	defer func() { _ = file.Close() }()

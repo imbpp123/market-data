@@ -2,7 +2,7 @@
 
 Current business and configuration contract. The [gRPC contract](grpc-migration-specification.md) and [generated schema](../api/proto/marketdata/v1/market_data.proto) define the active data transport. All old HTTP data paths return 404. Initial decisions were adopted on September 11, 2026; Binance admission rules were updated on September 13, 2026. This document fills in the engineering details of the [specification](technical-specification-v1.md). The [decision register](specification-decisions-v1.md) identifies user requirements and engineering defaults.
 
-The [complete configuration example](examples/config-v1.yaml) is the normative field/default inventory for phase 02. This contract takes precedence over superseded illustrative configuration fragments. All durations are elapsed Go-style duration strings (ns, us, ms, s, m, h); days are no longer needed by the history policy. Markets and intervals use canonical strings. Market data remains in memory.
+The [complete configuration example](../config/config-v1.yaml) is the normative field/default inventory for phase 02. This contract takes precedence over superseded illustrative configuration fragments. All durations are elapsed Go-style duration strings (ns, us, ms, s, m, h); days are no longer needed by the history policy. Markets and intervals use canonical strings. Market data remains in memory.
 
 ## Common allowances and reserved operation shares
 
@@ -77,7 +77,7 @@ The active data API is `marketdata.v1.MarketDataService`, using the [checked-in 
 
 ### HTTP contract
 
-The old `/api/v1/*` routes return 404 without reading application data. The [JSON examples](examples/http-contract-v1.json) describe the historical contract, not current client instructions. Operational HTTP keeps GET `/health`, `/ready`, and enabled `/metrics` and `/debug/stats`; disabled exporters return 404 and other methods return 405.
+The old `/api/v1/*` routes return 404 without reading application data. Operational HTTP keeps GET `/health`, `/ready`, and enabled `/metrics` and `/debug/stats`; disabled exporters return 404 and other methods return 405.
 
 ### Common envelope and validation
 

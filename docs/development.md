@@ -10,7 +10,7 @@ Use Go **1.27.1**. The module, Makefile, and CI use this exact version.
 
 ```sh
 make build
-./bin/market-data-service -config docs/examples/config-v1.yaml -check-config
+./bin/market-data-service -config config/config-v1.yaml -check-config
 make run
 ```
 
@@ -79,7 +79,7 @@ History uses calendar slots, including calendar months. A range can expire at th
 
 ## Configuration
 
-The [complete example](examples/config-v1.yaml) is executable and checked against built-in defaults in tests. The [implementation contract](implementation-contract-v1.md) and [gRPC listener contract](grpc-migration-specification.md#configuration-and-size-bounds) define its rules. Use `server.grpc` and `server.http`; removed flat host, port and HTTP fields, including old environment names, fail startup.
+The [complete example](../config/config-v1.yaml) is executable and checked against built-in defaults in tests. The [implementation contract](implementation-contract-v1.md) and [gRPC listener contract](grpc-migration-specification.md#configuration-and-size-bounds) define its rules. Use `server.grpc` and `server.http`; removed flat host, port and HTTP fields, including old environment names, fail startup.
 
 Loading order is **defaults → YAML → explicit MDS_ environment values → validation**. Koanf merges sources, its environment provider loads overrides, and mapstructure decodes typed settings. `go.yaml.in/yaml/v3` parses YAML. A strict input check rejects unknown or duplicate keys, explicit nulls, wrong scalar types, multiple YAML documents, and YAML anchors/aliases before a merge can hide them. Unknown or duplicate `MDS_` variables also fail. No YAML string interpolation takes place. Errors identify fields without printing their values.
 
@@ -89,7 +89,7 @@ Environment names are uppercase paths with dots replaced by underscores. Lists u
 MDS_SERVER_HTTP_PORT=8081 \
 MDS_KLINES_MAX_HISTORY_CANDLES=500 \
 MDS_EXCHANGES_BYBIT_MARKETS='["linear"]' \
-./bin/market-data-service -config docs/examples/config-v1.yaml
+./bin/market-data-service -config config/config-v1.yaml
 ```
 
 `MDS_SENTRY_DSN` is an alias for `MDS_OBSERVABILITY_SENTRY_DSN`; using both is an error. Do not commit a real DSN or other credentials.
