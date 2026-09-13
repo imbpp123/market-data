@@ -69,6 +69,21 @@ The image runs `/market-data-service -config /etc/market-data/config.yaml`. Its 
 
 SIGINT/SIGTERM cancel HTTP admission and owned work. The default internal shutdown bound is 35 seconds; Compose allows 40 seconds before forced termination. Increase `stop_grace_period` if increasing `server.shutdown_timeout`. The service does not restart automatically.
 
+## Publish a release image
+
+The [release workflow](.github/workflows/release.yml) builds the tagged source with the existing Dockerfile and pushes a Linux/amd64 image to `ghcr.io/<owner>/<repository>`. It runs when a version tag is pushed or a GitHub Release is published, including pre-releases. Use semantic versions with an optional `v` prefix: `v1.2.3` and `1.2.3` both publish `ghcr.io/imbpp123/market-data:1.2.3`; `v1.2.3-rc.1` publishes `:1.2.3-rc.1`. Invalid version tags fail before registry login. No `latest` tag is published.
+
+Before building or publishing the image, the workflow runs `make check` on the tagged commit with Go 1.27.1, just like the Checks workflow. Formatting, build, example configuration, lint, tests, and race checks must all pass. Any failure stops publication.
+
+After the workflow is merged, tag the commit to release and push the tag:
+
+```sh
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+Alternatively, publish a GitHub Release for the version tag. Publishing a release after pushing its tag runs the workflow again and replaces the same image tag. Use one trigger per version when a second build is not needed. The workflow uses the repository's `GITHUB_TOKEN` with `contents: read` and `packages: write`; no separate registry secret is needed. If the GHCR package already exists, it must grant this repository write access. See [GitHub's registry publishing guide](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images).
+
 ## Diagnose and operate
 
 - `/health` means the process is alive; `/ready` means local initialization is complete. Neither proves exchange data is available or fresh.
@@ -100,3 +115,5 @@ make release-load   # opt-in synthetic capacity measurement; no network
 There is no trading execution, order/account/position/balance API, strategy calculation, MCP server, order book, raw trades, WebSocket ingestion, Redis/PostgreSQL implementation, ticker/statistics history, non-24h statistics, or statistics aggregation from candles.
 
 Further documentation: [development guide](docs/development.md), [technical specification](docs/technical-specification-v1.md), [decision register](docs/specification-decisions-v1.md), [phase plan](docs/phases/README.md), and [development rules](AGENTS.md).
+
+Proposed change under review: [request budget accounting rework](docs/request-budget-rework-specification.md). It records the revised limit-discovery and usage-accounting design; it does not change the implemented v1 behavior.
