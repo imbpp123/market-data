@@ -1,6 +1,6 @@
 # v1 specification decision register
 
-Status: complete, September 11, 2026. Delivery phase: [01](phases/01-specification-decisions.md). Requirements: [technical specification](technical-specification-v1.md).
+Status: complete, September 11, 2026. Requirements: [technical specification](technical-specification-v1.md).
 
 This register separates user-confirmed requirements, adopted engineering defaults, captured evidence, and future implementation checks. Phase 01 closes specification decisions; it does not claim an implemented or tested service. See the [implementation contract](implementation-contract-v1.md), [configuration defaults](examples/config-v1.yaml), and [evidence inventory](evidence/phase-01/README.md).
 
@@ -33,7 +33,7 @@ This register separates user-confirmed requirements, adopted engineering default
 
 The [Binance fundingInfo API](https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data#get-funding-rate-info) describes adjusted funding settings. The [Binance funding explanation](https://www.binance.com/en/support/faq/detail/360033525031) identifies an eight-hour default and possible interval adjustments.
 
-Adopted mapping: after a successful complete response, use an explicit valid interval where present and null for absent symbols. The generic default is not enough to establish a current value for every symbol. Spot and expiry futures retain null. Request or parsing failure retains the previous whole instrument snapshot. See the [captured funding response](evidence/phase-01/binance-funding-info.json) and [synthetic failure cases](evidence/phase-01/funding-failure-cases.json).
+Adopted mapping: after a successful complete response, use an explicit valid interval where present and null for absent symbols. The generic default is not enough to establish a current value for every symbol. Spot and expiry futures retain null. Request or parsing failure retains the previous whole instrument snapshot. See the [captured funding response](../testdata/exchange/binance-funding-info.json) and [synthetic failure cases](evidence/phase-01/funding-failure-cases.json).
 
 ### E02 — Delisting
 

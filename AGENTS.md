@@ -22,6 +22,18 @@ Ask only when a missing decision blocks the current task; continue independent w
 - Communicate with the user in Russian unless requested otherwise. Be brief, direct, and factual. Explain unnecessary complexity or incorrect assumptions without motivational filler.
 - Write new documentation and documentation updates in English. Preserve the meaning of existing requirements when translating them.
 
+## Specifications
+
+Write specifications as a short, plain-language explanation of what will change and how the work will proceed.
+
+- Start with the problem, expected behavior, and scope.
+- Describe a few implementation phases. State the result and relevant checks for each phase.
+- Use concrete examples to explain important rules and boundaries.
+- Keep agreed constraints, acceptance criteria, and open decisions explicit. Distinguish proposals from confirmed requirements.
+- Include technical details only when they prevent ambiguity or an implementation error. Link to existing documentation instead of repeating it.
+- Avoid repeated requirements, exhaustive scenario lists, speculative abstractions, and internal implementation inventories. Add a separate detailed note only when a specific issue needs it.
+- Scale length to the task. The main specification should be as easy to understand as a concise explanation in conversation; completeness does not require maximum length.
+
 ## Clean architecture
 
 Keep dependencies pointing inward: infrastructure and transport depend on application contracts; application depends on domain. Inner layers must not depend on outer layers.

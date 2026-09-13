@@ -121,7 +121,7 @@ func TestCalendarTransitions(t *testing.T) {
 }
 
 func TestConfirmedCalendarFixtures(t *testing.T) {
-	files, err := filepath.Glob("../../docs/evidence/phase-01/*-*-*USDT-*.json")
+	files, err := filepath.Glob("../../testdata/exchange/*-*-*USDT-*.json")
 	require.NoError(t, err)
 	require.Len(t, files, 12)
 	for _, file := range files {

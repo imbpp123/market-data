@@ -173,7 +173,7 @@ func TestFundingMetadata(t *testing.T) {
 }
 
 func TestCapturedFundingMetadata(t *testing.T) {
-	body, err := os.ReadFile("../../../../docs/evidence/phase-01/binance-funding-info.json")
+	body, err := os.ReadFile("../../../../testdata/exchange/binance-funding-info.json")
 	require.NoError(t, err)
 	var fixture struct {
 		RawResponse json.RawMessage `json:"raw_response"`

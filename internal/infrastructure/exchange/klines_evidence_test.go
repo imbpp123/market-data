@@ -24,9 +24,9 @@ import (
 )
 
 func TestCandleCapturedCalendarPages(t *testing.T) {
-	files, err := filepath.Glob("../../../docs/evidence/phase-01/*-BTCUSDT-*.json")
+	files, err := filepath.Glob("../../../testdata/exchange/*-BTCUSDT-*.json")
 	require.NoError(t, err)
-	eth, err := filepath.Glob("../../../docs/evidence/phase-01/*-ETHUSDT-*.json")
+	eth, err := filepath.Glob("../../../testdata/exchange/*-ETHUSDT-*.json")
 	require.NoError(t, err)
 	files = append(files, eth...)
 	require.Len(t, files, 12)

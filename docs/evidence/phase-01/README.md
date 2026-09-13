@@ -1,10 +1,10 @@
 # Phase 01 evidence
 
-Public, read-only discovery on September 11, 2026. These files support specification decisions; they are not executed adapter tests. Future tests must replay them offline without credentials or exchange access. Requests and capture times are embedded in each file. Calendar captured_at records request start, not response receipt; inject a separate receipt clock when testing FetchedAt.
+Public, read-only discovery on September 11, 2026. These captures support specification decisions. Calendar and funding fixtures now live in [testdata/exchange](../../../testdata/exchange) and are replayed by offline tests without credentials or exchange access. Requests and capture times are embedded in each file. Calendar captured_at records request start, not response receipt; inject a separate receipt clock when testing FetchedAt.
 
 ## Calendar fixtures
 
-Twelve files named exchange-market-symbol-interval.json contain the parsed raw JSON response, request URL, HTTP status, observed opens, and expected normalized rows. JSON formatting is not the original wire representation. Decimal strings preserve the upstream values. Binance inclusive close milliseconds become the exclusive next boundary; Bybit descending rows become ascending rows with null trades_count.
+Twelve files in [testdata/exchange](../../../testdata/exchange), named exchange-market-symbol-interval.json, contain the parsed raw JSON response, request URL, HTTP status, observed opens, and expected normalized rows. JSON formatting is not the original wire representation. Decimal strings preserve the upstream values. Binance inclusive close milliseconds become the exclusive next boundary; Bybit descending rows become ascending rows with null trades_count.
 
 - Binance spot and linear: BTCUSDT and ETHUSDT, each at 3d and 1w (eight files).
 - Bybit spot and linear: BTCUSDT and ETHUSDT, each at 1w (four files).
@@ -20,11 +20,11 @@ These anchors are an inference from consistent examples across both symbols and 
 | --- | --- |
 | [exchange-limits.json](exchange-limits.json) | Live Binance Spot and USDⓈ-M exchangeInfo rateLimits excerpts, source URLs, capture times, and full-response checksums. ORDERS limits are not service budgets. |
 | [binance-spot-full-statistics.json](binance-spot-full-statistics.json) | Successful public type=FULL bulk statistics request, 3,701-row count, required-field checks, checksum, and excerpt. The full response is not stored. |
-| [binance-funding-info.json](binance-funding-info.json) | Full 782-record fundingInfo response and selected exchangeInfo metadata; expected explicit 1/4/8-hour values converted to seconds and missing-symbol null behavior. |
+| [binance-funding-info.json](../../../testdata/exchange/binance-funding-info.json) | Full 782-record fundingInfo response and selected exchangeInfo metadata; expected explicit 1/4/8-hour values converted to seconds and missing-symbol null behavior. |
 | [funding-failure-cases.json](funding-failure-cases.json) | Synthetic HTTP failure, invalid interval, and successful empty cases. These are not live failures. |
 | [go-toolchain.json](go-toolchain.json) | Official release catalog excerpt confirming Go 1.27.1 availability, published archive checksums, and separately observed local Go 1.26.0. No downloaded archive or executed pinned build is claimed. |
 
-The [HTTP examples](../../examples/http-contract-v1.json) are synthetic contract cases, not live service responses. This repository still has no service executable.
+The [HTTP examples](../../examples/http-contract-v1.json) are synthetic contract cases, not live service responses.
 
 ## Primary references
 
@@ -34,4 +34,4 @@ The [HTTP examples](../../examples/http-contract-v1.json) are synthetic contract
 - [Bybit instruments](https://bybit-exchange.github.io/docs/v5/market/instrument): categories, default current catalog, PreLaunch selection, and pagination.
 - [Go releases](https://go.dev/dl/): official toolchain distribution.
 
-Deployment access, pinned SDK behavior, memory use, and throughput remain implementation/release checks. Public discovery from this environment is not proof of access from the deployment IP. No account data or credentials are included.
+Deployment access, pinned SDK behavior, memory use, and throughput are covered in the [release audit](../../release-verification-v1.md). Public discovery from this environment is not proof of access from the deployment IP. No account data or credentials are included.

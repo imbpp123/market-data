@@ -2,7 +2,7 @@
 
 A Go REST service for Binance and Bybit spot and linear market data. It provides instruments, current tickers, 24-hour market statistics, and cached candles through one API. Binance linear means USDⓈ-M.
 
-**Status:** Phases 01–12 are complete for the agreed v1 workload. Release packaging, all 41 acceptance items, capacity measurements, and current-host compatibility checks are recorded in the [release audit](docs/release-verification-v1.md). Deployment remains an explicit operator action.
+**Status:** v1 implementation and verification are complete for the agreed workload. Release packaging, all 41 acceptance items, capacity measurements, and current-host compatibility checks are recorded in the [release audit](docs/release-verification-v1.md). Deployment remains an explicit operator action.
 
 ## Run locally
 
@@ -114,6 +114,6 @@ make release-load   # opt-in synthetic capacity measurement; no network
 
 There is no trading execution, order/account/position/balance API, strategy calculation, MCP server, order book, raw trades, WebSocket ingestion, Redis/PostgreSQL implementation, ticker/statistics history, non-24h statistics, or statistics aggregation from candles.
 
-Further documentation: [development guide](docs/development.md), [technical specification](docs/technical-specification-v1.md), [decision register](docs/specification-decisions-v1.md), [phase plan](docs/phases/README.md), and [development rules](AGENTS.md).
+Further documentation: [development guide](docs/development.md), [technical specification](docs/technical-specification-v1.md), [decision register](docs/specification-decisions-v1.md), and [development rules](AGENTS.md).
 
 Proposed change under review: [request budget accounting rework](docs/request-budget-rework-specification.md). It records the revised limit-discovery and usage-accounting design; it does not change the implemented v1 behavior.

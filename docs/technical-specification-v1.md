@@ -1,6 +1,6 @@
 # Market Data Service — Technical Specification v1
 
-> **Status:** implementation specification with phase 01 decisions recorded, September 11, 2026. Application implementation and verification remain in phases 02–12.
+> **Status:** v1 implementation and verification are complete for the agreed workload, September 13, 2026. See the [release audit](release-verification-v1.md) for acceptance evidence and operating limits.
 >
 > This document keeps the content of the original 60 sections. Timeframe, MarketStats, and Market statistics API now have separate sections, with 65 sections in total. It includes Go 1.27.1 and request admission requirements, with matching changes in related sections.
 >

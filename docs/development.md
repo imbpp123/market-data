@@ -88,7 +88,7 @@ Validation covers the full agreed schema, including disabled providers' input sy
 
 Reducing a kline page size may require raising the kline attempt bound. Increasing history also affects this bound. Counts use checked integer arithmetic; the history count additionally cannot exceed `MaxInt64 / (31 * 24 * 60 * 60)` so a worst-case monthly span fits signed seconds. Calendar-specific checks belong to the timeframe implementation.
 
-Admission keeps usage, discovered limits, and cooldown state in memory. Exchange-side usage and bans may survive restarts. Restarting cannot guarantee continuity of local accounting. Bootstrap constructs a shared controller and pinned SDK clients before HTTP bind, without making exchange calls. See [phase 05](phases/05-upstream-admission-and-retries.md) for the implementation and checks.
+Admission keeps usage, discovered limits, and cooldown state in memory. Exchange-side usage and bans may survive restarts. Restarting cannot guarantee continuity of local accounting. Bootstrap constructs a shared controller and pinned SDK clients before HTTP bind, without making exchange calls. See the [implementation contract](implementation-contract-v1.md) for admission rules and the [release audit](release-verification-v1.md) for checks.
 
 Feature adapters use the shared `binance.Client.Fetch` (implemented separately for spot and linear) or `bybit.Client.Fetch` with one `Controller.Begin` context per full cycle or fill. Pages and retries reuse that context. The returned raw body retains exact source numbers and successful-attempt start/receipt timestamps; feature normalization must not rebuild numeric values from the Bybit SDK result. A background worker owns one `CycleGate` and calls `Run` with the full cycle, including publication, so a new cycle cannot reset failure backoff. Instrument and current-data workers, normalization, and single-page candle adapters are implemented. Candle fills use the same operation boundary across pages and retries.
 
@@ -131,4 +131,4 @@ Other targets include `make run`, `make docker-build`, `make docker-up`, `make d
 
 Tests use `testify/require` for prerequisites and `testify/assert` for independent checks. They use no credentials or exchange access. Lifecycle tests exercise the real HTTP server over in-memory connections with `testing/synctest` for deterministic cancellation and deadline checks.
 
-See the [phase plan](phases/README.md), [technical specification](technical-specification-v1.md), and [development rules](../AGENTS.md).
+See the [technical specification](technical-specification-v1.md) and [development rules](../AGENTS.md).

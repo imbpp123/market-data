@@ -1,6 +1,6 @@
 # v1 release verification
 
-Verification date: September 12–13, 2026. Phase: [12](phases/12-release-verification.md). Requirements: [specification sections 57–65](technical-specification-v1.md#65-definition-of-done).
+Verification date: September 12–13, 2026. Requirements: [specification sections 57–65](technical-specification-v1.md#65-definition-of-done).
 
 ## Release disposition
 
@@ -21,7 +21,7 @@ The agreed conservative workload fits the engineering memory target after removi
 
 Separate [live compatibility evidence](evidence/phase-12/live-compatibility.json) records four public GETs, HTTP status, row counts, required-field checks, and body checksums without storing raw market catalogs. These live checks do not replace local tests.
 
-Raw run evidence is in [phase 12 evidence](evidence/phase-12/README.md). CI now executes the same image and Compose checks after `make check`. Remote CI has not been run from this task, and other image architectures have not been executed locally.
+Raw run logs are retained in Git history; the [evidence index](evidence/phase-12/README.md) records how to read them and lists the retained metadata. CI now executes the same image and Compose checks after `make check`. Remote CI has not been run from this task, and other image architectures have not been executed locally.
 
 ## Section 65 acceptance audit
 
@@ -97,7 +97,7 @@ Final measurements:
 | Fill owner shutdown / full Compose SIGTERM stop | 3.125 μs / 0.230 s |
 | Final broad capacity run | Exit 137, OOMKilled=true during population |
 
-Raw output is recorded in [the evidence index](evidence/phase-12/README.md). The target leaves 200 MB below the 1 GB limit for the agreed workload; it is not a guarantee for all legal request combinations, larger decimal values, catalog growth, or arbitrary snapshot concurrency. Defaults allow more than four clients. No global series-cap/eviction design was added.
+Raw output remains in Git history as described in [the evidence index](evidence/phase-12/README.md). The target leaves 200 MB below the 1 GB limit for the agreed workload; it is not a guarantee for all legal request combinations, larger decimal values, catalog growth, or arbitrary snapshot concurrency. Defaults allow more than four clients. No global series-cap/eviction design was added.
 
 The broad profile requests 50 symbols in every supported interval: 16 Binance Spot, 15 Binance linear, and 13 per Bybit market, totaling **2850 series / 2,850,000 potential records**. The bounded run is killed by the container memory limit while populating, before read/fill latency can be measured. This profile is outside confirmed client demand. Its failure establishes a capacity limitation; neither a per-series history bound nor GOMEMLIMIT can make unlimited series fit. Re-measure before increasing workload or changing deployment memory. A larger workload requires an explicit scope/capacity decision.
 

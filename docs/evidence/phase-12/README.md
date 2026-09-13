@@ -4,15 +4,22 @@ Collected September 12–13, 2026. See the [release audit](../../release-verific
 
 ## Artifacts
 
-- [checks.log](checks.log): final `make check` output, including formatting, build, example configuration, pinned lint, tests, and race.
-- [container.log](container.log): final isolated Compose lifecycle verification, including SIGTERM timing and normal exit.
-- [docker-build.log](docker-build.log): final digest-pinned image build.
-- [load-main.log](load-main.log): final main-profile run and automatic Linux peak-RSS gate (800,000,000 bytes).
-- [load-broad.log](load-broad.log) and [containers.json](containers.json): expanded capacity run; Docker records OOM and exit 137. It does not pass the 1 GB capacity limit.
-- [load-before-compaction.log](load-before-compaction.log): original main-profile measurement; functional checks passed but peak RSS exceeded the release target. This preceded the explicit memory assertion and compact storage.
+- [containers.json](containers.json): main and expanded capacity run outcomes; the expanded run records OOM and exit 137. It does not pass the 1 GB capacity limit.
 - [live-compatibility.json](live-compatibility.json): four separate public current-data GETs from this computer, including Binance Spot FULL; HTTP 200 and required fields present in each response.
 - [inner-imports.txt](inner-imports.txt): actual domain/application direct imports.
 - [manifest.json](manifest.json): final image metadata, source/binary hashes, tool versions, and evidence hashes. A local image ID is recorded; no registry publication is claimed.
+
+## Archived logs
+
+Raw logs are retained in Git commit `51573ffedcdc8ce9cac9deb735581bf8bfd99c29`, not in the current tree. Read a log from the repository root:
+
+```sh
+git show 51573ffedcdc8ce9cac9deb735581bf8bfd99c29:docs/evidence/phase-12/checks.log
+```
+
+Replace `checks.log` with `container.log` for Compose lifecycle verification, `docker-build.log` for image build output, `load-main.log` for the final main capacity run, `load-broad.log` for the failed expanded run, or `load-before-compaction.log` for the earlier measurement above the memory target. The release audit retains the results and limitations.
+
+The manifest is an unchanged historical record. Its evidence hashes describe the original files, including archived logs and the original README, not the current tree. A shallow clone may need older history to read the logs.
 
 ## Reproduction
 
