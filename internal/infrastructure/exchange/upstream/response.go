@@ -11,7 +11,7 @@ import (
 	"market-data/internal/application"
 )
 
-func (t *Transport) classify(request *http.Request, response *http.Response, body []byte, started time.Time) (int64, error, bool) {
+func (t *Transport) classify(request *http.Request, response *http.Response, body []byte, attempt *entry) (int64, error, bool) {
 	var code int64
 	if t.scope == Bybit {
 		var envelope struct {
@@ -33,9 +33,11 @@ func (t *Transport) classify(request *http.Request, response *http.Response, bod
 		return code, application.ErrUpstream, retryableStatus(response.StatusCode)
 	}
 	if t.scope != Bybit && strings.HasSuffix(request.URL.Path, "/exchangeInfo") {
-		if err := t.controller.updateCatalog(t.scope, started, body); err != nil {
+		if err := t.controller.updateCatalog(t.scope, attempt.at, body); err != nil {
 			return code, err, false
 		}
+		// A catalog can install a window reported by this same response.
+		t.controller.usageHeaders(t.scope, request.URL.Path, response.Header, attempt)
 	}
 	if !json.Valid(body) {
 		return code, application.ErrInvalidUpstreamData, false
@@ -44,9 +46,9 @@ func (t *Transport) classify(request *http.Request, response *http.Response, bod
 }
 
 // Safety headers apply even when the status or response body is invalid.
-func (t *Transport) responseHeaders(request *http.Request, response *http.Response) {
+func (t *Transport) responseHeaders(request *http.Request, response *http.Response, attempt *entry) {
 	if t.scope != Bybit {
-		t.controller.usageHeaders(t.scope, request.URL.Path, response.Header)
+		t.controller.usageHeaders(t.scope, request.URL.Path, response.Header, attempt)
 	}
 
 	if retryableStatus(response.StatusCode) {
@@ -123,39 +125,6 @@ func accessTooFrequent(body []byte) bool {
 	}
 	message = strings.ToLower(strings.TrimSpace(message))
 	return strings.Contains(message, "access too frequent")
-}
-
-func (c *Controller) usageHeaders(scope Scope, path string, headers http.Header) {
-	if scope == BinanceLinear && (path == "/fapi/v2/ticker/price" || path == "/fapi/v1/ticker/bookTicker") {
-		return
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	s := c.scopes[scope]
-	now := c.clock.Now()
-	for _, w := range s.windows {
-		if w.unit != "weight" {
-			continue
-		}
-		suffix := windowSuffix(w.duration)
-		if suffix == "" {
-			continue
-		}
-		used, err := strconv.Atoi(headers.Get("X-Mbx-Used-Weight-" + suffix))
-		if err != nil || used < 0 {
-			continue
-		}
-		local := 0
-		for _, e := range s.history {
-			if e.at.After(now.Add(-w.duration)) {
-				local += e.cost.weight
-			}
-		}
-		if used > local {
-			s.cooldown = maxTime(s.cooldown, now.Add(w.duration))
-			c.notify()
-		}
-	}
 }
 
 func windowSuffix(duration time.Duration) string {

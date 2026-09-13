@@ -129,17 +129,17 @@ func (t *Transport) RoundTrip(request *http.Request) (result *http.Response, fai
 	}
 	var notBefore time.Time
 	for attempt := 1; attempt <= t.settings.Retry.MaxAttempts; attempt++ {
-		started, err := t.controller.acquire(request.Context(), t.scope, cost, operation, notBefore)
+		reservation, err := t.controller.acquire(request.Context(), t.scope, cost, operation, notBefore)
 		if err != nil {
 			return nil, err
 		}
 		if err := request.Context().Err(); err != nil {
-			t.controller.rollback(t.scope, cost.operation, operation, started)
+			t.controller.rollback(t.scope, operation, reservation)
 			return nil, err
 		}
-		observeAttempt(request.Context())
+		started := reservation.at
 		response, body, event, retryable := func() (*http.Response, []byte, Event, bool) {
-			defer t.controller.release(t.scope, cost.operation)
+			defer t.controller.release(t.scope, reservation)
 			defer func() {
 				if recovered := recover(); recovered != nil {
 					if t.observe != nil {
@@ -149,8 +149,11 @@ func (t *Transport) RoundTrip(request *http.Request) (result *http.Response, fai
 					panic(recovered)
 				}
 			}()
-			return t.attempt(request, cost, started)
+			return t.attempt(request, reservation, operation)
 		}()
+		if !reservation.dispatched {
+			return nil, event.Error
+		}
 		if t.observe != nil {
 			t.observe(event)
 		}
@@ -171,8 +174,9 @@ func (t *Transport) RoundTrip(request *http.Request) (result *http.Response, fai
 	return nil, application.ErrUpstream
 }
 
-func (t *Transport) attempt(request *http.Request, cost cost, started time.Time) (*http.Response, []byte, Event, bool) {
-	event := Event{Scope: t.scope, Operation: cost.operation, Path: request.URL.Path, StartedAt: started}
+func (t *Transport) attempt(request *http.Request, reservation *entry, operation *operationState) (*http.Response, []byte, Event, bool) {
+	started := reservation.at
+	event := Event{Scope: t.scope, Operation: reservation.cost.operation, Path: request.URL.Path, StartedAt: started}
 	if t.scope == Bybit {
 		event.Market = domain.Market(request.URL.Query().Get("category"))
 	}
@@ -185,6 +189,12 @@ func (t *Transport) attempt(request *http.Request, cost cost, started time.Time)
 	// nil and http.NoBody would both allow implicit retries.
 	attemptRequest.Body = io.NopCloser(bytes.NewReader(nil))
 	attemptRequest.GetBody = nil
+	if err := t.controller.dispatch(ctx, reservation); err != nil {
+		t.controller.rollback(t.scope, operation, reservation)
+		event.Error = err
+		return nil, nil, event, false
+	}
+	observeAttempt(request.Context())
 	response, err := t.base.RoundTrip(attemptRequest)
 
 	var body []byte
@@ -192,7 +202,7 @@ func (t *Transport) attempt(request *http.Request, cost cost, started time.Time)
 	if response != nil {
 		event.Status = response.StatusCode
 		event.Header = response.Header.Clone()
-		t.responseHeaders(request, response)
+		t.responseHeaders(request, response, reservation)
 
 		if response.Body != nil {
 			reader, decodeErr := responseBody(response)
@@ -216,7 +226,7 @@ func (t *Transport) attempt(request *http.Request, cost cost, started time.Time)
 	} else if response == nil {
 		event.Error = application.ErrInvalidUpstreamData
 	} else {
-		event.Code, event.Error, retryable = t.classify(request, response, body, started)
+		event.Code, event.Error, retryable = t.classify(request, response, body, reservation)
 	}
 	// Headers must still extend cooldown when a body cannot be read or is too big.
 	if response != nil && err != nil {
@@ -259,24 +269,38 @@ func temporary(err error) bool {
 	return errors.As(err, &network) && network.Timeout()
 }
 
-func (c *Controller) rollback(scope Scope, kind Operation, operation *operationState, started time.Time) {
+func (c *Controller) rollback(scope Scope, operation *operationState, attempt *entry) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if attempt.dispatched {
+		return
+	}
 	s := c.scopes[scope]
 	for i, e := range s.history {
-		if e.at.Equal(started) && e.cost.operation == kind {
+		if e == attempt {
 			s.history = append(s.history[:i], s.history[i+1:]...)
 			break
 		}
 	}
-	if s.next.Equal(started.Add(s.spacing)) {
+	if s.next.Equal(attempt.at.Add(s.spacing)) {
 		s.next = time.Time{}
 		if len(s.history) > 0 {
 			s.next = s.history[len(s.history)-1].at.Add(s.spacing)
 		}
 	}
+	attempt.inflight = false
 	operation.attempts--
 	c.active--
-	c.lanes[laneIndex(scope, kind)].active--
+	c.lanes[laneIndex(scope, attempt.cost.operation)].active--
 	c.notify()
+}
+
+func (c *Controller) dispatch(ctx context.Context, attempt *entry) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	attempt.dispatched = true
+	return nil
 }

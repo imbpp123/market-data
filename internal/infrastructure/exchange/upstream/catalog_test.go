@@ -40,14 +40,14 @@ func TestCatalogSelectsCeilingAndPreservesUsage(t *testing.T) {
 			state := c.scopes[BinanceSpot]
 			other := maps.Clone(c.scopes[BinanceLinear].windows)
 			now := time.Now()
-			state.history = []entry{{at: now, cost: cost{operation: MarketStats, weight: 80}}}
+			state.history = []*entry{{at: now, cost: cost{operation: MarketStats, weight: 80}}}
 			require.NoError(t, c.updateCatalog(BinanceSpot, now, catalogWeight(6000)))
 
 			require.NoError(t, c.updateCatalog(BinanceSpot, now.Add(time.Second), catalogWeight(tt.next)))
 
 			assert.Equal(t, tt.want, state.windows["request_weight_1m"].limit)
 			assert.Equal(t, tt.next, state.windows["request_weight_1m"].ceiling)
-			assert.Equal(t, []entry{{at: now, cost: cost{operation: MarketStats, weight: 80}}}, state.history)
+			assert.Equal(t, []*entry{{at: now, cost: cost{operation: MarketStats, weight: 80}}}, state.history)
 			assert.Equal(t, other, c.scopes[BinanceLinear].windows)
 		})
 	}
@@ -167,7 +167,7 @@ func TestCatalogReductionRejectsOnlyRequestsThatCannotFit(t *testing.T) {
 				c, transport := setup(t, config.Defaults(), tt.scope, base)
 				_, err := send(begin(t, c, tt.scope, MarketStats), transport, tt.statsPath)
 				require.NoError(t, err)
-				previous := append([]entry(nil), c.scopes[tt.scope].history...)
+				previous := append([]*entry(nil), c.scopes[tt.scope].history...)
 
 				body, err := send(begin(t, c, tt.scope, Instruments), transport, tt.catalogPath)
 

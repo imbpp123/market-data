@@ -1,6 +1,6 @@
 # Binance request-limit rework
 
-September 13, 2026. Main design and all five phase plans approved by the user. Phases 1 and 2 are implemented; see the [phase 1 report](request-budget-rework/01-exchange-info.md#implementation-report) and [phase 2 report](request-budget-rework/02-limits-and-settings.md#implementation-report). Phases 3–5 have not started. Proposed details are marked below.
+September 13, 2026. Main design and all five phase plans approved by the user. Phases 1 and 2 are implemented; see the [phase 1 report](request-budget-rework/01-exchange-info.md#implementation-report) and [phase 2 report](request-budget-rework/02-limits-and-settings.md#implementation-report). Phase 3 is implemented and has passed independent review; see its [accounting report](request-budget-rework/03-usage-accounting.md#implementation-report). Phases 4–5 have not started. Proposed details are marked below.
 
 ## Summary / Overview
 
@@ -45,6 +45,8 @@ A valid update changes limits without clearing usage. Built-in defaults are star
 Combine valid exchange counters with local requests that are not yet known to be included. Keep local rolling history too. Do not add the full exchange counter to the full local total: they can cover the same requests.
 
 Example: a counter of 100 includes our cost-20 request. Two other cost-4 requests are not included yet. Count 108, not 128. Each page and retry has its own cost.
+
+Phase 3 uses a conservative overlap rule: only a response’s own dispatched attempt is proven included. For each active observation, add unmatched local costs and take the maximum of these estimates and the local total. Without a reliable exchange-window identity, earlier or parallel attempts may be counted in the estimate even if they are already in the counter. Three serial cost-4 attempts with headers 4, 8, and 12 therefore give an estimate of 20, while local usage is 12. The [phase 3 report](request-budget-rework/03-usage-accounting.md#accounting-rule) defines this limit and uncertainty.
 
 Reserve cost when allowing a request. Check and reserve as one atomic step: the next parallel request must see this cost before any response arrives.
 
@@ -112,7 +114,7 @@ Keep threshold rejection, exhausted operation share, exchange cooldown, refresh 
 
 ## Migration / Rollout Plan
 
-The [phase plans](request-budget-rework/README.md) describe the work, expected results, and test cases. All five phase plans are approved by the user. Phases 1 and 2 are implemented; later phases remain pending.
+The [phase plans](request-budget-rework/README.md) describe the work, expected results, and test cases. All five phase plans are approved by the user. Phases 1–3 are implemented; phase 3 has passed independent review. Phases 4–5 remain pending.
 
 1. [Read exchangeInfo](request-budget-rework/01-exchange-info.md): fix the separate response-size issue and check complete catalogs.
 2. [Limits and settings](request-budget-rework/02-limits-and-settings.md): add settings, user caps, and catalog updates.
@@ -134,7 +136,7 @@ Use deterministic unit tests and local HTTP integration tests with controlled cl
 - Candle errors, complete cache reads, background deferral, and diagnostics follow their contracts. Bybit behavior stays unchanged.
 - Full Spot catalogs load within the selected body and memory bounds. Oversized or incomplete bodies fail clearly.
 
-During implementation, run formatting, `make check`, `make vet`, and relevant memory checks. Live response-size measurements are separate from deterministic tests. This documentation change does not claim those implementation checks have passed.
+During implementation, run formatting, `make check`, `make vet`, and relevant memory checks. Live response-size measurements are separate from deterministic tests. The phase reports record passed checks for phases 1–3. They do not claim that phase 4 rejection behavior or phase 5 full-flow validation is complete.
 
 ## Risks / Trade-offs
 
@@ -147,11 +149,11 @@ Other traffic on the same IP, unknown usage after restart, delayed charging, and
 The following engineering details still need verification. They do not change the agreed threshold behavior:
 
 - Phase 1 confirmed that `showPermissionSets=false` fits the measured complete Spot response within 16 MiB. Recheck if the catalog grows beyond that bound.
-- Which response timing proves that a local request is included in a counter? Define and test the conservative fallback for unclear cases.
+- Phase 3 uses own-attempt inclusion and full-window expiry after receipt. More precise inclusion would need verified evidence of an exchange-window identity; it is not assumed from response order or HTTP Date.
 
 ## Earlier requirements replaced
 
-Phase 1 changes only Spot catalog loading. Phase 2 adds settings and catalog refreshes. Usage accounting and request rejection still need phases 3–4; historical release evidence does not cover the complete rework.
+Phase 1 changes only Spot catalog loading. Phase 2 adds settings and catalog refreshes. Phase 3 implements usage accounting with a documented conservative estimate. Request rejection still needs phase 4; historical release evidence does not cover the complete rework.
 
 - [Implementation contract](implementation-contract-v1.md), “Bootstrap, discovered limits, and cooldown”: replace discrepancy/new-window pauses, malformed-catalog blocking and permanent bootstrap caps with the rules above.
 - [Specification](technical-specification-v1.md), sections 32–33: replace Binance's hard common 80% budget and budget waiting with a configurable stop line, permitted crossing and immediate rejection. Keep strict operation caps.

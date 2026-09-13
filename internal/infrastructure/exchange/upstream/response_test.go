@@ -105,9 +105,13 @@ func TestUsageHeadersSurviveResponseFailure(t *testing.T) {
 
 				_, err = send(ctx, transport, "/api/v3/ticker/price")
 
-				assert.ErrorIs(t, err, application.ErrUpstreamUnavailable)
-				assert.Len(t, base.sent(), 1)
-				assert.Zero(t, c.Attempts(ctx))
+				require.NoError(t, err)
+				assert.Len(t, base.sent(), 2)
+				assert.Equal(t, 1, c.Attempts(ctx))
+				state := c.scopes[BinanceSpot]
+				usage := state.usage(state.windows["request_weight_1m"], time.Now())
+				assert.Equal(t, 104, usage.common)
+				assert.True(t, state.cooldown.IsZero())
 			})
 		})
 	}
@@ -259,12 +263,17 @@ func TestUsageHeadersOnlyTightenTrustedEndpoints(t *testing.T) {
 				require.NoError(t, err)
 				ctx := begin(t, c, BinanceLinear, Tickers)
 				_, err = send(ctx, transport, tt.path)
+				require.NoError(t, err)
+				assert.Len(t, recorder.sent(), 2)
+				state := c.scopes[BinanceLinear]
+				usage := state.usage(state.windows["request_weight_1m"], time.Now())
+				assert.True(t, state.cooldown.IsZero())
 				if tt.tighten {
-					assert.ErrorIs(t, err, application.ErrUpstreamUnavailable)
-					assert.Len(t, recorder.sent(), 1)
+					assert.Equal(t, 110, usage.common)
+					assert.Equal(t, 100, usage.observed)
 				} else {
-					require.NoError(t, err)
-					assert.Len(t, recorder.sent(), 2)
+					assert.Equal(t, usage.local, usage.common)
+					assert.Zero(t, usage.observed)
 				}
 			})
 		})

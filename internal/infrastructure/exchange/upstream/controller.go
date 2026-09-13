@@ -24,13 +24,18 @@ type window struct {
 }
 
 type entry struct {
-	at   time.Time
-	cost cost
+	at           time.Time
+	cost         cost
+	received     time.Time
+	dispatched   bool
+	inflight     bool
+	observations map[time.Duration]usageObservation
 }
 
 type scopeState struct {
 	windows          map[string]window
-	history          []entry
+	keepInflight     bool
+	history          []*entry
 	historySince     time.Time
 	spacing          time.Duration
 	next             time.Time
@@ -122,7 +127,7 @@ func percent(value, share int) int { return value/100*share + value%100*share/10
 
 func (c *Controller) addScope(id Scope, cfg config.Scope, costs [operationCount]int) {
 	shares := c.settings.OperationSharePercent
-	s := &scopeState{windows: make(map[string]window), spacing: cfg.MinRequestSpacing, historySince: c.clock.Now(), maxCosts: costs, shares: [operationCount]int{shares.Tickers, shares.Klines, shares.Instruments, shares.MarketStats}}
+	s := &scopeState{windows: make(map[string]window), keepInflight: id != Bybit, spacing: cfg.MinRequestSpacing, historySince: c.clock.Now(), maxCosts: costs, shares: [operationCount]int{shares.Tickers, shares.Klines, shares.Instruments, shares.MarketStats}}
 	if id == Bybit {
 		s.shares[Tickers] += s.shares[MarketStats]
 		s.shares[MarketStats] = 0
@@ -178,19 +183,7 @@ func (w window) cost(c cost) int {
 
 func (s *scopeState) ready(w *waiter, now time.Time) (time.Time, error) {
 	ready := maxTime(s.next, s.cooldown, w.notBefore)
-	longest := time.Duration(0)
-	for _, limit := range s.windows {
-		longest = max(longest, limit.duration)
-	}
-	cutoff := now.Add(-longest)
-	n := 0
-	for n < len(s.history) && !s.history[n].at.After(cutoff) {
-		n++
-	}
-	s.history = slices.Delete(s.history, 0, n)
-	if cutoff.After(s.historySince) {
-		s.historySince = cutoff
-	}
+	s.prune(now)
 	for name, limit := range s.windows {
 		amount := limit.cost(w.cost)
 		if amount == 0 {
@@ -204,34 +197,15 @@ func (s *scopeState) ready(w *waiter, now time.Time) (time.Time, error) {
 			}
 			return time.Time{}, fmt.Errorf("%s window %s: request cost %d exceeds allowance %d: %w", w.scope, name, amount, capacity, application.ErrUpstreamUnavailable)
 		}
-		common, own := 0, 0
-		first := now.Add(-limit.duration)
-		for _, e := range s.history {
-			if !e.at.After(first) {
-				continue
-			}
-			used := limit.cost(e.cost)
-			common += used
-			if e.cost.operation == w.cost.operation {
-				own += used
-			}
-		}
-		if common <= limit.limit-amount && (!limit.split || own <= allowance-amount) {
+		usage := s.usage(limit, now)
+		if usage.common <= limit.limit-amount && (!limit.split || usage.operations[w.cost.operation] <= allowance-amount) {
 			continue
 		}
-		for _, e := range s.history {
-			if !e.at.After(first) {
-				continue
-			}
-			used := limit.cost(e.cost)
-			common -= used
-			if e.cost.operation == w.cost.operation {
-				own -= used
-			}
-			if common <= limit.limit-amount && (!limit.split || own <= allowance-amount) {
-				ready = maxTime(ready, e.at.Add(limit.duration))
-				break
-			}
+		// Phase 3 keeps budget waits. Recheck at the next expiry or completion.
+		if usage.next.IsZero() {
+			ready = maxTime(ready, w.expires)
+		} else {
+			ready = maxTime(ready, usage.next)
 		}
 	}
 	return ready, nil
@@ -248,17 +222,17 @@ func maxTime(values ...time.Time) time.Time {
 }
 
 // acquire is private: callers cannot collect permissions for later dispatch.
-func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operation *operationState, notBefore time.Time) (time.Time, error) {
+func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operation *operationState, notBefore time.Time) (*entry, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	s, ok := c.scopes[scope]
 	if !ok {
-		return time.Time{}, application.ErrUnsupportedOperation
+		return nil, application.ErrUnsupportedOperation
 	}
 	index := laneIndex(scope, cost.operation)
 	l := &c.lanes[index]
 	if l.capacity <= len(l.queue) || c.queued >= c.settings.MaxAdmissionWaiters {
-		return time.Time{}, application.ErrServiceOverloaded
+		return nil, application.ErrServiceOverloaded
 	}
 	w := &waiter{ctx: ctx, scope: scope, cost: cost, operation: operation, expires: c.clock.Now().Add(c.settings.AdmissionTimeout), notBefore: notBefore}
 	l.queue = append(l.queue, w)
@@ -273,30 +247,31 @@ func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operat
 	for {
 		now := c.clock.Now()
 		if err := ctx.Err(); err != nil {
-			return time.Time{}, err
+			return nil, err
 		}
 		if operation.attempts >= operation.maximum {
-			return time.Time{}, application.ErrUpstreamAttemptLimit
+			return nil, application.ErrUpstreamAttemptLimit
 		}
 		ready, err := s.ready(w, now)
 		if err != nil {
-			return time.Time{}, err
+			return nil, err
 		}
 		if deadline, ok := ctx.Deadline(); ok && !s.cooldown.Before(deadline) {
-			return time.Time{}, application.ErrUpstreamUnavailable
+			return nil, application.ErrUpstreamUnavailable
 		}
 		if !now.Before(w.expires) {
-			return time.Time{}, application.ErrServiceOverloaded
+			return nil, application.ErrServiceOverloaded
 		}
 		if l.queue[0] == w && !ready.After(now) && c.selected(now) == index {
-			// This is the dispatch boundary. No external work occurs before RoundTrip.
+			// Reserve atomically before the transport dispatches this attempt.
 			operation.attempts++
-			s.history = append(s.history, entry{at: now, cost: cost})
+			reservation := &entry{at: now, cost: cost, inflight: true}
+			s.history = append(s.history, reservation)
 			s.next = now.Add(s.spacing)
 			c.active++
 			l.active++
 			c.nextLane = (index + 1) % len(c.lanes)
-			return now, nil
+			return reservation, nil
 		}
 		until := w.expires
 		if ready.After(now) && ready.Before(until) {
@@ -307,7 +282,7 @@ func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operat
 		err = wait(ctx, c.clock, until, changed)
 		c.mu.Lock()
 		if err != nil {
-			return time.Time{}, err
+			return nil, err
 		}
 	}
 }
@@ -334,11 +309,16 @@ func (c *Controller) selected(now time.Time) int {
 	return -1
 }
 
-func (c *Controller) release(scope Scope, op Operation) {
+func (c *Controller) release(scope Scope, attempt *entry) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if !attempt.inflight {
+		return
+	}
 	c.active--
-	c.lanes[laneIndex(scope, op)].active--
+	attempt.inflight = false
+	c.lanes[laneIndex(scope, attempt.cost.operation)].active--
+	c.scopes[scope].prune(c.clock.Now())
 	c.notify()
 }
 
