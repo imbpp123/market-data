@@ -37,6 +37,9 @@ func (s *localState) operationWorkers(cfg config.Config, logger *slog.Logger, ro
 	}
 	statistics := &observability.Statistics{Instruments: s.instrumentMetrics, Current: s.currentMetrics,
 		Klines: s.klineMetrics, Exchanges: s.exchangeMetrics, Inventory: s.inventory, Scopes: enabledScopes(cfg)}
+	if s.exchanges != nil {
+		statistics.Admission = s.exchanges.admission
+	}
 	if cfg.Observability.Prometheus.Enabled {
 		routes[cfg.Observability.Prometheus.Path] = statistics.PrometheusHandler()
 	}

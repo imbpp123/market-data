@@ -40,17 +40,20 @@ func (t *budgetTelemetry) Report(err error, _ map[string]string) {
 
 func TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots(t *testing.T) {
 	cases := []struct {
-		name   string
-		resume bool
+		name     string
+		resume   bool
+		cooldown bool
 	}{
 		{name: "shutdown during deferral"},
 		{name: "ordinary work resumes at expiry", resume: true},
+		{name: "real cooldown outlasts budget", resume: true, cooldown: true},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				cfg := catalogWorkerConfig()
 				cfg.Upstream.Binance.CatalogRefreshInterval = 10 * time.Second
+				cfg.HTTPClient.Retry.MaxAttempts = 1
 				clock := upstream.SystemClock{}
 				jitter := func(time.Duration) time.Duration { return 0 }
 				state, err := newLocalState(1000, time.Now)
@@ -72,16 +75,25 @@ func TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots(t *testing.T) {
 					}
 					if call == 1 {
 						response.Header.Set("X-Mbx-Used-Weight-1m", "5401")
+						if tt.cooldown {
+							response.StatusCode = 429
+							response.Header.Set("Retry-After", "120")
+						}
 					}
 					return response, nil
 				})
-				state.exchanges, err = newExchangeClients(cfg, base, clock, jitter, nil)
+				state.exchanges, err = newExchangeClients(cfg, base, clock, jitter, state.exchangeMetrics.Observe)
 				require.NoError(t, err)
 				seed, stop, err := state.exchanges.admission.Begin(t.Context(), upstream.BinanceSpot, upstream.Instruments)
 				require.NoError(t, err)
 				defer stop()
 				_, err = state.exchanges.binance[upstream.BinanceSpot].Fetch(seed, "/api/v3/exchangeInfo", nil)
-				require.NoError(t, err)
+				if tt.cooldown {
+					require.ErrorIs(t, err, application.ErrUpstream)
+				} else {
+					require.NoError(t, err)
+				}
+				exchangeBefore := state.exchangeMetrics.Snapshot()
 				reports := &budgetTelemetry{telemetry: state.telemetry}
 				state.telemetry = reports
 				var logs bytes.Buffer
@@ -103,6 +115,7 @@ func TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots(t *testing.T) {
 				synctest.Wait()
 
 				assert.Equal(t, int64(1), calls.Load())
+				assert.Equal(t, exchangeBefore, state.exchangeMetrics.Snapshot())
 				assert.Zero(t, reports.failures.Load())
 				assert.NotContains(t, logs.String(), `"level":"WARN"`)
 				assert.Zero(t, state.instrumentMetrics.Snapshot()[scope].RefreshTotal)
@@ -118,6 +131,13 @@ func TestBackgroundBudgetDeferralIsQuietAndKeepsSnapshots(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, oldStats, stats)
 				if tt.resume {
+					if tt.cooldown {
+						time.Sleep(time.Minute)
+						synctest.Wait()
+						assert.Equal(t, int64(1), calls.Load(), "budget expiry cannot clear the exchange cooldown")
+						assert.Equal(t, exchangeBefore, state.exchangeMetrics.Snapshot())
+						assert.Zero(t, reports.failures.Load())
+					}
 					time.Sleep(100 * time.Millisecond)
 					synctest.Wait()
 					assert.Greater(t, calls.Load(), int64(1))
@@ -186,5 +206,86 @@ func TestKlineBudgetRejectionKeepsPagesWithoutPartialHTTPSuccess(t *testing.T) {
 		assert.Contains(t, cached.Body.String(), "1.1234567890123456789")
 		assert.Equal(t, int64(1), calls.Load())
 		assert.Equal(t, uint64(1), state.klineMetrics.Snapshot()[scope].Attempts)
+	})
+}
+
+func TestParallelKlineCallersAllowOneCrossingAndKeepCacheReadable(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		cfg := config.Defaults()
+		state, err := newLocalState(1000, time.Now)
+		require.NoError(t, err)
+		scope := application.Scope{Exchange: domain.ExchangeBinance, Market: domain.MarketSpot}
+		require.NoError(t, state.instruments.ReplaceSnapshot(t.Context(), scope, []domain.Instrument{
+			{Exchange: scope.Exchange, Market: scope.Market, Symbol: "BTCUSDT"},
+			{Exchange: scope.Exchange, Market: scope.Market, Symbol: "ETHUSDT"},
+		}))
+		end := time.Now().UTC().Truncate(time.Minute)
+		reply := make(chan struct{})
+		var calls atomic.Int64
+		base := instrumentTransport(func(r *http.Request) (*http.Response, error) {
+			calls.Add(1)
+			if r.URL.Path == "/api/v3/exchangeInfo" {
+				result := catalogResponse(6000)
+				result.Header.Set("X-Mbx-Used-Weight-1m", "5400")
+				return result, nil
+			}
+			<-reply
+			return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": {"application/json"}}, Body: io.NopCloser(strings.NewReader(candleFixture(scope.Exchange, scope.Market, end.Add(-time.Minute), end)))}, nil
+		})
+		state.exchanges, err = newExchangeClients(cfg, base, upstream.SystemClock{}, func(time.Duration) time.Duration { return 0 }, state.exchangeMetrics.Observe)
+		require.NoError(t, err)
+		seed, stop, err := state.exchanges.admission.Begin(t.Context(), upstream.BinanceSpot, upstream.Instruments)
+		require.NoError(t, err)
+		defer stop()
+		_, err = state.exchanges.binance[upstream.BinanceSpot].Fetch(seed, "/api/v3/exchangeInfo", nil)
+		require.NoError(t, err)
+		time.Sleep(20 * time.Millisecond)
+		root, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		service, err := state.klineService(root, cfg, time.Now)
+		require.NoError(t, err)
+		defer func() {
+			cancel()
+			service.Wait()
+		}()
+		handler := httptransport.NewKlinesHandler(service, time.Second, cfg.Klines.MaxCallers)
+		type outcome struct {
+			url      string
+			response *httptest.ResponseRecorder
+		}
+		results := make(chan outcome, 2)
+		for _, symbol := range []string{"BTCUSDT", "ETHUSDT"} {
+			url := strings.ReplaceAll(candleURL(scope, end.Add(-time.Minute), end), "BTCUSDT", symbol)
+			go func() {
+				r := httptest.NewRecorder()
+				handler.ServeHTTP(r, httptest.NewRequestWithContext(t.Context(), "GET", url, nil))
+				results <- outcome{url: url, response: r}
+			}()
+		}
+		synctest.Wait()
+
+		rejected := <-results
+
+		assert.Equal(t, 503, rejected.response.Code)
+		assert.Contains(t, rejected.response.Body.String(), `"code":"service_overloaded"`)
+		assert.Equal(t, int64(2), calls.Load(), "one seed and one crossing request")
+		for _, w := range state.exchanges.admission.Diagnostics().Scopes[0].Windows {
+			if w.Name == "request_weight_1m" {
+				assert.Equal(t, 5402, w.Accounted)
+				assert.Equal(t, 2, w.Reserved)
+			}
+		}
+		close(reply)
+		accepted := <-results
+		assert.Equal(t, 200, accepted.response.Code)
+		cached := httptest.NewRecorder()
+		handler.ServeHTTP(cached, httptest.NewRequestWithContext(t.Context(), "GET", accepted.url, nil))
+		assert.Equal(t, 200, cached.Code)
+		assert.JSONEq(t, accepted.response.Body.String(), cached.Body.String())
+		assert.Equal(t, int64(2), calls.Load())
+		assert.Equal(t, uint64(1), state.klineMetrics.Snapshot()[scope].Attempts)
+		for _, stats := range state.exchangeMetrics.Snapshot() {
+			assert.Zero(t, stats.Errors)
+		}
 	})
 }

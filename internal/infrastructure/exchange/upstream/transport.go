@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,19 +18,22 @@ import (
 	"market-data/internal/domain"
 )
 
+var errResponseTooLarge = fmt.Errorf("response body exceeds byte limit: %w", application.ErrInvalidUpstreamData)
+
 // Event is immutable request-local metadata. Observers must be concurrency safe.
 // Bodies and raw error strings are deliberately excluded from statistics events.
 type Event struct {
-	Scope     Scope
-	Market    domain.Market
-	Operation Operation
-	Path      string
-	StartedAt time.Time
-	Duration  time.Duration
-	Status    int
-	Code      int64
-	Header    http.Header
-	Error     error
+	FailureReason string
+	Scope         Scope
+	Market        domain.Market
+	Operation     Operation
+	Path          string
+	StartedAt     time.Time
+	Duration      time.Duration
+	Status        int
+	Code          int64
+	Header        http.Header
+	Error         error
 }
 
 type Observer func(Event)
@@ -222,6 +226,9 @@ func (t *Transport) attempt(request *http.Request, reservation *entry, operation
 		retryable = temporary(err)
 		if errors.Is(err, application.ErrInvalidUpstreamData) {
 			event.Error = application.ErrInvalidUpstreamData
+			if errors.Is(err, errResponseTooLarge) {
+				event.FailureReason = "oversized_body"
+			}
 		}
 	} else if response == nil {
 		event.Error = application.ErrInvalidUpstreamData
@@ -231,6 +238,12 @@ func (t *Transport) attempt(request *http.Request, reservation *entry, operation
 	// Headers must still extend cooldown when a body cannot be read or is too big.
 	if response != nil && err != nil {
 		t.rateSignal(request, response, body, event.Code)
+	}
+	if t.scope != Bybit && strings.HasSuffix(request.URL.Path, "/exchangeInfo") && event.Error != nil {
+		if event.FailureReason == "" {
+			event.FailureReason = "catalog_refresh_failed"
+		}
+		t.controller.catalogFailure(t.scope, started, event.FailureReason)
 	}
 	event.Duration = max(0, received.Sub(started))
 	return response, body, event, retryable
@@ -246,7 +259,7 @@ func readBody(body io.ReadCloser, maximum int, transportError error) ([]byte, er
 	var extra [1]byte
 	n, err := io.ReadFull(body, extra[:])
 	if n > 0 {
-		return nil, application.ErrInvalidUpstreamData
+		return nil, errResponseTooLarge
 	}
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err

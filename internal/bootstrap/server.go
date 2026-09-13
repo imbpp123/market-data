@@ -53,12 +53,26 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger, workers ..
 		}
 		state.telemetry.ObserveExchange(event)
 		if event.Error != nil {
-			logger.Warn("Upstream attempt failed", "scope", event.Scope, "path", event.Path, "status", event.Status, "code", event.Code, "error", observability.ErrorCode(event.Error))
+			logger.Warn("Upstream attempt failed", "scope", event.Scope, "path", event.Path, "status", event.Status, "code", event.Code, "error", observability.ErrorCode(event.Error), "reason", event.FailureReason)
 		}
 	})
 	if err != nil {
 		return fmt.Errorf("initialize exchange clients: %w", err)
 	}
+
+	state.exchanges.admission.SetDiagnosticObserver(func(event upstream.DiagnosticEvent) {
+		fields := []any{"scope", event.Scope, "reason", event.Reason}
+		if event.Operation != "" {
+			fields = append(fields, "operation", event.Operation, "next_eligible", event.NextEligible, "request_weight", event.RequestWeight, "funding_request", event.FundingRequest)
+		}
+		if event.Reason == "exchange_cooldown" {
+			fields = append(fields, "next_eligible", event.NextEligible)
+		}
+		if len(event.Limits) > 0 {
+			fields = append(fields, "limits", event.Limits, "threshold_percent", event.ThresholdPercent)
+		}
+		logger.Info("Admission state changed", fields...)
+	})
 
 	instrumentWorkers, err := state.instrumentWorkers(cfg, logger, upstream.SystemClock{}, func(ceiling time.Duration) time.Duration {
 		return time.Duration(rand.Int64N(int64(ceiling)))

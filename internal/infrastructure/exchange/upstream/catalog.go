@@ -79,11 +79,26 @@ func (c *Controller) updateCatalog(scope Scope, started time.Time, body []byte) 
 		// Admission checks each request against its new allowance.
 		updates[key] = value
 	}
+	var changed []LimitState
 	for key, w := range updates {
+		old, exists := s.windows[key]
+		if !exists || old.ceiling != w.ceiling || old.source != w.source {
+			changed = append(changed, LimitState{Name: key, Unit: w.unit, Window: w.duration, ExchangeLimit: w.ceiling, UserCap: w.userCap, StopLine: w.limit, Source: w.source, UpdatedAt: w.updatedAt, HistorySince: s.historySince})
+		}
 		s.windows[key] = w
 	}
 	s.catalogStart = started
 	s.catalogUpdatedAt = c.clock.Now()
+	recovered := s.catalogError != "" && !started.Before(s.catalogErrorStart)
+	if !started.Before(s.catalogErrorStart) {
+		s.catalogError, s.catalogErrorAt, s.catalogErrorStart = "", time.Time{}, time.Time{}
+	}
+	if len(changed) > 0 {
+		slices.SortFunc(changed, func(a, b LimitState) int { return strings.Compare(a.Name, b.Name) })
+		c.diagnostic(DiagnosticEvent{Scope: scope, Reason: "catalog_changed", Limits: changed, ThresholdPercent: c.settings.Binance.StopThresholdPercent})
+	} else if recovered {
+		c.diagnostic(DiagnosticEvent{Scope: scope, Reason: "catalog_recovered"})
+	}
 	return nil
 }
 

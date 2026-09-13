@@ -69,8 +69,6 @@ func (s *localState) instrumentWorkers(cfg config.Config, logger *slog.Logger, c
 				if err != nil {
 					s.telemetry.Report(err, map[string]string{"operation": "limit_catalog", "exchange": string(scope.Exchange), "market": string(scope.Market)})
 					logger.Warn("Limit catalog refresh failed", "scope", transportScope, "error", err)
-				} else {
-					logger.Info("Limit catalog refreshed", "scope", transportScope, "limits", s.exchanges.admission.Limits(transportScope))
 				}
 				return err
 			})
@@ -83,9 +81,6 @@ func (s *localState) instrumentWorkers(cfg config.Config, logger *slog.Logger, c
 				s.instrumentMetrics.Observe(event)
 			}
 			s.telemetry.Report(event.Error, map[string]string{"operation": "instruments", "exchange": string(event.Scope.Exchange), "market": string(event.Scope.Market)})
-			if scope.Exchange == domain.ExchangeBinance {
-				logger.Info("Current request limits", "scope", transportScope, "limits", s.exchanges.admission.Limits(transportScope))
-			}
 			if event.Error != nil {
 				logger.Warn("Instrument refresh failed", "exchange", event.Scope.Exchange, "market", event.Scope.Market, "error", observability.ErrorCode(event.Error))
 			} else {

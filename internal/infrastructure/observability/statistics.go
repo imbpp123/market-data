@@ -12,6 +12,7 @@ import (
 
 	"market-data/internal/application"
 	"market-data/internal/application/kline"
+	"market-data/internal/infrastructure/exchange/upstream"
 )
 
 // Sample contains only bounded operational labels, never a symbol or payload.
@@ -22,6 +23,7 @@ type Sample struct {
 }
 
 type Statistics struct {
+	Admission   *upstream.Controller
 	Instruments *Instruments
 	Current     *Current
 	Klines      *Klines
@@ -76,9 +78,13 @@ func (s *Statistics) Snapshot(ctx context.Context) ([]Sample, error) {
 		labels["operation"] = scope.Operation
 		add("exchange_requests_total", labels, float64(stats.Requests))
 		add("exchange_errors_total", labels, float64(stats.Errors))
+		add("exchange_oversized_bodies_total", labels, float64(stats.OversizedBodies))
 		add("exchange_request_duration_seconds_count", labels, float64(stats.Duration.Count))
 		add("exchange_request_duration_seconds_sum", labels, stats.Duration.Sum)
 		add("exchange_request_duration_seconds_max", labels, stats.Duration.Max)
+	}
+	if s.Admission != nil {
+		result = append(result, admissionSamples(s.Admission.Diagnostics())...)
 	}
 	slices.SortFunc(result, func(a, b Sample) int { return strings.Compare(a.Name+labelText(a.Labels), b.Name+labelText(b.Labels)) })
 	return result, nil
@@ -103,6 +109,16 @@ func labelText(labels map[string]string) string {
 
 func (s *Statistics) DebugHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("view") == "admission" {
+			w.Header().Set("Content-Type", "application/json")
+			if s.Admission == nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte(`{"error":{"code":"statistics_unavailable","message":"Statistics unavailable"}}`))
+				return
+			}
+			_ = json.NewEncoder(w).Encode(s.Admission.Diagnostics())
+			return
+		}
 		snapshot, err := s.Snapshot(r.Context())
 		w.Header().Set("Content-Type", "application/json")
 		if err != nil {

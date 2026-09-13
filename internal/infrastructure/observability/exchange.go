@@ -28,9 +28,10 @@ type ExchangeScope struct {
 }
 
 type ExchangeStats struct {
-	Requests uint64
-	Errors   uint64
-	Duration DurationStats
+	Requests        uint64
+	Errors          uint64
+	OversizedBodies uint64
+	Duration        DurationStats
 }
 
 type Exchanges struct {
@@ -62,6 +63,9 @@ func (s *Exchanges) Observe(event upstream.Event) {
 	stats.Requests++
 	if event.Error != nil {
 		stats.Errors++
+	}
+	if event.FailureReason == "oversized_body" {
+		stats.OversizedBodies++
 	}
 	stats.Duration.add(event.Duration)
 	s.scopes[key] = stats

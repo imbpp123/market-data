@@ -1,6 +1,6 @@
 # Binance request-limit rework: phase plans
 
-Status: all five phase plans are approved by the user. Phases 1 and 2 are complete on September 13, 2026. Phase 3 is complete after independent review. Phase 4 is complete after independent review. Phase 5 has not started.
+Status: all five approved phases are complete on September 13, 2026. Local validation passed. Phases 3–5 passed independent review with no confirmed defects. No deployment was performed.
 
 The [main specification](../request-budget-rework-specification.md) defines the behavior. These plans explain the work and tests. They do not add new agreed requirements. Proposed details are marked in each phase.
 
@@ -10,7 +10,7 @@ The [main specification](../request-budget-rework-specification.md) defines the 
 | [2. Limits and settings](02-limits-and-settings.md) | Separate starting limits from user caps and add catalog refresh. | Current limits and configuration produce the right stop lines. | Complete |
 | [3. Usage accounting](03-usage-accounting.md) | Combine exchange counters with local requests. | Parallel and failed requests keep correct local charges. | Complete |
 | [4. Rejection and recovery](04-rejection-and-recovery.md) | Apply immediate rejection and resume by time. | Callers fail quickly; workers resume without polling. | Complete |
-| [5. Diagnostics and final checks](05-diagnostics-and-validation.md) | Add diagnostics, test complete flows, and update documents. | The change has clear evidence and migration instructions. | Approved; not started |
+| [5. Diagnostics and final checks](05-diagnostics-and-validation.md) | Add diagnostics, test complete flows, and update documents. | The change has clear evidence and migration instructions. | Complete |
 
 ## How we will work
 
@@ -38,4 +38,8 @@ Each attempt now owns its local charge and valid weight observations. Common usa
 
 ## Phase 4 result
 
-Binance now rejects current usage above its stop line and allows one crossing at or below it. Strict operation shares still require the new cost to fit. Rejection happens before admission waits and spends no cost, slot, HTTP request, or attempt. Workers use quiet timer or state-change deferral; the instrument worker keeps its separate catalog schedule active. Cached pages and previous snapshots remain usable. `make check`, `make vet`, and whitespace checks passed. See the [implementation report](04-rejection-and-recovery.md#implementation-report) for files, boundary tests, worker and candle integration evidence, and recovery limits. Independent review found no confirmed defects, and a fresh race test run passed for the exchange, application, and bootstrap packages. Phase 5 diagnostics and final validation remain pending.
+Binance now rejects current usage above its stop line and allows one crossing at or below it. Strict operation shares still require the new cost to fit. Rejection happens before admission waits and spends no cost, slot, HTTP request, or attempt. Workers use quiet timer or state-change deferral; the instrument worker keeps its separate catalog schedule active. Cached pages and previous snapshots remain usable. `make check`, `make vet`, and whitespace checks passed. See the [implementation report](04-rejection-and-recovery.md#implementation-report) for files, boundary tests, worker and candle integration evidence, and recovery limits. Independent review found no confirmed defects, and a fresh race test run passed for the exchange, application, and bootstrap packages. Phase 5 diagnostics and final local validation are recorded below.
+
+## Phase 5 result
+
+Admission diagnostics now show coherent per-window limits, usage, reasons, and predicted recovery. Fixed-label metrics and detailed JSON share the controller state; catalog/body errors stay separate from budget deferrals. Parallel candle/cache and real cooldown/worker flows pass, as do `make check`, `make vet`, and phase 1 body checks. Final-code replay of the same saved Spot catalog used 72,761,344 bytes peak RSS; this is local replay, not a new live response measurement or whole-service capacity audit. See the [phase 5 report](05-diagnostics-and-validation.md#implementation-report) for exact evidence. Independent review found no confirmed defects; fresh race and focused body/catalog/diagnostic tests passed. No code fixes or extra regression tests were needed. No deployment was performed.

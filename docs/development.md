@@ -84,6 +84,8 @@ MDS_EXCHANGES_BYBIT_MARKETS='["linear"]' \
 
 `MDS_SENTRY_DSN` is an alias for `MDS_OBSERVABILITY_SENTRY_DSN`; using both is an error. Do not commit a real DSN or other credentials.
 
+Binance settings are `upstream.binance.stop_threshold_percent` (integer 1–99, default 90) and `catalog_refresh_interval` (positive finite duration, default 1h). Environment overrides are `MDS_UPSTREAM_BINANCE_STOP_THRESHOLD_PERCENT` and `MDS_UPSTREAM_BINANCE_CATALOG_REFRESH_INTERVAL`. Explicit legacy Binance window limits are user caps; omitted limits track exchange changes. `safety_margin_percent` affects Bybit only. To keep an older 80% Binance policy, explicitly set the new percentage to 80. Invalid settings fail validation.
+
 Validation covers the full agreed schema, including disabled providers' input syntax, endpoint page limits, history size, refresh schedules, reserved budget shares, fixed allocation windows, cooldown minima, concurrency, queues, attempts, observability options, and overflow. Kline caller timeout and HTTP attempt timeout are separate. The HTTP write timeout is `max(kline request timeout, snapshot timeout) + 5s`. Shutdown must cover the longest caller/fill lifetime plus 5s.
 
 Reducing a kline page size may require raising the kline attempt bound. Increasing history also affects this bound. Counts use checked integer arithmetic; the history count additionally cannot exceed `MaxInt64 / (31 * 24 * 60 * 60)` so a worst-case monthly span fits signed seconds. Calendar-specific checks belong to the timeframe implementation.
@@ -93,6 +95,33 @@ Admission keeps usage, discovered limits, and cooldown state in memory. Exchange
 Feature adapters use the shared `binance.Client.Fetch` (implemented separately for spot and linear) or `bybit.Client.Fetch` with one `Controller.Begin` context per full cycle or fill. Pages and retries reuse that context. The returned raw body retains exact source numbers and successful-attempt start/receipt timestamps; feature normalization must not rebuild numeric values from the Bybit SDK result. A background worker owns one `CycleGate` and calls `Run` with the full cycle, including publication, so a new cycle cannot reset failure backoff. Instrument and current-data workers, normalization, and single-page candle adapters are implemented. Candle fills use the same operation boundary across pages and retries.
 
 The transport resolves actual endpoint costs, performs atomic sliding-window admission, and bounds retries, response bodies after decompression, queues, HTTP concurrency, and deadlines. It exposes per-attempt request/error/duration events; bootstrap logs attempt failures. Instrument, ticker, and statistics publication success/error counts, last-success times, and snapshot sizes are stored in memory by exchange/market, with a separate window key for statistics. Instrument refresh outcomes and current-data failures are logged. Optional exporters read the same counters. Integration tests use loopback HTTP servers, so sandboxed test runs need permission to bind local ports.
+
+## Binance admission diagnostics
+
+Enable the existing statistics endpoint and request `/debug/stats?view=admission` for one controller snapshot. The default `/debug/stats` sample array is unchanged. Binance Spot and USD-M are separate scopes; Bybit admission behavior is unchanged and is not duplicated into these Binance diagnostics.
+
+Each window shows source (`bootstrap` or `exchange_info`), age in seconds, update time, exchange limit, optional user cap (zero means absent), percentage, and stop line. `local` includes in-flight `reserved` cost; `accounted` already combines local and observed usage. Do not add these fields together. `remaining` is nonnegative headroom, not permission to send: equality can still permit one crossing request, while strict shares may reject it.
+
+`history_since` and `incomplete_history` identify restart or longer-window history gaps. `uncertain` marks an estimate with unproven usage or overlap; false does not prove no external IP traffic. Only each response's own attempt is proven included. Conservative estimates can approach twice actual usage, and observations expire one full window after receipt. No hard 90% actual-IP guarantee is made.
+
+Operation entries use the largest configured request cost for that window, shown as `request_cost`. This is a conservative diagnostic check, not a promise that every request in the operation has the same outcome: USD-M ticker costs differ, and funding windows apply only to funding requests. Reasons are current and may coexist:
+
+| Reason | Meaning |
+| --- | --- |
+| `common_threshold` | Current accounted usage is above the common stop line. |
+| `operation_share` | Local operation usage plus the shown request cost exceeds its strict share. |
+| `request_cost_exceeds_allowance` | The shown request cannot fit even with no usage; expiry cannot repair the limit. |
+| `exchange_cooldown` | A real exchange signal still blocks the scope. Budget expiry does not clear it. |
+| `catalog_refresh_failed` | A dispatched catalog attempt failed; keep usable installed limits. This is separate scope metadata, not an admission rejection. |
+| `oversized_body` | A decoded response exceeded the finite body bound. A catalog failure retains this distinct reason. |
+
+Per-window `next_eligible` is the earliest time predicted from known expiries, pacing, and cooldown for the shown cost. Zero time means unknown (in-flight completion) or impossible cost. Evaluate every applicable window; Prometheus gives the latest of these times per operation, or zero if any is unknown. These estimates exclude HTTP slots, queue capacity, caller deadlines, and request-specific retry backoff. No diagnostic read sends a request, reserves budget, or records a rejection.
+
+Prometheus and the default debug array expose `admission_*` gauges. Fixed window labels are `request_weight_1m`, `raw_requests_5m`, and `funding_requests_5m`. They include limits/source/age, observed/local/accounted/reserved usage, headroom, uncertainty/history, and operation cost/share/usage. Arbitrary discovered window names never become metric labels. `admission_discovered_windows` counts them by unit; `admission_blocking_windows` counts all blocking windows by operation and fixed reason. Counts do not add unlike usage units. Exact discovered limits and times remain in the detailed JSON. Times are numeric Unix seconds in metrics, with zero for unset/unknown values.
+
+Catalog error metadata follows request order: late failures cannot replace newer accepted success; an older accepted catalog cannot clear a newer failure. A subsequent accepted response clears the error without resetting usage. Logs report changed limits with their source and stop line, catalog recovery/failures, extended cooldowns, and budget rejection/next-admission transitions with the actual request weight and funding flag. Admission of a cheaper request does not promise that a more expensive request now fits. Unchanged catalogs and repeated background deferrals do not produce repeated state logs. Deferrals are not exchange attempts, errors, or refresh failures. `exchange_oversized_bodies_total` counts only dispatched responses that exceed the body bound.
+
+The checkable invariant is: no new positive-cost request is admitted when current accounted usage is already above a stop line. Restart, external traffic, delayed charging, and unseen limits prevent an absolute IP-usage guarantee. Cache and snapshot reads remain available during admission rejection.
 
 ## Operations
 

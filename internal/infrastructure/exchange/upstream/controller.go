@@ -33,17 +33,22 @@ type entry struct {
 }
 
 type scopeState struct {
-	windows          map[string]window
-	keepInflight     bool
-	history          []*entry
-	historySince     time.Time
-	spacing          time.Duration
-	next             time.Time
-	cooldown         time.Time
-	catalogUpdatedAt time.Time
-	catalogStart     time.Time
-	shares           [operationCount]int
-	maxCosts         [operationCount]int
+	windows           map[string]window
+	keepInflight      bool
+	history           []*entry
+	historySince      time.Time
+	startedAt         time.Time
+	catalogError      string
+	catalogErrorAt    time.Time
+	catalogErrorStart time.Time
+	lastAdmission     [operationCount]string
+	spacing           time.Duration
+	next              time.Time
+	cooldown          time.Time
+	catalogUpdatedAt  time.Time
+	catalogStart      time.Time
+	shares            [operationCount]int
+	maxCosts          [operationCount]int
 }
 
 type lane struct {
@@ -63,17 +68,18 @@ type waiter struct {
 }
 
 type Controller struct {
-	mu           sync.Mutex
-	clock        Clock
-	settings     config.Upstream
-	scopes       map[Scope]*scopeState
-	lanes        [2 * operationCount]lane
-	nextLane     int
-	active       int
-	queued       int
-	changed      chan struct{}
-	cycleTimeout [operationCount]time.Duration
-	attempts     [operationCount]int
+	mu                 sync.Mutex
+	diagnosticObserver func(DiagnosticEvent)
+	clock              Clock
+	settings           config.Upstream
+	scopes             map[Scope]*scopeState
+	lanes              [2 * operationCount]lane
+	nextLane           int
+	active             int
+	queued             int
+	changed            chan struct{}
+	cycleTimeout       [operationCount]time.Duration
+	attempts           [operationCount]int
 }
 
 // New creates fresh in-memory ledgers. It makes no upstream requests.
@@ -127,7 +133,7 @@ func percent(value, share int) int { return value/100*share + value%100*share/10
 
 func (c *Controller) addScope(id Scope, cfg config.Scope, costs [operationCount]int) {
 	shares := c.settings.OperationSharePercent
-	s := &scopeState{windows: make(map[string]window), keepInflight: id != Bybit, spacing: cfg.MinRequestSpacing, historySince: c.clock.Now(), maxCosts: costs, shares: [operationCount]int{shares.Tickers, shares.Klines, shares.Instruments, shares.MarketStats}}
+	s := &scopeState{windows: make(map[string]window), keepInflight: id != Bybit, spacing: cfg.MinRequestSpacing, historySince: c.clock.Now(), startedAt: c.clock.Now(), maxCosts: costs, shares: [operationCount]int{shares.Tickers, shares.Klines, shares.Instruments, shares.MarketStats}}
 	if id == Bybit {
 		s.shares[Tickers] += s.shares[MarketStats]
 		s.shares[MarketStats] = 0
@@ -261,6 +267,9 @@ func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operat
 		return nil, err
 	}
 	if _, err := c.ready(w, c.clock.Now()); err != nil {
+		if deferred, ok := err.(*budgetDeferral); ok {
+			c.admissionDiagnostic(scope, cost, deferred.reason, deferred.next)
+		}
 		return nil, err
 	}
 	index := laneIndex(scope, cost.operation)
@@ -287,6 +296,9 @@ func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operat
 		}
 		ready, err := c.ready(w, now)
 		if err != nil {
+			if deferred, ok := err.(*budgetDeferral); ok {
+				c.admissionDiagnostic(scope, cost, deferred.reason, deferred.next)
+			}
 			return nil, err
 		}
 		if deadline, ok := ctx.Deadline(); ok && !s.cooldown.Before(deadline) {
@@ -296,6 +308,7 @@ func (c *Controller) acquire(ctx context.Context, scope Scope, cost cost, operat
 			return nil, application.ErrServiceOverloaded
 		}
 		if l.queue[0] == w && !ready.After(now) && c.selected(now) == index {
+			c.admissionDiagnostic(scope, cost, "", now)
 			// Reserve atomically before the transport dispatches this attempt.
 			operation.attempts++
 			reservation := &entry{at: now, cost: cost, inflight: true}
@@ -359,6 +372,9 @@ func (c *Controller) Cooldown(scope Scope, until time.Time) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if s := c.scopes[scope]; s != nil {
+		if until.After(s.cooldown) {
+			c.diagnostic(DiagnosticEvent{Scope: scope, Reason: "exchange_cooldown", NextEligible: until})
+		}
 		s.cooldown = maxTime(s.cooldown, until)
 		c.notify()
 	}

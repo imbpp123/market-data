@@ -1182,7 +1182,7 @@ The SDK check does not test adapters that have not been written yet. It also doe
 
 Phase 01 dispositions are now recorded in the [decision register](specification-decisions-v1.md) and [implementation contract](implementation-contract-v1.md):
 
-- Absolute ceilings and service allowances use captured exchangeInfo limits and a 20% margin; shares, pacing, queues, attempts, deadlines, bootstrap, and in-memory restart behavior are specified.
+- The original phase 01 profile used captured exchangeInfo limits and a 20% margin. The approved September 13 Binance rework replaces that policy with a configurable stop line; section 32 and the implementation contract define current behavior. Shares, pacing, queues, attempts, deadlines, and in-memory restart behavior remain.
 - One instance is confirmed; the deployment must verify no other clients and no outstanding ban on its egress IP.
 - Binance funding uses explicit intervals only, with null for an absent symbol in a successful response. Request failure preserves the previous snapshot. Binance delisting stays null.
 - Twelve captured calendar cases cover 3d/1w alignment, both symbols, and year boundaries, with raw responses and expected normalized rows.
@@ -1854,7 +1854,7 @@ Tests control event order and do not depend on random delays:
 
 ### Purpose
 
-This mechanism has two jobs: keep outgoing requests within exchange limits and prevent the continuous ticker collector from spending the budget needed for instruments, klines, and independent market_stats loading.
+This mechanism has two jobs: apply the local exchange-admission rules and prevent the continuous ticker collector from spending the budget assigned to instruments, klines, and independent market_stats loading. The approved [Binance request-budget rework](request-budget-rework-specification.md) replaces the earlier hard common-budget policy; Bybit is unchanged.
 
 The exchange limits actual HTTP requests, not calls to our API or provider methods. One fetch plan may create several requests. One Binance ticker cycle also has several requests. Each request needs separate admission. Reading ready data from the repository does not use the exchange budget.
 
@@ -1888,7 +1888,7 @@ Confirmed by the user on September 11, 2026: fixed default shares of each common
 | instruments | 5% |
 | market_stats | 5% |
 
-The shares sum to 100%. They divide the service budget after its safety margin, not necessarily the exchange's full limit. Binance shares are weight units where the common limit uses weight, not percentages of HTTP request counts. Bybit's common request-count budget uses request counts. Apply shares independently to the relevant Binance Spot, Binance USDⓈ-M, and shared Bybit scopes. Never sum different units or combine the two Binance catalogs.
+The shares sum to 100%. They divide the Binance stop line or the Bybit allowance after its safety margin, not necessarily the exchange's full limit. Binance shares are weight units where the common limit uses weight, not percentages of HTTP request counts. Bybit's common request-count budget uses request counts. Apply shares independently to the relevant Binance Spot, Binance USDⓈ-M, and shared Bybit scopes. Never sum different units or combine the two Binance catalogs.
 
 Use `upstream.operation_share_percent` for configurable integer percentages, with the table as built-in defaults. Merge missing entries from defaults. For each common allocation window with integer service allowance B, the operation allowance is `floor(B * percent / 100)` using checked integer arithmetic. Fractional remainders stay unused; rounding must never increase the total budget. Shares are caps, not a promise of refresh latency or a reservation of HTTP concurrency slots. Extra smoothing, concurrency, and endpoint-family limits remain separate requirements.
 
@@ -1907,15 +1907,15 @@ Before sending, the adapter determines cost from the endpoint and actual paramet
 
 Several limits may apply to one request: common weight, request count, endpoint group limit, and the operation's assigned share. The request needs admission under each limit. Order creation limits do not apply to our public market-data requests.
 
-Local usage rule for v1: for each window W, the total cost of requests sent during the last W must not exceed the budget. Use a sliding window. This is a conservative service rule, not a claim that all exchanges use the same algorithm. Check all applicable windows, including short ones. Resetting counters once a minute at an arbitrary time does not follow this rule.
+Keep local sliding history for each applicable window, plus Binance in-flight costs and trustworthy observations. For Binance, reject a positive-cost request when CURRENT accounted usage is already above the stop line. At equality or below, allow a crossing request if all other checks pass. Operation shares remain strict: local operation usage plus request cost must fit. Apply every window independently and skip zero-cost constraints. Bybit retains its strict common and operation allowances.
 
-Burst does not allow extra usage above the window budget. If separate burst smoothing is needed, add it as another limit. One token bucket with an average rate does not implement all window rules. The choice of a helper library does not change this contract.
+Pacing remains separate from window accounting. Binance crossing is permitted only while current accounted usage is at or below the stop line; it is not an extra burst pool. Bybit allows no extra usage above its window allowance. One token bucket with an average rate does not implement all window rules. The choice of a helper library does not change this contract.
 
 ### Admission and budget usage
 
 1. Check the operation context, deadline, and bounds. Determine its type, endpoint, parameters, and all applicable costs. An unknown cost or scope is an error before sending, not permission for a free request.
-2. Check cooldown, available budgets, and an HTTP concurrency slot. If conditions are not met, wait with cancellation support. Do not hold an HTTP slot while waiting for budget.
-3. At actual admission, check and consume the cost across all applicable budgets together. Two concurrent requests cannot spend the same remaining amount. Do not consume one budget and then wait for another.
+2. Check budgets before queueing. Binance common/share rejection returns service_overloaded immediately without an HTTP attempt. Otherwise wait for pacing, cooldown, and an HTTP slot with cancellation support. Bybit still waits for budget. No wait holds an HTTP slot.
+3. At actual admission, check and reserve the cost across all applicable windows together. Parallel Binance requests see the crossing reservation before replies arrive. Do not consume one budget and then wait for another.
 4. Pass the request to HTTP transport. Do not issue admission early so callers can collect permissions and send a large batch later. If execution is delayed before sending, check admission conditions again.
 5. Handle the response or transport error, update limit information, and release the HTTP slot. A retry passes the full admission process again and consumes budget.
 
@@ -1925,7 +1925,9 @@ Waiting must not create a busy loop or an unbounded queue. Within one operation 
 
 ### Headers, errors, and common cooldown
 
-Local usage tracking works even without headers. Exchange data may make admission stricter, but must not reset local usage or return spent units. Responses may arrive out of order. An older value must not increase the available amount or shorten an existing cooldown. Section 14 defines which headers can be trusted.
+Binance catalog updates may raise or lower limits without clearing usage. A valid reduction always applies, even if some request costs no longer fit; reject those costs clearly. Invalid catalogs keep the last valid state, not a scope ban. New/longer windows and restart use available history without a full-window pause. A missing rule does not prove removal.
+
+Local usage tracking works even without headers. A valid Binance counter is combined with local costs not proven included; only its own request is proven included. Retain observations for a full window after receipt using monotonic elapsed time. This conservative estimate can approach twice actual usage. Discrepancies do not create cooldowns. Exchange data may make admission stricter, but must not reset local usage or return spent units. Responses may arrive out of order. An older value must not increase the available amount or shorten an existing cooldown. Section 14 defines which headers can be trusted.
 
 Cooldown is the time until which no new requests are sent within the affected scope. The shared limiter stores it, not an individual worker. A new signal extends the time when needed. One retry loop ending does not remove cooldown. If the exact error scope is unknown, v1 pauses all outgoing requests to that exchange. The other exchange keeps working.
 
@@ -1948,14 +1950,14 @@ Several instances or other clients behind one outgoing IP need a coordinated com
 
 ### Default profile and restart policy
 
-The [implementation contract](implementation-contract-v1.md) and [configuration example](examples/config-v1.yaml) define the complete phase 01 profile. A 20% safety margin gives Spot 4,800 weight/minute, USDⓈ-M 1,920 weight/minute, and Bybit 480 requests/5s, plus the applicable raw-request and funding-family windows. Derive operation shares from those common allowances. Pacing is separate from window allocation.
+The [implementation contract](implementation-contract-v1.md) and [configuration example](examples/config-v1.yaml) define the current profile. Binance uses the last valid exchange limit or a reviewed starting value, optionally reduced by an explicit user cap. Apply `upstream.binance.stop_threshold_percent` (default 90): starting stop lines are Spot 5,400 weight/minute and USD-M 2,160 weight/minute, plus raw-request and funding-family windows. Bybit keeps its 20% margin and 480 requests/5s. Derive strict operation shares from these values. Pacing is separate.
 
 The contract also defines finite lanes, attempts, deadlines, cooldown fallbacks, and catalog updates. User decision: all market data and admission state remain in memory in v1. Restart loses local usage, discovered limits, and cooldowns, uses configured bootstrap ceilings, and adds no automatic quiet period. Exchange-side limits may still apply. Persistence is deferred; implementation and restart tests belong to phase 05.
 
 ### Test scenarios
 
 - Spending the full tickers share stops the next ticker request and still allows other types with available budgets to run.
-- Concurrent requests do not exceed the common budget, operation share, or any applicable window, including at a window boundary.
+- Concurrent Binance requests allow one crossing but reject later positive-cost work while current usage is above any stop line. Shares stay strict; Bybit common limits stay strict.
 - Each page and retry consumes budget separately; a shared Bybit ticker/stats request consumes it once.
 - Changing Binance kline limit changes cost before sending; unknown cost and an unsuitable budget do not cause an endless wait.
 - Canceling a wait does not consume budget; an error after passing the request to transport does not return it.
@@ -1980,7 +1982,7 @@ In addition to outgoing request rate, set finite limits for:
 
 Check limits before creating an unbounded number of goroutines, tasks, or queue entries. Waiting singleflight callers also count toward incoming operation limits.
 
-Waiting for budget must not hold an active HTTP request slot. Context cancellation stops the wait and releases held resources.
+Binance budget rejection is immediate for candle work that needs an exchange call; complete cached ranges still return. Background workers wait outside the failed cycle for expiry or state change, without warning loops, HTTP attempts, or refresh errors. Waiting for Bybit budget, pacing, or cooldown must not hold an active HTTP slot. Cancellation releases held resources.
 
 Concurrency and queue limits must leave room for each operation type. Ticker cannot take all resources needed by instruments, klines, and independent market_stats loading.
 
@@ -2255,7 +2257,7 @@ upstream:
     market_stats: 5
 ```
 
-Default statistics windows remain [24h]. Binance statistics refresh defaults to 30s after each cycle; Bybit uses shared ticker responses. Instruments default to 10m refresh. HTTP attempt timeout remains separate from the total caller timeout. Percentage shares use common allowances after the configured safety margin. The old requests_per_second example is replaced by explicit window budgets and minimum dispatch spacing.
+Default statistics windows remain [24h]. Binance statistics refresh defaults to 30s after each cycle; Bybit uses shared ticker responses. Instruments default to 10m refresh. HTTP attempt timeout remains separate from the total caller timeout. Percentage shares use the Binance stop line or the Bybit allowance after its safety margin. The old requests_per_second example is replaced by explicit window budgets and minimum dispatch spacing.
 
 ---
 
@@ -2268,6 +2270,8 @@ MDS_SERVER_PORT=8081
 MDS_STORAGE_DRIVER=memory
 MDS_KLINES_REQUEST_TIMEOUT=30s
 MDS_KLINES_MAX_HISTORY_CANDLES=1000
+MDS_UPSTREAM_BINANCE_STOP_THRESHOLD_PERCENT=90
+MDS_UPSTREAM_BINANCE_CATALOG_REFRESH_INTERVAL=1h
 MDS_UPSTREAM_OPERATION_SHARE_PERCENT_TICKERS=60
 MDS_UPSTREAM_OPERATION_SHARE_PERCENT_KLINES=30
 MDS_UPSTREAM_OPERATION_SHARE_PERCENT_INSTRUMENTS=5
@@ -2301,7 +2305,9 @@ MarketStats: windows must be exactly `[24h]` and supported by all enabled provid
 
 `upstream.operation_share_percent` contains exactly `tickers`, `klines`, `instruments`, and `market_stats` after applying defaults, YAML, and the corresponding `MDS_UPSTREAM_OPERATION_SHARE_PERCENT_<OPERATION>` overrides. Each value must be an integer from 1 through 100 and their sum must be exactly 100. Reject unknown or duplicate keys, nulls, empty values, booleans, fractions, malformed integers, and invalid sums. A missing map, empty map, or missing entry keeps the corresponding default; a partial override must still produce a valid final sum. Apply the provider capability rule in section 32 before deriving effective allowances: a shared ticker/statistics path combines those percentages, while other disabled paths leave their share idle. The configured base percentages must still total 100.
 
-Validate derived integer allowances for every applicable common allocation window against the most expensive permitted request for each independent operation. Reject a zero allowance or any allowance smaller than a single allowed request; do not round it up or let admission wait forever. Keep a short smoothing limit distinct from an allocation window: splitting a tiny requests-per-second allowance into 5% portions can make instrument loading impossible. Pages and retries must all consume budget, but the percentages do not guarantee that an entire multi-page/retry operation finishes within its deadline. Absolute windows, pacing, and resource bounds are fixed in the implementation contract and complete configuration example.
+Validate `upstream.binance.stop_threshold_percent` as an integer from 1 to 99 and `catalog_refresh_interval` as a positive finite duration, default 1h. Explicit legacy Binance window limits are user caps, including default-valued overrides; omitted limits follow exchange changes. The old safety margin applies to Bybit only. Set the new Binance percentage to 80 explicitly to keep an older 80% policy.
+
+Validate derived starting integer allowances for every applicable common allocation window against the most expensive permitted request for each independent operation. Reject a zero allowance or any allowance smaller than a single allowed request; do not round it up or let admission wait forever. Keep a short smoothing limit distinct from an allocation window: splitting a tiny requests-per-second allowance into 5% portions can make instrument loading impossible. Pages and retries must all consume budget, but the percentages do not guarantee that an entire multi-page/retry operation finishes within its deadline. Absolute windows, pacing, and resource bounds are fixed in the implementation contract and complete configuration example.
 
 Also check positive finite queue, concurrency, time, and request size limits. Check that common and operation budgets fit together, including burst, and that at least one valid request can run for every enabled operation type.
 
@@ -2350,13 +2356,15 @@ All retry attempts pass common and operation budgets and count toward the operat
 
 All requests in the affected limit scope must follow the exchange's wait time (`Retry-After` or a documented equivalent). `max_backoff` does not shorten this time. If the wait exceeds the operation deadline, end the operation without another attempt.
 
+Budget rejection does not start an HTTP retry. A background Binance worker waits for ordinary admission recovery without a special probe; repeated deferral does not extend expiry. Catalog refresh reuses successful instrument exchangeInfo and defaults to 1h. A failed catalog refresh keeps the last valid limits and waits its bounded schedule.
+
 After retries are exhausted, the background worker still follows backoff. Starting a new cycle immediately must not reset the limit.
 
 ---
 
 ## 46. Observability
 
-Observability must be optional.
+Observability must be optional. The existing logging and metrics report Binance limit source/age, exchange limit, user cap, percentage, stop line, local/observed/accounted/reserved usage, headroom, uncertainty, per-window operation reasons, and predicted recovery. Catalog failures and oversized bodies remain distinct from budget/share rejection and exchange cooldown. See the [diagnostic contract](development.md#binance-admission-diagnostics).
 
 Support:
 
@@ -2464,6 +2472,8 @@ instrument_snapshot_size
 kline_count
 ```
 
+Admission gauges use only fixed scopes, reviewed window names, operation names, and reason values. Arbitrary discovered windows appear only in detailed JSON; metrics count those windows by unit and count blocking windows per operation/reason without adding unlike costs. Diagnostic reads do not reserve or spend attempts.
+
 Group MarketStats metrics by exchange/market/window, without a symbol label. Success means a published snapshot. Count normalization or write errors separately for each branch. A shared Bybit HTTP request increases exchange_requests_total once. The operational statistics in this section are not the market data model MarketStats.
 
 For durations, we can store:
@@ -2517,7 +2527,7 @@ Response:
 
 The endpoint is disabled by default.
 
-This is a simple way to get operational state without Prometheus.
+The current default response is a sorted array of `{name, labels, value}` samples; the earlier object above is illustrative. `GET /debug/stats?view=admission` returns one coherent Binance controller snapshot with detailed windows. Per-operation checks state their assumed maximum request cost; zero recovery time means unknown or impossible. See the [operating guide](development.md#binance-admission-diagnostics) for field semantics.
 
 ---
 
@@ -2541,7 +2551,7 @@ For example:
 }
 ```
 
-Do not log every candle.
+Do not log every candle. Log meaningful admission transitions and catalog failures. Changed catalog logs include new limits, sources, and stop lines. Do not repeat unchanged catalogs or normal worker deferrals as warnings or exchange errors.
 
 ---
 
@@ -2724,7 +2734,7 @@ Test mapping and edge cases from sections 6–7, API contracts from sections 36�
 Deterministic tests without production network access:
 
 - continuous ticker does not use up the instruments, klines, or independent market_stats budgets;
-- common and operation budgets are respected, including burst;
+- Binance rejects positive-cost work when current accounted usage is above any stop line, with equality/crossing allowed and strict shares; Bybit retains strict common/share limits;
 - pages and retries count as separate HTTP attempts;
 - queue, concurrency, time, and request size limits are respected;
 - oversized requests are rejected before upstream fetch;
@@ -2732,7 +2742,11 @@ Deterministic tests without production network access:
 - waiting for budget does not hold an active HTTP request slot;
 - rate-limit cooldown applies to all requests in the affected scope;
 - a new ticker cycle does not bypass backoff;
-- overload does not return a successful partial result.
+- overload does not return a successful partial result;
+- invalid catalog then valid recovery clears diagnostic errors without usage reset;
+- parallel candle callers allow one crossing, keep complete cached data readable, and count only dispatched attempts;
+- workers wait through budget expiry and a longer real 429/418 cooldown without probes;
+- diagnostic labels remain bounded when catalogs add windows, and restart history gaps are visible.
 
 Use controlled clocks or another deterministic mechanism for time checks. Tests must not depend on real network delays.
 
@@ -3002,7 +3016,7 @@ v1 is ready when:
 11. Closed klines are reused from cache.
 12. The current candle refreshes correctly.
 13. Concurrent kline misses do not cause duplicate upstream requests.
-14. All upstream HTTP requests, pages, and retries count toward common and operation budgets; applicable exchange limits are respected.
+14. All upstream HTTP requests, pages, and retries are accounted. No new positive-cost Binance request is admitted when its CURRENT accounted usage is already above any applicable stop line. Crossing is allowed; operation shares are strict. This is not a hard 90% actual-IP guarantee. External traffic, restart history gaps, delayed observations, and unseen limits remain unknown; conservative overlap may approach twice actual usage. Bybit keeps its existing admission rules.
 15. Storage is fully behind interfaces.
 16. Thread-safe in-memory storage is implemented.
 17. Historical klines are cleaned up automatically.

@@ -1,8 +1,8 @@
 # gRPC and Protobuf API migration
 
-September 13, 2026. Specification only; implementation has not started.
+September 13, 2026. The user approved this specification, including Python installation from this repository. [Execution phase plans](grpc-migration/README.md) are prepared for review; implementation has not started.
 
-The user confirmed full replacement of the market-data HTTP API with gRPC and Protobuf. HTTP remains only for operations on a separate listener. There are no existing clients or published first version, so no compatibility period is needed. Ports, schema layout, limits, and tooling below are proposed engineering defaults, not earlier user requirements.
+The user confirmed full replacement of the market-data HTTP API with gRPC and Protobuf. HTTP remains only for operations on a separate listener. There are no existing clients or published first version, so no compatibility period is needed. Python client code must be generated and kept in this repository; consuming projects install the library from this repository. Ports, schema layout, limits, and tooling below are engineering defaults adopted with this design. The stated implementation verification gates still apply.
 
 ## Summary / Overview
 
@@ -44,7 +44,7 @@ Add `internal/transport/grpc`. Its handlers convert generated messages to applic
 
 Construct both servers and shared application services in bootstrap. Keep operational handlers under `internal/transport/http`; remove the four market-data handlers and their JSON DTOs when the replacement passes tests. Move only policies needed by the new transport, such as snapshot admission, out of removed code. Do not route gRPC through an internal HTTP call.
 
-Use two TCP listeners, with proposed defaults:
+Use two TCP listeners, with these defaults:
 
 | Listener | Address | Purpose |
 | --- | --- | --- |
@@ -87,6 +87,38 @@ Generate Python messages, type stubs, and RPC clients into an installable `marke
 Pin compatible versions of `protoc`, `protoc-gen-go`, `protoc-gen-go-grpc`, `grpcio-tools`, Go/Python Protobuf and gRPC runtimes, and Python `grpcio-status` for error decoding during phase 1. Use standard generators and Makefile/scripts; no remote generation service is required. Commit generated code and a descriptor set. Never edit generated files manually. Normal server builds do not require Python or code generation.
 
 Add `make generate-api` and `make check-api`. The latter checks reproducible generation, schema compatibility against the checked-in base contract, Go client compilation/tests, Python package installation/import/type-stub availability, and local cross-language tests. The root `go test ./...` does not cover a nested Go module; run its checks explicitly. Keep tools and dependencies pinned, and run these checks in both ordinary and release CI. Build local versioned client artifacts; registry publication is outside this task.
+
+### Python installation from this repository
+
+Use the existing repository for schemas, generated clients, and Python packaging. No separate repository or PyPI publication is needed. The target layout is:
+
+```text
+api/python/
+  pyproject.toml
+  README.md
+  src/marketdata/
+    __init__.py
+    py.typed
+    v1/
+      __init__.py
+      market_data_pb2.py
+      market_data_pb2.pyi
+      market_data_pb2_grpc.py
+```
+
+`pyproject.toml` defines the `market-data-api` distribution, an explicit package version, supported Python versions, build backend, package discovery, type-file inclusion, and compatible runtime dependencies. Package only the Python client files. Installing it must not build the Go service, run generators, or require `protoc` or `grpcio-tools`. Those tools belong to development and CI. The package version identifies a client artifact, while `marketdata.v1` identifies the wire contract; they are not the same version scheme.
+
+After the package is implemented and committed, a consuming project's `requirements.txt` can contain:
+
+```text
+market-data-api @ git+https://github.com/imbpp123/market-data.git@COMMIT_SHA#subdirectory=api/python
+```
+
+`COMMIT_SHA` is a placeholder for a full existing commit hash containing generated code and packaging. A release tag is also valid; production dependency locks should resolve it to an exact commit. Do not depend on a moving branch. Update the package version when its contents change, and update consumer dependencies explicitly. The `subdirectory` selects the Python build project; it does not guarantee that Git fetches only that directory.
+
+Consumers import `market_data_pb2` and `market_data_pb2_grpc` from `marketdata.v1`. The library provides messages and a stub; callers still create a channel to the running service's gRPC address and set their deadline. For a private repository, use the consumer's existing Git authentication or SSH access; do not put credentials in dependency files.
+
+Extend `make check-api` with an installation from a local Git URL pinned to a test commit and `#subdirectory=api/python`. Run outside the source checkout in a clean environment, then import the installed package and call a local Go test server. This checks the same package selection and VCS installation path without GitHub access or credentials. Also inspect the built wheel for generated modules and type files. No client package exists yet; the URL above is the target installation contract, not a working installation claim.
 
 ## Alternatives Considered
 
@@ -169,7 +201,7 @@ Wrapped errors retain identity inside the process. Do not expose upstream bodies
 
 ### Configuration and size bounds
 
-Replace flat listener settings with this proposed target structure. Unlisted storage, exchange, upstream, and observability settings stay unchanged.
+Replace flat listener settings with this target structure. Unlisted storage, exchange, upstream, and observability settings stay unchanged.
 
 ```yaml
 server:
@@ -225,12 +257,12 @@ Record RPC count, active calls, final status/reason, duration through transport 
 
 ## Migration / Rollout Plan
 
-These phases are implementation steps, not separate production releases. No phase adds a supported dual data API.
+The [phase index](grpc-migration/README.md) tracks dependencies, status, checks, and completion evidence. These phases are implementation steps, not separate production releases. No phase adds a supported dual data API. Phase 2 prepares the new composition in local test servers; the executable switches once in phase 3.
 
-1. **Contract and generation.** Add schema, field numbers, generated Go/Python packages, descriptors, pinned tooling, and client examples. Verify field presence, exact decimals, and full-profile message sizes. Capture an HTTP baseline before removing its handlers, using the same fixed fixtures intended for the final comparison.
-2. **gRPC transport and lifecycle.** Add four handlers, mapping, admission/deadline/send ownership, tracing, and both listeners. Prove slow-client and cancellation behavior. Reuse application services and completed request-budget work.
-3. **Cutover.** Remove HTTP market-data routes, DTOs, and obsolete route-shape tests. Port meaningful behavior and integration assertions to gRPC. Update config, healthcheck target, Docker/Compose, Makefile, both CI workflows, and operating examples. Keep the image's operational healthcheck on HTTP.
-4. **Acceptance.** Run the checks below, install both generated clients, measure network/serialization costs and memory, and publish a new verification report in the repository. Update the main specification, implementation contract, and decision register to point to the final contract. The first release remains pending until these checks pass.
+1. [Contract and clients](grpc-migration/01-contract-and-clients.md): schema, field numbers, reproducible generation, Go/Python packaging, Git installation, message-size verification, and HTTP baseline.
+2. [Transport and lifecycle](grpc-migration/02-transport-and-lifecycle.md): four handlers, mapping, bounded admission/deadlines/sends, telemetry, and both-server lifecycle tests.
+3. [HTTP removal and operational cutover](grpc-migration/03-cutover-and-operations.md): switch startup/configuration, remove old data routes, port regression tests, and update containers, CI, and run instructions.
+4. [Acceptance and measurements](grpc-migration/04-validation-and-measurements.md): combined behavior, installed clients, traffic/CPU/memory measurements, new verification evidence, and final contract updates.
 
 Do not rewrite or undo unrelated local changes. Complete and verify the request-budget rework independently; acceptance must exercise the combined final behavior. This document does not approve incomplete intermediate code for release.
 
@@ -281,3 +313,4 @@ Official references checked on September 13, 2026:
 - [Deadlines](https://grpc.io/docs/guides/deadlines/) and [graceful shutdown](https://grpc.io/docs/guides/server-graceful-stop/): finite request and server lifetimes.
 - [grpc-go options](https://pkg.go.dev/google.golang.org/grpc): message limits; client defaults must not be assumed to match this service.
 - [Performance](https://grpc.io/docs/guides/performance/) and [authentication](https://grpc.io/docs/guides/auth/): channel reuse and transport security.
+- [pip VCS installation](https://pip.pypa.io/en/stable/topics/vcs-support/) and [Python package metadata](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/): pinned Git dependencies, subdirectory selection, and installable package configuration.

@@ -271,6 +271,8 @@ upstream:
   binance:
     # Description: Percentage of the current Binance ceiling used for the stop line.
     #              An explicit legacy window limit is a user cap applied first.
+    #              Current usage at/below the line may cross it with one request.
+    #              Leave enough headroom for that cost if needed; this is no hard IP cap.
     # Values: Integer from 1 to 99; shares must admit supported requests.
     # Default: 90
     # Required: no
@@ -290,8 +292,8 @@ upstream:
   # Required: no
   safety_margin_percent: 20
 
-  # Reserved shares of the common allowance AFTER the safety margin. These exact
-  # four keys must each be integers in 1..100 and sum to 100. Partial YAML/ENV
+  # Reserved shares of the Binance stop line / Bybit allowance after its margin.
+  # These exact four keys must each be integers in 1..100 and sum to 100. Partial YAML/ENV
   # overrides keep the other defaults, so the final sum still has to be 100.
   # Each share is rounded down separately; unused shares cannot be borrowed.
   # Changing shares changes relative throughput, not the exchange's total limit.
@@ -377,8 +379,9 @@ upstream:
   # Description: Maximum wait for admission, also bounded by the owning cycle/fill
   #              deadline. Queue overflow or admission expiry gives service_overloaded.
   #              A known cooldown extending beyond the operation's lifetime gives
-  #              upstream_unavailable instead. Waiting for pacing/budget/cooldown must
-  #              not occupy an active HTTP slot.
+  #              upstream_unavailable instead. Binance budget shortage rejects
+  #              immediately; workers defer outside the cycle. Pacing, Bybit budget, and cooldown waits
+  #              do not occupy an active HTTP slot.
   #
   # Values: Positive Go duration; see duration syntax at the top of this file.
   #
@@ -622,7 +625,8 @@ upstream:
           # Required: no
           window: 1m
 
-          # Description: Positive weight ceiling BEFORE margin and operation splitting.
+          # Description: Positive weight ceiling before the stop percentage
+          #              and operation splitting.
           #              6000 at 90% yields 5400 common units and 270
           #              statistics units; an 80-weight FULL statistics call fits twice
           #              per default 30s schedule, with room for one additional attempt
@@ -670,8 +674,8 @@ upstream:
           # Required: no
           window: 5m
 
-          # Description: Positive raw-request ceiling before margin/shares. The default
-          #              gives 270000 common attempts per 5m; the weight window and
+          # Description: Positive raw-request ceiling before the stop percentage
+          #              and shares. The default gives 270000 common attempts per 5m; the weight window and
           #              pacing still apply.
           #
           # Values: Positive integer that fits Go int.
@@ -731,8 +735,8 @@ upstream:
           # Required: no
           window: 1m
 
-          # Description: Positive weight ceiling before margin/shares. 2400 gives 2160
-          #              common units and 108 statistics units at the defaults. Two
+          # Description: Positive weight ceiling before the stop percentage/shares.
+          #              2400 gives 2160 common units and 108 statistics units at the defaults. Two
           #              40-weight statistics calls fit per minute; retries share that
           #              same finite allowance.
           #
@@ -743,7 +747,7 @@ upstream:
           # Required: no
           # limit: 2400
 
-          # Description: Apply each operation's reserved share after the safety margin.
+          # Description: Apply each operation's reserved share after the stop percentage.
           #
           # Values: true only; this value is fixed for this allocation window.
           #
@@ -777,9 +781,9 @@ upstream:
           # Required: no
           window: 5m
 
-          # Description: Positive family request ceiling before the safety margin. The
-          #              default yields 450 funding metadata attempts per 5m, subject to
-          #              other applicable constraints. v1 does not make fundingRate
+          # Description: Positive family request ceiling before the stop percentage. The
+          #              default gives a 450 stop line per 5m; crossing is allowed.
+          #              All other applicable constraints still apply. v1 does not make fundingRate
           #              history requests.
           #
           # Values: Positive integer that fits Go int.
@@ -791,7 +795,7 @@ upstream:
 
           # Description: Keep this instrument-only endpoint-family allowance outside
           #              operation splitting. Instruments may use the whole allowance
-          #              after the safety margin; other operations do not use it.
+          #              after the stop percentage; other operations do not use it.
           #
           # Values: false only; this value is fixed for this allocation window.
           #

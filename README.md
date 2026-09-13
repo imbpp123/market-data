@@ -28,6 +28,8 @@ MDS_EXCHANGES_BYBIT_MARKETS='["linear"]' \
 ./bin/market-data-service -config docs/examples/config-v1.yaml
 ```
 
+Binance `upstream.binance.stop_threshold_percent` defaults to `90`; `catalog_refresh_interval` defaults to `1h`. Explicit legacy window `limit` values become user caps, including default-valued overrides. Omitted limits follow exchange changes. An older `safety_margin_percent: 20` now applies only to Bybit; set the new Binance percentage to `80` explicitly if needed.
+
 See the [complete configuration example](docs/examples/config-v1.yaml) and [configuration contract](docs/implementation-contract-v1.md). Use environment values for Sentry DSNs; do not commit them. Sentry, Prometheus, and the debug statistics endpoint are optional and disabled by default.
 
 ## API
@@ -90,11 +92,11 @@ Alternatively, publish a GitHub Release for the version tag. Publishing a releas
 - On `data_not_ready`, inspect collector errors and enabled scopes. A failed first refresh leaves its scope unready. Other scopes continue.
 - Stale `updated_at` or `fetched_at` means a collector has not published new data. Failed refreshes preserve previous snapshots; v1 has no snapshot expiry. Check upstream errors, admission waits, cooldowns, and system time before restarting.
 - `service_overloaded` means a finite caller/fill/queue limit was reached or needed Binance exchange work failed a budget check. `request_too_large` and `range_out_of_retention` require a valid smaller/recent request. No error returns a successful partial candle range.
-- Optional `/metrics` and `/debug/stats` expose counters, last successes, durations, retained candle counts, and failures. Keep these operational routes on a trusted network. All counters reset on restart.
+- Optional `/metrics` and `/debug/stats` expose counters, last successes, durations, retained candle counts, and failures. `/debug/stats?view=admission` shows current Binance limits, usage, per-window operation reasons, and recovery times. See the [diagnostic guide](docs/development.md#binance-admission-diagnostics). Keep these operational routes on a trusted network. All counters reset on restart.
 
 All data, usage counters, discovered exchange limits, and cooldowns are memory-only. A restart loses them immediately, begins from bootstrap budgets, and adds no automatic quiet period. Exchange-side usage and bans may remain. Restarting is not a rate-limit reset.
 
-v1 assumes one instance and no other exchange clients sharing its outgoing IP. Verify this on the deployment network, including Binance Spot bulk `type=FULL` access. Common weighted windows, reserved operation shares, a 20% safety margin, bounded queues, and scoped cooldowns constrain every page and retry. They cannot account for traffic from other processes. See the [operating contract](docs/implementation-contract-v1.md).
+v1 assumes one instance and no other exchange clients sharing its outgoing IP. Verify this on the deployment network, including Binance Spot bulk `type=FULL` access. Binance uses a configurable stop line (default 90%) and strict 60/30/5/5 operation shares. No new positive-cost request is admitted when current accounted usage is already above a stop line; crossing from equality or below is allowed. Bybit keeps its 20% safety margin. These local checks cannot guarantee actual IP usage: external traffic, restarts, delayed observations, and unseen limits remain unknown. Conservative counter overlap can approach twice actual usage. See the [operating contract](docs/implementation-contract-v1.md).
 
 Retention prunes old candles on merges and every hour by default. It keeps at most the configured rolling history per series, including every supported interval; it does not cap the number of requested series. Keep the host clock synchronized to UTC using NTP. A candle is final only after a request started at or after its close. v1 assumes exchanges do not later revise such confirmed candles; it does not reconcile later corrections.
 
@@ -116,4 +118,4 @@ There is no trading execution, order/account/position/balance API, strategy calc
 
 Further documentation: [development guide](docs/development.md), [technical specification](docs/technical-specification-v1.md), [decision register](docs/specification-decisions-v1.md), and [development rules](AGENTS.md).
 
-Ongoing change: [request budget accounting rework](docs/request-budget-rework-specification.md). [Phase 1](docs/request-budget-rework/01-exchange-info.md#implementation-report) is complete: Spot exchangeInfo omits unused permission sets and keeps the full catalog within the existing 16 MiB decoded-body bound in the measured response. Phases 2 and 3 implement limit discovery and usage accounting; phase 3 has passed independent review. [Phase 4](docs/request-budget-rework/04-rejection-and-recovery.md#implementation-report) implements immediate threshold rejection and quiet worker recovery; independent review is complete with no confirmed defects. Final diagnostics and validation remain in phase 5.
+The [request budget accounting rework](docs/request-budget-rework-specification.md) is complete. All five phases passed local validation; phases 3–5 passed independent review with no confirmed defects. The [phase reports](docs/request-budget-rework/README.md) cover catalog loading, limit updates, accounting, immediate rejection, recovery, and diagnostics. The [final report](docs/request-budget-rework/05-diagnostics-and-validation.md#implementation-report) records the checks and saved-catalog memory replay. Historical release measurements do not cover the complete rework. No deployment was performed.
