@@ -6,7 +6,7 @@ Use this guide to request market data and handle errors. To start the service, f
 
 The service is `marketdata.v1.MarketDataService`. Its default address is `localhost:9090`. Each method takes one request and returns one response. There is no streaming, pagination, or HTTP data API.
 
-Use the generated [Go client example](../api/go/examples/client/main.go), [Python client guide](../api/python/README.md), or [async Python example](../api/examples/client_async.py). The [Protobuf schema](../api/proto/marketdata/v1/market_data.proto) defines all fields. The [API package guide](../api/README.md) covers client versions and generation.
+Use the generated [Go client guide](../api/go/README.md), [Python client guide](../api/python/README.md), or [async Python example](../api/examples/client_async.py). The [Protobuf schema](../api/proto/marketdata/v1/market_data.proto) defines all fields. The [API package guide](../api/README.md) covers client versions and generation.
 
 Reuse a channel across calls. Set a deadline on every call and a receive limit of 16 MiB (`16777216` bytes). There is no native TLS or authentication; see [network access](operations.md#network-access) before using a remote address.
 

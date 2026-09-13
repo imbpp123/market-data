@@ -22,13 +22,18 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Present empty filters are different from omitted filters.
+// ListInstrumentsRequest selects cached catalogs. Omitted filters select all matches.
+// Present empty filters are invalid. A scope is one enabled exchange and market pair.
 type ListInstrumentsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Exchange      *string                `protobuf:"bytes,1,opt,name=exchange,proto3,oneof" json:"exchange,omitempty"`
-	Market        *string                `protobuf:"bytes,2,opt,name=market,proto3,oneof" json:"market,omitempty"`
-	Symbol        *string                `protobuf:"bytes,3,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`
-	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exact exchange name: binance or bybit.
+	Exchange *string `protobuf:"bytes,1,opt,name=exchange,proto3,oneof" json:"exchange,omitempty"`
+	// Exact market name: spot or linear. Binance linear means USD-M.
+	Market *string `protobuf:"bytes,2,opt,name=market,proto3,oneof" json:"market,omitempty"`
+	// Exact exchange symbol, 1-128 UTF-8 bytes, without whitespace or control characters.
+	Symbol *string `protobuf:"bytes,3,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`
+	// One of unknown, pre_launch, trading, halted, cancel_only, settling, or closed.
+	Status        *string `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -91,11 +96,16 @@ func (x *ListInstrumentsRequest) GetStatus() string {
 	return ""
 }
 
+// ListTickersRequest selects cached tickers. Omitted filters select all matches.
+// Present empty filters are invalid. Every selected scope must have a ready snapshot.
 type ListTickersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Exchange      *string                `protobuf:"bytes,1,opt,name=exchange,proto3,oneof" json:"exchange,omitempty"`
-	Market        *string                `protobuf:"bytes,2,opt,name=market,proto3,oneof" json:"market,omitempty"`
-	Symbol        *string                `protobuf:"bytes,3,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exact exchange name: binance or bybit.
+	Exchange *string `protobuf:"bytes,1,opt,name=exchange,proto3,oneof" json:"exchange,omitempty"`
+	// Exact market name: spot or linear.
+	Market *string `protobuf:"bytes,2,opt,name=market,proto3,oneof" json:"market,omitempty"`
+	// Exact exchange symbol; the server does not trim or uppercase it.
+	Symbol        *string `protobuf:"bytes,3,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -151,12 +161,18 @@ func (x *ListTickersRequest) GetSymbol() string {
 	return ""
 }
 
+// ListMarketStatsRequest selects cached statistics. Omitted filters select all matches.
+// Present empty filters are invalid. Readiness is separate from ticker readiness.
 type ListMarketStatsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Exchange      *string                `protobuf:"bytes,1,opt,name=exchange,proto3,oneof" json:"exchange,omitempty"`
-	Market        *string                `protobuf:"bytes,2,opt,name=market,proto3,oneof" json:"market,omitempty"`
-	Symbol        *string                `protobuf:"bytes,3,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`
-	Window        *string                `protobuf:"bytes,4,opt,name=window,proto3,oneof" json:"window,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exact exchange name: binance or bybit.
+	Exchange *string `protobuf:"bytes,1,opt,name=exchange,proto3,oneof" json:"exchange,omitempty"`
+	// Exact market name: spot or linear.
+	Market *string `protobuf:"bytes,2,opt,name=market,proto3,oneof" json:"market,omitempty"`
+	// Exact exchange symbol; the server does not trim or uppercase it.
+	Symbol *string `protobuf:"bytes,3,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`
+	// Rolling statistics window. Omitted means 24h; empty or other values are invalid.
+	Window        *string `protobuf:"bytes,4,opt,name=window,proto3,oneof" json:"window,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -219,14 +235,26 @@ func (x *ListMarketStatsRequest) GetWindow() string {
 	return ""
 }
 
+// GetKlinesRequest selects candles whose opening times are in [from, to).
 // All fields are required by application validation, including both timestamps.
+// Both times must be aligned interval boundaries at or after the Unix epoch.
+// By default, at most 1,000 slots can be requested, starting no earlier than
+// 1,000 slots before the current slot boundary. Missing rows do not extend history.
 type GetKlinesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Exchange      *string                `protobuf:"bytes,1,opt,name=exchange,proto3,oneof" json:"exchange,omitempty"`
-	Market        *string                `protobuf:"bytes,2,opt,name=market,proto3,oneof" json:"market,omitempty"`
-	Symbol        *string                `protobuf:"bytes,3,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`
-	Interval      *string                `protobuf:"bytes,4,opt,name=interval,proto3,oneof" json:"interval,omitempty"`
-	From          *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=from,proto3" json:"from,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required enabled exchange: binance or bybit.
+	Exchange *string `protobuf:"bytes,1,opt,name=exchange,proto3,oneof" json:"exchange,omitempty"`
+	// Required enabled market: spot or linear.
+	Market *string `protobuf:"bytes,2,opt,name=market,proto3,oneof" json:"market,omitempty"`
+	// Exact symbol in the current instrument catalog. There is no historical lookup.
+	Symbol *string `protobuf:"bytes,3,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`
+	// Exact supported interval. Case matters: 1m is a minute; 1M is a calendar month.
+	Interval *string `protobuf:"bytes,4,opt,name=interval,proto3,oneof" json:"interval,omitempty"`
+	// Inclusive start. In Python, use **{"from": timestamp} or getattr(request, "from").
+	From *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=from,proto3" json:"from,omitempty"`
+	// Exclusive end. End at the current slot boundary for closed candles only.
+	// The next boundary includes the open candle; later ends are invalid.
+	// An empty valid range still requires a ready catalog and a known symbol.
 	To            *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=to,proto3" json:"to,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -304,9 +332,11 @@ func (x *GetKlinesRequest) GetTo() *timestamppb.Timestamp {
 	return nil
 }
 
+// ListInstrumentsResponse contains the complete selected cached catalog.
 type ListInstrumentsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Instruments   []*Instrument          `protobuf:"bytes,1,rep,name=instruments,proto3" json:"instruments,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Rows sorted by exchange, market, and symbol. Empty means no matches in ready scopes.
+	Instruments   []*Instrument `protobuf:"bytes,1,rep,name=instruments,proto3" json:"instruments,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -348,9 +378,11 @@ func (x *ListInstrumentsResponse) GetInstruments() []*Instrument {
 	return nil
 }
 
+// ListTickersResponse contains the complete selected cached ticker list.
 type ListTickersResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tickers       []*Ticker              `protobuf:"bytes,1,rep,name=tickers,proto3" json:"tickers,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Rows sorted by exchange, market, and symbol. Empty means no matches in ready scopes.
+	Tickers       []*Ticker `protobuf:"bytes,1,rep,name=tickers,proto3" json:"tickers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -392,9 +424,11 @@ func (x *ListTickersResponse) GetTickers() []*Ticker {
 	return nil
 }
 
+// ListMarketStatsResponse contains the complete selected cached statistics list.
 type ListMarketStatsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MarketStats   []*MarketStats         `protobuf:"bytes,1,rep,name=market_stats,json=marketStats,proto3" json:"market_stats,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Rows sorted by exchange, market, and symbol. Empty means no matches in ready scopes.
+	MarketStats   []*MarketStats `protobuf:"bytes,1,rep,name=market_stats,json=marketStats,proto3" json:"market_stats,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -436,13 +470,19 @@ func (x *ListMarketStatsResponse) GetMarketStats() []*MarketStats {
 	return nil
 }
 
+// GetKlinesResponse identifies one series, even when a valid empty range is requested.
 type GetKlinesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Exchange      string                 `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
-	Market        string                 `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
-	Symbol        string                 `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	Interval      string                 `protobuf:"bytes,4,opt,name=interval,proto3" json:"interval,omitempty"`
-	Klines        []*Kline               `protobuf:"bytes,5,rep,name=klines,proto3" json:"klines,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exchange of the requested series.
+	Exchange string `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
+	// Market of the requested series.
+	Market string `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
+	// Exact exchange symbol of the requested series.
+	Symbol string `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	// Canonical candle interval of the requested series.
+	Interval string `protobuf:"bytes,4,opt,name=interval,proto3" json:"interval,omitempty"`
+	// Complete requested range, sorted by open_time. No synthetic gap candles.
+	Klines        []*Kline `protobuf:"bytes,5,rep,name=klines,proto3" json:"klines,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -512,26 +552,43 @@ func (x *GetKlinesResponse) GetKlines() []*Kline {
 	return nil
 }
 
+// Instrument describes a current catalog entry and ordinary limit-order rules.
 // Decimals are exact canonical strings, limited to 1,024 characters by the application.
-// Timestamp fields track presence. The application guarantees updated_at.
+// Missing optional values are different from zero. These rules do not guarantee order acceptance.
 type Instrument struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	Exchange               string                 `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
-	Market                 string                 `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
-	Symbol                 string                 `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	BaseAsset              string                 `protobuf:"bytes,4,opt,name=base_asset,json=baseAsset,proto3" json:"base_asset,omitempty"`
-	QuoteAsset             string                 `protobuf:"bytes,5,opt,name=quote_asset,json=quoteAsset,proto3" json:"quote_asset,omitempty"`
-	Status                 string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
-	PriceTick              string                 `protobuf:"bytes,7,opt,name=price_tick,json=priceTick,proto3" json:"price_tick,omitempty"`
-	QtyStep                string                 `protobuf:"bytes,8,opt,name=qty_step,json=qtyStep,proto3" json:"qty_step,omitempty"`
-	MinQty                 *string                `protobuf:"bytes,9,opt,name=min_qty,json=minQty,proto3,oneof" json:"min_qty,omitempty"`
-	MaxQty                 *string                `protobuf:"bytes,10,opt,name=max_qty,json=maxQty,proto3,oneof" json:"max_qty,omitempty"`
-	MinNotional            *string                `protobuf:"bytes,11,opt,name=min_notional,json=minNotional,proto3,oneof" json:"min_notional,omitempty"`
-	FundingIntervalSeconds *int64                 `protobuf:"varint,12,opt,name=funding_interval_seconds,json=fundingIntervalSeconds,proto3,oneof" json:"funding_interval_seconds,omitempty"`
-	DelistingTime          *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=delisting_time,json=delistingTime,proto3" json:"delisting_time,omitempty"`
-	UpdatedAt              *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exchange identifier: binance or bybit.
+	Exchange string `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
+	// Market identifier: spot or linear.
+	Market string `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
+	// Exact exchange symbol. Together with exchange and market, identifies the instrument.
+	Symbol string `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	// Base asset identifier, including any exchange multiplier prefix.
+	BaseAsset string `protobuf:"bytes,4,opt,name=base_asset,json=baseAsset,proto3" json:"base_asset,omitempty"`
+	// Quote asset identifier; not necessarily the settlement asset of a contract.
+	QuoteAsset string `protobuf:"bytes,5,opt,name=quote_asset,json=quoteAsset,proto3" json:"quote_asset,omitempty"`
+	// Normalized lifecycle status, using the same values as the request status filter.
+	Status string `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	// Positive price step, in quote asset units per base asset unit.
+	PriceTick string `protobuf:"bytes,7,opt,name=price_tick,json=priceTick,proto3" json:"price_tick,omitempty"`
+	// Positive quantity step for an ordinary limit order, in base asset units.
+	QtyStep string `protobuf:"bytes,8,opt,name=qty_step,json=qtyStep,proto3" json:"qty_step,omitempty"`
+	// Fixed minimum limit-order quantity in base asset units, when provided.
+	MinQty *string `protobuf:"bytes,9,opt,name=min_qty,json=minQty,proto3,oneof" json:"min_qty,omitempty"`
+	// Fixed maximum limit-order quantity in base asset units, when provided.
+	MaxQty *string `protobuf:"bytes,10,opt,name=max_qty,json=maxQty,proto3,oneof" json:"max_qty,omitempty"`
+	// Minimum limit-order value (price times quantity) in quote asset units, when provided.
+	MinNotional *string `protobuf:"bytes,11,opt,name=min_notional,json=minNotional,proto3,oneof" json:"min_notional,omitempty"`
+	// Known regular funding interval for an applicable perpetual contract, in seconds.
+	// Absent when unknown or not applicable; no eight-hour fallback is inferred.
+	FundingIntervalSeconds *int64 `protobuf:"varint,12,opt,name=funding_interval_seconds,json=fundingIntervalSeconds,proto3,oneof" json:"funding_interval_seconds,omitempty"`
+	// Known scheduled delisting time, when supported. Absence does not promise no delisting.
+	DelistingTime *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=delisting_time,json=delistingTime,proto3" json:"delisting_time,omitempty"`
+	// Required local UTC completion time of the successful catalog refresh.
+	// Cache reads and failed refreshes do not advance it.
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Instrument) Reset() {
@@ -662,21 +719,36 @@ func (x *Instrument) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// Ticker contains current collected prices, quotes, and applicable funding data.
+// Decimal values are exact strings. Optional values distinguish absence from zero.
 type Ticker struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Exchange             string                 `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
-	Market               string                 `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
-	Symbol               string                 `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	LastPrice            string                 `protobuf:"bytes,4,opt,name=last_price,json=lastPrice,proto3" json:"last_price,omitempty"`
-	BidPrice             *string                `protobuf:"bytes,5,opt,name=bid_price,json=bidPrice,proto3,oneof" json:"bid_price,omitempty"`
-	BidSize              *string                `protobuf:"bytes,6,opt,name=bid_size,json=bidSize,proto3,oneof" json:"bid_size,omitempty"`
-	AskPrice             *string                `protobuf:"bytes,7,opt,name=ask_price,json=askPrice,proto3,oneof" json:"ask_price,omitempty"`
-	AskSize              *string                `protobuf:"bytes,8,opt,name=ask_size,json=askSize,proto3,oneof" json:"ask_size,omitempty"`
-	FundingRate          *string                `protobuf:"bytes,9,opt,name=funding_rate,json=fundingRate,proto3,oneof" json:"funding_rate,omitempty"`
-	NextFundingInSeconds *int64                 `protobuf:"varint,10,opt,name=next_funding_in_seconds,json=nextFundingInSeconds,proto3,oneof" json:"next_funding_in_seconds,omitempty"`
-	FetchedAt            *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=fetched_at,json=fetchedAt,proto3" json:"fetched_at,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exchange identifier: binance or bybit.
+	Exchange string `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
+	// Market identifier: spot or linear.
+	Market string `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
+	// Exact exchange symbol, scoped by exchange and market.
+	Symbol string `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	// Last trade price in quote asset per base asset unit, not mark or index price.
+	LastPrice string `protobuf:"bytes,4,opt,name=last_price,json=lastPrice,proto3" json:"last_price,omitempty"`
+	// Best available bid price. Absent together with bid_size when that side is empty.
+	BidPrice *string `protobuf:"bytes,5,opt,name=bid_price,json=bidPrice,proto3,oneof" json:"bid_price,omitempty"`
+	// Quantity at the best bid, in base asset units.
+	BidSize *string `protobuf:"bytes,6,opt,name=bid_size,json=bidSize,proto3,oneof" json:"bid_size,omitempty"`
+	// Best available ask price. Absent together with ask_size when that side is empty.
+	AskPrice *string `protobuf:"bytes,7,opt,name=ask_price,json=askPrice,proto3,oneof" json:"ask_price,omitempty"`
+	// Quantity at the best ask, in base asset units.
+	AskSize *string `protobuf:"bytes,8,opt,name=ask_size,json=askSize,proto3,oneof" json:"ask_size,omitempty"`
+	// Latest regular funding rate as a signed fraction: 0.0001 means 0.01%.
+	FundingRate *string `protobuf:"bytes,9,opt,name=funding_rate,json=fundingRate,proto3,oneof" json:"funding_rate,omitempty"`
+	// Remaining whole seconds to the known next funding event, calculated on read.
+	// Absent once the event time arrives; zero can mean less than one second remains.
+	NextFundingInSeconds *int64 `protobuf:"varint,10,opt,name=next_funding_in_seconds,json=nextFundingInSeconds,proto3,oneof" json:"next_funding_in_seconds,omitempty"`
+	// Required local UTC receipt time of the last source response needed for this ticker.
+	// This is not an exchange event time or a guarantee of fresh data.
+	FetchedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=fetched_at,json=fetchedAt,proto3" json:"fetched_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Ticker) Reset() {
@@ -786,18 +858,31 @@ func (x *Ticker) GetFetchedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// MarketStats contains exchange-provided rolling statistics, not candle aggregates.
+// Decimal values are exact strings. Its freshness is independent of the ticker snapshot.
 type MarketStats struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Exchange      string                 `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
-	Market        string                 `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
-	Symbol        string                 `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	Window        string                 `protobuf:"bytes,4,opt,name=window,proto3" json:"window,omitempty"`
-	High          string                 `protobuf:"bytes,5,opt,name=high,proto3" json:"high,omitempty"`
-	Low           string                 `protobuf:"bytes,6,opt,name=low,proto3" json:"low,omitempty"`
-	Volume        string                 `protobuf:"bytes,7,opt,name=volume,proto3" json:"volume,omitempty"`
-	Turnover      string                 `protobuf:"bytes,8,opt,name=turnover,proto3" json:"turnover,omitempty"`
-	PriceChange   *string                `protobuf:"bytes,9,opt,name=price_change,json=priceChange,proto3,oneof" json:"price_change,omitempty"`
-	TradeCount    *int64                 `protobuf:"varint,10,opt,name=trade_count,json=tradeCount,proto3,oneof" json:"trade_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exchange identifier: binance or bybit.
+	Exchange string `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
+	// Market identifier: spot or linear.
+	Market string `protobuf:"bytes,2,opt,name=market,proto3" json:"market,omitempty"`
+	// Exact exchange symbol, scoped by exchange and market.
+	Symbol string `protobuf:"bytes,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	// Always 24h. A rolling window is not a UTC calendar day.
+	Window string `protobuf:"bytes,4,opt,name=window,proto3" json:"window,omitempty"`
+	// Highest price in the window, in quote asset per base asset unit.
+	High string `protobuf:"bytes,5,opt,name=high,proto3" json:"high,omitempty"`
+	// Lowest price in the window, in quote asset per base asset unit.
+	Low string `protobuf:"bytes,6,opt,name=low,proto3" json:"low,omitempty"`
+	// Traded quantity in base asset units.
+	Volume string `protobuf:"bytes,7,opt,name=volume,proto3" json:"volume,omitempty"`
+	// Traded value in quote asset units; not volume times the latest price.
+	Turnover string `protobuf:"bytes,8,opt,name=turnover,proto3" json:"turnover,omitempty"`
+	// Signed absolute price difference in quote asset per base asset unit, not a percentage.
+	PriceChange *string `protobuf:"bytes,9,opt,name=price_change,json=priceChange,proto3,oneof" json:"price_change,omitempty"`
+	// Nonnegative trade count when provided. Absent for Bybit; zero is a known count.
+	TradeCount *int64 `protobuf:"varint,10,opt,name=trade_count,json=tradeCount,proto3,oneof" json:"trade_count,omitempty"`
+	// Required local UTC receipt time of this statistics source response.
 	FetchedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=fetched_at,json=fetchedAt,proto3" json:"fetched_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -910,17 +995,30 @@ func (x *MarketStats) GetFetchedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// Kline is an ordinary trade candle. Series identity appears once in GetKlinesResponse.
+// Decimal values are exact strings. Open candles contain changing intermediate values.
 type Kline struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OpenTime      *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=open_time,json=openTime,proto3" json:"open_time,omitempty"`
-	CloseTime     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=close_time,json=closeTime,proto3" json:"close_time,omitempty"`
-	Open          string                 `protobuf:"bytes,3,opt,name=open,proto3" json:"open,omitempty"`
-	High          string                 `protobuf:"bytes,4,opt,name=high,proto3" json:"high,omitempty"`
-	Low           string                 `protobuf:"bytes,5,opt,name=low,proto3" json:"low,omitempty"`
-	Close         string                 `protobuf:"bytes,6,opt,name=close,proto3" json:"close,omitempty"`
-	Volume        string                 `protobuf:"bytes,7,opt,name=volume,proto3" json:"volume,omitempty"`
-	Turnover      string                 `protobuf:"bytes,8,opt,name=turnover,proto3" json:"turnover,omitempty"`
-	TradesCount   *int64                 `protobuf:"varint,9,opt,name=trades_count,json=tradesCount,proto3,oneof" json:"trades_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required inclusive UTC slot start, aligned to the series calendar.
+	OpenTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=open_time,json=openTime,proto3" json:"open_time,omitempty"`
+	// Required exclusive UTC slot end. Passing this time alone does not confirm cached data.
+	CloseTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=close_time,json=closeTime,proto3" json:"close_time,omitempty"`
+	// Opening trade price, in quote asset per base asset unit.
+	Open string `protobuf:"bytes,3,opt,name=open,proto3" json:"open,omitempty"`
+	// Highest trade price in the slot, in quote asset per base asset unit.
+	High string `protobuf:"bytes,4,opt,name=high,proto3" json:"high,omitempty"`
+	// Lowest trade price in the slot, in quote asset per base asset unit.
+	Low string `protobuf:"bytes,5,opt,name=low,proto3" json:"low,omitempty"`
+	// Closing or current intermediate trade price, in quote asset per base asset unit.
+	Close string `protobuf:"bytes,6,opt,name=close,proto3" json:"close,omitempty"`
+	// Traded quantity in base asset units.
+	Volume string `protobuf:"bytes,7,opt,name=volume,proto3" json:"volume,omitempty"`
+	// Traded value in quote asset units; not volume times close.
+	Turnover string `protobuf:"bytes,8,opt,name=turnover,proto3" json:"turnover,omitempty"`
+	// Nonnegative trade count when provided. Absent for Bybit; zero is a known count.
+	TradesCount *int64 `protobuf:"varint,9,opt,name=trades_count,json=tradesCount,proto3,oneof" json:"trades_count,omitempty"`
+	// Required local UTC receipt time of the successful candle response.
+	// Final cache data requires a fetch started at or after close, not merely received after it.
 	FetchedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=fetched_at,json=fetchedAt,proto3" json:"fetched_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1026,9 +1124,13 @@ func (x *Kline) GetFetchedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// ErrorDetail is attached to an application failure through the standard rich gRPC status.
+// Native transport failures may have no detail. Clients must handle missing or unknown reasons.
 type ErrorDetail struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Stable machine-readable reason, such as data_not_ready or range_out_of_retention.
+	// Use it with the gRPC status; do not parse the human-readable error message.
+	Reason        string `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

@@ -8,6 +8,11 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GO_TOOLS = ROOT / "bin/api-tools-go"
+COPIED = {
+    "api/go/CLIENT_GUIDE.md": "api/CLIENT_GUIDE.md",
+    "api/python/src/marketdata/CLIENT_GUIDE.md": "api/CLIENT_GUIDE.md",
+    "api/python/src/marketdata/v1/market_data.proto": "api/proto/marketdata/v1/market_data.proto",
+}
 GENERATED = (
     "api/go/marketdata/v1/market_data.pb.go",
     "api/go/marketdata/v1/market_data_grpc.pb.go",
@@ -15,6 +20,7 @@ GENERATED = (
     "api/python/src/marketdata/v1/market_data_pb2.pyi",
     "api/python/src/marketdata/v1/market_data_pb2_grpc.py",
     "api/descriptor.binpb",
+    *COPIED,
 )
 
 
@@ -47,6 +53,10 @@ def generate(destination):
         "--descriptor_set_out=" + str(destination / "api/descriptor.binpb"),
         "--include_imports", "marketdata/v1/market_data.proto",
     ], check=True)
+    for target, source in COPIED.items():
+        path = destination / target
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((ROOT / source).read_bytes())
 
 
 def mismatches(expected, actual):

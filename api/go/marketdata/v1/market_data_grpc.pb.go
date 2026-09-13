@@ -28,10 +28,22 @@ const (
 // MarketDataServiceClient is the client API for MarketDataService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// MarketDataService provides public Binance and Bybit spot and linear market data.
+// Reuse a channel, set a deadline per call, and allow responses up to 16 MiB.
+// All methods are unary. There is no pagination or streaming.
 type MarketDataServiceClient interface {
+	// ListInstruments reads cached catalogs, sorted by exchange, market, and symbol.
+	// Every selected scope must be ready. No matches in ready scopes returns an empty list.
 	ListInstruments(ctx context.Context, in *ListInstrumentsRequest, opts ...grpc.CallOption) (*ListInstrumentsResponse, error)
+	// ListTickers reads cached prices, quotes, and funding. It makes no exchange calls.
+	// Check fetched_at for freshness; failed refreshes preserve older snapshots.
 	ListTickers(ctx context.Context, in *ListTickersRequest, opts ...grpc.CallOption) (*ListTickersResponse, error)
+	// ListMarketStats reads cached rolling 24-hour statistics, separate from tickers.
+	// Other windows are unsupported. No matches in ready scopes returns an empty list.
 	ListMarketStats(ctx context.Context, in *ListMarketStatsRequest, opts ...grpc.CallOption) (*ListMarketStatsResponse, error)
+	// GetKlines returns one complete candle range or an error, never partial success.
+	// Missing or unconfirmed candles trigger a bounded load shared by concurrent callers.
 	GetKlines(ctx context.Context, in *GetKlinesRequest, opts ...grpc.CallOption) (*GetKlinesResponse, error)
 }
 
@@ -86,10 +98,22 @@ func (c *marketDataServiceClient) GetKlines(ctx context.Context, in *GetKlinesRe
 // MarketDataServiceServer is the server API for MarketDataService service.
 // All implementations must embed UnimplementedMarketDataServiceServer
 // for forward compatibility.
+//
+// MarketDataService provides public Binance and Bybit spot and linear market data.
+// Reuse a channel, set a deadline per call, and allow responses up to 16 MiB.
+// All methods are unary. There is no pagination or streaming.
 type MarketDataServiceServer interface {
+	// ListInstruments reads cached catalogs, sorted by exchange, market, and symbol.
+	// Every selected scope must be ready. No matches in ready scopes returns an empty list.
 	ListInstruments(context.Context, *ListInstrumentsRequest) (*ListInstrumentsResponse, error)
+	// ListTickers reads cached prices, quotes, and funding. It makes no exchange calls.
+	// Check fetched_at for freshness; failed refreshes preserve older snapshots.
 	ListTickers(context.Context, *ListTickersRequest) (*ListTickersResponse, error)
+	// ListMarketStats reads cached rolling 24-hour statistics, separate from tickers.
+	// Other windows are unsupported. No matches in ready scopes returns an empty list.
 	ListMarketStats(context.Context, *ListMarketStatsRequest) (*ListMarketStatsResponse, error)
+	// GetKlines returns one complete candle range or an error, never partial success.
+	// Missing or unconfirmed candles trigger a bounded load shared by concurrent callers.
 	GetKlines(context.Context, *GetKlinesRequest) (*GetKlinesResponse, error)
 	mustEmbedUnimplementedMarketDataServiceServer()
 }

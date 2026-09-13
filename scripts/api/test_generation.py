@@ -1,8 +1,10 @@
 """Regression checks for generated drift and Buf compatibility policy."""
 import pathlib
+import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 from google.protobuf import descriptor_pb2
 import generate
@@ -15,10 +17,34 @@ class GenerationTest(unittest.TestCase):
             generate.generate(expected)
             generate.generate(actual)
             self.assertEqual([], generate.mismatches(expected, actual))
-            missing, edited = generate.GENERATED[:2]
-            (actual / missing).unlink()
-            (actual / edited).write_text("changed generated file\n")
-            self.assertEqual([missing, edited], generate.mismatches(expected, actual))
+            for name in generate.GENERATED:
+                with self.subTest(file=name):
+                    path = actual / name
+                    original = path.read_bytes()
+                    path.unlink()
+                    self.assertEqual([name], generate.mismatches(expected, actual))
+                    path.write_text("changed generated file\n")
+                    self.assertEqual([name], generate.mismatches(expected, actual))
+                    path.write_bytes(original)
+
+    def test_client_documentation_follows_source_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = pathlib.Path(directory)
+            source, before, after = work / "source", work / "before", work / "after"
+            shutil.copytree(generate.ROOT / "api/proto", source / "api/proto")
+            guide = source / "api/CLIENT_GUIDE.md"
+            guide.write_text("# Client guide\n\nUse a deadline on each call.\n")
+            with mock.patch.object(generate, "ROOT", source):
+                generate.generate(before)
+                for target, origin in generate.COPIED.items():
+                    self.assertEqual((source / origin).read_bytes(), (before / target).read_bytes())
+                guide.write_text("# Client guide\n\nReuse a channel and set deadlines.\n")
+                generate.generate(after)
+            self.assertEqual([
+                "api/go/CLIENT_GUIDE.md", "api/python/src/marketdata/CLIENT_GUIDE.md",
+            ], generate.mismatches(after, before))
+            for target in ("api/go/CLIENT_GUIDE.md", "api/python/src/marketdata/CLIENT_GUIDE.md"):
+                self.assertEqual(guide.read_bytes(), (after / target).read_bytes())
 
     def test_compatibility_fixtures(self):
         cases = ["optional addition", "type change", "number change", "removed method", "reserved number reuse", "reserved name reuse"]

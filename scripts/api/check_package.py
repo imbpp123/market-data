@@ -1,5 +1,6 @@
 """Build a wheel, install wheel and pinned local Git package, test outside source."""
 import json
+import hashlib
 import os
 import pathlib
 import shutil
@@ -7,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 import http.client
 import zipfile
 
@@ -18,6 +20,7 @@ def run(command, **kwargs):
 
 
 def main():
+    package_version = tomllib.loads((ROOT / "api/python/pyproject.toml").read_text())["project"]["version"]
     with tempfile.TemporaryDirectory(prefix="market-data-package-") as directory:
         work = pathlib.Path(directory)
         project = work / "repo"
@@ -29,10 +32,10 @@ def main():
         shutil.copyfile(wheel, artifacts / wheel.name)
         with zipfile.ZipFile(wheel) as archive:
             names = set(archive.namelist())
-            required = {"marketdata/__init__.py", "marketdata/py.typed", "marketdata/v1/__init__.py", "marketdata/v1/market_data_pb2.py", "marketdata/v1/market_data_pb2.pyi", "marketdata/v1/market_data_pb2_grpc.py"}
+            required = {"marketdata/__init__.py", "marketdata/py.typed", "marketdata/CLIENT_GUIDE.md", "marketdata/v1/__init__.py", "marketdata/v1/market_data.proto", "marketdata/v1/market_data_pb2.py", "marketdata/v1/market_data_pb2.pyi", "marketdata/v1/market_data_pb2_grpc.py"}
             if not required <= names:
                 raise RuntimeError(f"Missing wheel files: {required - names}")
-            if any(not (name.startswith("marketdata/") or name.startswith("market_data_api-0.1.0.dist-info/")) for name in names):
+            if any(not (name.startswith("marketdata/") or name.startswith(f"market_data_api-{package_version}.dist-info/")) for name in names):
                 raise RuntimeError("Wheel contains unexpected files")
         run(["git", "init", "-q", project])
         run(["git", "-C", project, "add", "api/python"])
@@ -54,6 +57,16 @@ def main():
         (consumer / "go.mod").write_text(module)
         run(["go", "build", "-o", application_path, "./scripts/api/grpcfixture"], cwd=ROOT)
         run(["go", "build", "-o", application_check, "."], cwd=consumer)
+        module_dir = pathlib.Path(subprocess.check_output([
+            "go", "list", "-m", "-f", "{{.Dir}}", "github.com/imbpp123/market-data/api/go",
+        ], cwd=consumer, text=True).strip())
+        if (module_dir / "CLIENT_GUIDE.md").read_bytes() != (ROOT / "api/CLIENT_GUIDE.md").read_bytes():
+            raise RuntimeError("Go consumer guide differs from the source")
+        package_help = subprocess.check_output([
+            "go", "doc", "github.com/imbpp123/market-data/api/go/marketdata/v1",
+        ], cwd=consumer, text=True)
+        if "CLIENT_GUIDE.md" not in package_help or "# Connect" not in package_help:
+            raise RuntimeError("Go package help is missing client guidance")
         composition_path = work / "composition-fixture"
         run(["go", "test", "-c", "-o", composition_path, "./internal/bootstrap"], cwd=ROOT)
         manifest_path = work / "composition.json"
@@ -102,7 +115,10 @@ def main():
                     environment = work / f"{version}-{mode}"
                     run([python, "-m", "venv", environment])
                     executable = environment / "bin/python"
-                    env = dict(os.environ, PATH=str(clean_bin), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", API_FIXTURE_ADDRESS=address, API_APPLICATION_ADDRESS=application_address)
+                    env = dict(os.environ, PATH=str(clean_bin), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", API_FIXTURE_ADDRESS=address, API_APPLICATION_ADDRESS=application_address,
+                               API_PACKAGE_VERSION=package_version,
+                               API_CLIENT_GUIDE_SHA256=hashlib.sha256((ROOT / "api/CLIENT_GUIDE.md").read_bytes()).hexdigest(),
+                               API_SCHEMA_SHA256=hashlib.sha256((ROOT / "api/proto/marketdata/v1/market_data.proto").read_bytes()).hexdigest())
                     env.pop("PYTHONPATH", None)
                     target = str(wheel) if mode == "wheel" else f"market-data-api @ git+{project.as_uri()}@{revision}#subdirectory=api/python"
                     run([executable, "-m", "pip", "install", "--disable-pip-version-check", target], cwd=test_dir, env=env)

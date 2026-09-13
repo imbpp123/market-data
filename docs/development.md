@@ -14,7 +14,7 @@ make run
 
 `make run` uses `config/config-v1.yaml` and binds both default listeners to all interfaces. Use the [local quick start](quickstart.md#local) for loopback bindings. `-check-config` validates settings without opening listeners or starting workers.
 
-API generation and client checks also require Python **3.13 and 3.14**. See the [API tool guide](../api/README.md#reproduce-and-check) for pinned generators, runtime versions, and interpreter overrides. Downloads require network access; tests use controlled fixtures without exchange credentials.
+API generation and client checks also require Python **3.13 and 3.14**. See the [API tool guide](#api-tools-and-packaging) for pinned generators, runtime versions, and interpreter overrides. Downloads require network access; tests use controlled fixtures without exchange credentials.
 
 ## Find the right code
 
@@ -58,6 +58,34 @@ The committed [compatibility baseline](../api/compatibility/README.md) is indepe
 Go clients live in the nested `api/go` module. Root Go tests do not cover it. Python packages support ordinary and async clients, with installation checks from wheels and an exact local Git revision. Update the Python package version when its contents change. The package version and the wire package name are separate concepts.
 
 Client examples should reuse a channel, set deadlines and the receive cap, and handle missing or unknown error details. Example fixture timestamps need adjustment before use against live service data.
+
+## API tools and packaging
+
+Use `make generate-api` to regenerate code, the descriptor, and bundled client documentation. `API_PYTHON` selects the generator interpreter (default `python3.13`). `API_PYTHONS` selects package-test interpreters (default `python3.13 python3.14`); a missing interpreter fails the check.
+
+| Tool | Pinned version |
+| --- | --- |
+| Go | 1.27.1 |
+| protoc bundled in grpcio-tools | 31.1 |
+| grpcio-tools / Python gRPC / grpcio-status | 1.76.0 |
+| protoc-gen-go / Go Protobuf | 1.36.10 |
+| protoc-gen-go-grpc | 1.5.1 |
+| Go gRPC | 1.76.0 |
+| Python Protobuf runtime | 6.33.5 |
+| Buf | 1.59.0 |
+| setuptools / wheel / build | 80.9.0 / 0.45.1 / 1.3.0 |
+
+Pins live in [tool requirements](../scripts/api/requirements.txt), [Python metadata](../api/python/pyproject.toml), and the [Go client module](../api/go/go.mod). The compiler emits Python code for Protobuf 6.31.1; the pinned runtime accepts it. Dependency updates need generation and installation checks. Exact Python runtime pins can conflict with consumer dependencies.
+
+The [shared client guide](../api/CLIENT_GUIDE.md) is the editable source for both bundled copies. Generation copies it to the Go module root and the Python package, and includes the commented schema in Python. Do not edit those copies. Go package help lives in [doc.go](../api/go/marketdata/v1/doc.go); Python package help lives in [__init__.py](../api/python/src/marketdata/__init__.py). These descriptions help people and coding assistants discover the same guide.
+
+`make check-api` generates into a temporary directory and checks for drift, including missing or edited documentation. It runs Buf FILE compatibility checks and nested Go build/vet/test/race checks. It builds a wheel, checks its contents, and tests wheel and exact local Git installs with both supported Python versions. Installed-package tests run outside the checkout without generators on PATH, read the bundled guide/schema, and call local Go servers. A separate Go consumer checks package help and the bundled guide. The wheel is saved under ignored `bin/api-dist/`.
+
+The temporary Git commit used for installation tests belongs to a fixture repository. The check does not commit or tag the working project. Package version checks read `pyproject.toml`; the installed artifact must match it.
+
+For a small local contract fixture, run `go run ./cmd/contract-fixture` from `api/go`. It prints a loopback address. Pass that address to the [Go](../api/go/examples/client/main.go), [Python](../api/examples/client.py), or [async Python](../api/examples/client_async.py) example. The fixture uses fixed values and test selectors; it is not the production service. Installed-client checks also exercise production handlers, application readers, repositories, and final service composition.
+
+`make api-http-baseline` measures the frozen HTTP test handler and writes results under ignored `bin/api-benchmarks/http-baseline/`. [compare_transports.py](../scripts/api/compare_transports.py) compares fixed HTTP and gRPC responses over local TCP; use its `--help` for measurement options. The [saved HTTP fixtures](../testdata/http-baseline/README.md) remain fixed expected bytes. They are used by tests, not served by the production executable.
 
 ## Checks
 

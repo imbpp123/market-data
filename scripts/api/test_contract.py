@@ -1,6 +1,8 @@
 """Run from a clean installed package against the local Go fixture."""
 import asyncio
+import hashlib
 import importlib.metadata
+import importlib.resources
 import importlib.util
 import os
 import pathlib
@@ -26,7 +28,7 @@ class ContractTest(unittest.TestCase):
         self.client = rpc.MarketDataServiceStub(self.channel)
 
     def test_installation_is_isolated_and_typed(self):
-        self.assertEqual("0.1.0", importlib.metadata.version("market-data-api"))
+        self.assertEqual(os.environ["API_PACKAGE_VERSION"], importlib.metadata.version("market-data-api"))
         self.assertTrue(pathlib.Path(pb.__file__).is_relative_to(pathlib.Path(sys.prefix)))
         package = pathlib.Path(pb.__file__).parent
         self.assertTrue((package / "market_data_pb2.pyi").is_file())
@@ -34,6 +36,22 @@ class ContractTest(unittest.TestCase):
         self.assertIsNone(importlib.util.find_spec("grpc_tools"))
         for tool in ("go", "protoc", "protoc-gen-go"):
             self.assertIsNone(shutil.which(tool))
+
+    def test_installed_documentation_is_readable_without_checkout(self):
+        import marketdata
+
+        guide = importlib.resources.files("marketdata").joinpath("CLIENT_GUIDE.md").read_bytes()
+        schema = importlib.resources.files("marketdata.v1").joinpath("market_data.proto").read_bytes()
+        self.assertEqual(os.environ["API_CLIENT_GUIDE_SHA256"], hashlib.sha256(guide).hexdigest())
+        self.assertEqual(os.environ["API_SCHEMA_SHA256"], hashlib.sha256(schema).hexdigest())
+        self.assertIn("CLIENT_GUIDE.md", marketdata.__doc__)
+        self.assertIn("CLIENT_GUIDE.md", importlib.metadata.metadata("market-data-api").get_payload())
+        for value in (rpc.MarketDataServiceStub, rpc.MarketDataServiceServicer.ListInstruments,
+                      rpc.MarketDataServiceServicer.ListTickers, rpc.MarketDataServiceServicer.ListMarketStats,
+                      rpc.MarketDataServiceServicer.GetKlines):
+            with self.subTest(value=value.__name__):
+                self.assertTrue(value.__doc__)
+                self.assertNotIn("Missing associated documentation", value.__doc__)
 
     def test_values_presence_and_long_decimal(self):
         result = self.client.ListInstruments(pb.ListInstrumentsRequest(symbol="presence"), timeout=5)

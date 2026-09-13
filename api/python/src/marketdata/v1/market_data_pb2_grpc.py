@@ -26,7 +26,10 @@ if _version_not_supported:
 
 
 class MarketDataServiceStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """MarketDataService provides public Binance and Bybit spot and linear market data.
+    Reuse a channel, set a deadline per call, and allow responses up to 16 MiB.
+    All methods are unary. There is no pagination or streaming.
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -57,28 +60,39 @@ class MarketDataServiceStub(object):
 
 
 class MarketDataServiceServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """MarketDataService provides public Binance and Bybit spot and linear market data.
+    Reuse a channel, set a deadline per call, and allow responses up to 16 MiB.
+    All methods are unary. There is no pagination or streaming.
+    """
 
     def ListInstruments(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """ListInstruments reads cached catalogs, sorted by exchange, market, and symbol.
+        Every selected scope must be ready. No matches in ready scopes returns an empty list.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListTickers(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """ListTickers reads cached prices, quotes, and funding. It makes no exchange calls.
+        Check fetched_at for freshness; failed refreshes preserve older snapshots.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListMarketStats(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """ListMarketStats reads cached rolling 24-hour statistics, separate from tickers.
+        Other windows are unsupported. No matches in ready scopes returns an empty list.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetKlines(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """GetKlines returns one complete candle range or an error, never partial success.
+        Missing or unconfirmed candles trigger a bounded load shared by concurrent callers.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -115,7 +129,10 @@ def add_MarketDataServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class MarketDataService(object):
-    """Missing associated documentation comment in .proto file."""
+    """MarketDataService provides public Binance and Bybit spot and linear market data.
+    Reuse a channel, set a deadline per call, and allow responses up to 16 MiB.
+    All methods are unary. There is no pagination or streaming.
+    """
 
     @staticmethod
     def ListInstruments(request,
