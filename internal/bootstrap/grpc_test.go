@@ -185,6 +185,8 @@ func (r *waitingTickers) List(ctx context.Context, _ application.SnapshotFilter)
 
 func TestOperationalHTTPStaysAvailableDuringSaturatedRPCAndShutdown(t *testing.T) {
 	cfg := config.Defaults()
+	cfg.Observability.Prometheus.Enabled = true
+	cfg.Observability.Stats.EndpointEnabled = true
 	state, err := newLocalState(1000, time.Now)
 	require.NoError(t, err)
 	state.exchanges, err = newExchangeClients(cfg, http.DefaultTransport, upstream.SystemClock{}, func(time.Duration) time.Duration { return 0 }, nil)
@@ -216,12 +218,25 @@ func TestOperationalHTTPStaysAvailableDuringSaturatedRPCAndShutdown(t *testing.T
 		rpcDone <- err
 	}()
 	<-waiting.entered
-	for _, path := range []string{"/health", "/ready"} {
+	for range 20 {
+		_, err := pb.NewMarketDataServiceClient(connection).ListTickers(t.Context(), &pb.ListTickersRequest{})
+		require.Equal(t, codes.ResourceExhausted, status.Code(err))
+	}
+	for _, path := range []string{"/health", "/ready", "/metrics", "/debug/stats"} {
 		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+httpListener.Addr().String()+path, nil)
 		require.NoError(t, err)
 		response, err := http.DefaultClient.Do(request)
 		require.NoError(t, err)
 		assert.Equal(t, 200, response.StatusCode)
+		body, err := io.ReadAll(response.Body)
+		require.NoError(t, err)
+		if path == "/metrics" {
+			assert.Contains(t, response.Header.Get("Content-Type"), "text/plain")
+			assert.Contains(t, string(body), "rpc_total")
+		} else {
+			assert.Contains(t, response.Header.Get("Content-Type"), "application/json")
+			assert.NotEmpty(t, body)
+		}
 		_ = response.Body.Close()
 	}
 	cancel()

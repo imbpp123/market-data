@@ -2,6 +2,8 @@
 
 Run all commands from the repository root. The current build includes configuration loading, the process scaffold, exact domain models, UTC candle calendars, funding read models, application contracts, in-memory repositories, and bounded upstream admission/retries. Instrument normalization, scheduled refresh workers, the instruments read API, and publication counters are implemented. Ticker/statistics collectors and their cache-only APIs are implemented. Bounded candle cache fills and the kline endpoint are implemented. Retention scheduling and optional observability exporters are implemented.
 
+The [gRPC verification record](grpc-migration-verification.md) covers installed Go/Python consumers, combined adapter behavior, TCP comparisons and Linux capacity. Phase 4 is complete after independent review and correction of one finding. Historical HTTP measurements remain in the earlier audit.
+
 ## Run
 
 Use Go **1.27.1**. The module, Makefile, and CI use this exact version.

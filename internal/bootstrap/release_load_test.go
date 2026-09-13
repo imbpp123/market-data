@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"runtime"
 	"slices"
@@ -14,6 +15,8 @@ import (
 	"time"
 
 	pb "github.com/imbpp123/market-data/api/go/marketdata/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 	"market-data/internal/application"
 	"market-data/internal/application/instrument"
@@ -31,8 +34,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// This opt-in measurement uses real storage, fill coordination, and gRPC encoding over a controlled in-memory connection.
-// Synthetic providers exclude exchange pacing. Phase 4 measures real TCP separately.
+// This opt-in measurement uses real storage, fill coordination, and four TCP channels.
+// Synthetic providers exclude exchange pacing. Process RSS includes these Go clients.
 func TestReleaseLoad(t *testing.T) {
 	profile := os.Getenv("MDS_RELEASE_LOAD")
 	if profile == "" {
@@ -90,7 +93,7 @@ func TestReleaseLoad(t *testing.T) {
 	require.NoError(t, err)
 	defer service.Wait()
 	defer cancel()
-	api := startTestAPI(t, grpctransport.Readers{Instruments: instrument.NewReader(state.instruments, scopes), Tickers: ticker.NewReader(state.tickers, scopes, func() time.Time { return now }), MarketStats: marketstats.NewReader(state.marketStats, scopes), Klines: service}, configuredGRPC(cfg).Transport)
+	clients := startLoadAPIs(t, grpctransport.Readers{Instruments: instrument.NewReader(state.instruments, scopes), Tickers: ticker.NewReader(state.tickers, scopes, func() time.Time { return now }), MarketStats: marketstats.NewReader(state.marketStats, scopes), Klines: service}, configuredGRPC(cfg).Transport)
 
 	for _, pass := range []string{"partial fills", "warm reads"} {
 		before := attempts.Load()
@@ -98,6 +101,7 @@ func TestReleaseLoad(t *testing.T) {
 		timings := make([][]time.Duration, 4)
 		for client := range 4 {
 			wg.Go(func() {
+				api := clients[client]
 				for i, query := range queries {
 					request := klineRequest(query.Scope, query.From, query.To)
 					request.Symbol = proto.String(query.Symbol)
@@ -131,7 +135,7 @@ func TestReleaseLoad(t *testing.T) {
 		all := slices.Concat(timings...)
 		require.NotEmpty(t, all)
 		slices.Sort(all)
-		t.Logf("pass=%s requests=%d attempts=%d p50=%s p95=%s max=%s", pass, len(all), attempts.Load()-before, all[len(all)/2], all[len(all)*95/100], all[len(all)-1])
+		t.Logf("pass=%s requests=%d attempts=%d p50=%s p95=%s p99=%s max=%s", pass, len(all), attempts.Load()-before, all[len(all)/2], all[len(all)*95/100], all[len(all)*99/100], all[len(all)-1])
 		if pass == "partial fills" {
 			assert.Equal(t, int64(len(queries)), attempts.Load()-before)
 		} else {
@@ -263,4 +267,23 @@ func loadRows(query kline.Query, now time.Time) ([]kline.Stored, error) {
 		open = closeTime
 	}
 	return rows, nil
+}
+
+func startLoadAPIs(t *testing.T, readers grpctransport.Readers, settings grpctransport.Settings) []pb.MarketDataServiceClient {
+	t.Helper()
+	server, err := grpctransport.NewServer(t.Context(), readers, settings, nil)
+	require.NoError(t, err)
+	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	done := make(chan error, 1)
+	go func() { done <- server.Serve(listener) }()
+	t.Cleanup(func() { _ = server.Close(); <-done })
+	clients := make([]pb.MarketDataServiceClient, 4)
+	for i := range clients {
+		connection, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(settings.MaxResponseBytes)))
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = connection.Close() })
+		clients[i] = pb.NewMarketDataServiceClient(connection)
+	}
+	return clients
 }

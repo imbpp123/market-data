@@ -1,6 +1,6 @@
 # Phase 4. Validate behavior, traffic, and capacity
 
-Status: planned; not implemented. Depends on [phase 3](03-cutover-and-operations.md) and the completed [Binance request-limit validation](../release-verification-v1.md#binance-request-limit-validation). See the [phase list](README.md) and approved [acceptance criteria](../grpc-migration-specification.md#testing--validation).
+Status: complete after independent review and correction of one finding. Depends on [phase 3](03-cutover-and-operations.md) and the completed [Binance request-limit validation](../release-verification-v1.md#binance-request-limit-validation). See the [phase list](README.md) and approved [acceptance criteria](../grpc-migration-specification.md#testing--validation).
 
 ## Summary / Overview
 
@@ -84,3 +84,9 @@ Completion requires all acceptance items passing, raw measurement evidence, upda
 ## Risks / Trade-offs
 
 Smaller wire messages do not reduce the domain cache by the same amount. Results on four synthetic clients do not guarantee that all allowed concurrent requests or arbitrary catalog growth fit in memory. Keep these limits visible in the final report, including any difference between local plaintext testing and a future secured remote deployment.
+
+## Implementation evidence
+
+The [verification report](../grpc-migration-verification.md) and [raw evidence](../evidence/grpc-migration/phase-04/README.md) record installed Go and Python 3.13/3.14 consumers, actual dual composition, combined admission/cache behavior, repeated native overload and operational saturation, and all required project gates. Both macOS and bounded Linux TCP matrices contain 108 cases. The unchanged full main profile passes in Linux at 775,417,856-byte peak process RSS. The required 100- and 1,000-candle messages are 53.9% and 54.0% smaller. Latency and CPU regressions remain explicit; no fixed speedup is claimed.
+
+Independent review found one test-fixture manifest publication race. The fixture now writes a sibling temporary file and atomically renames it; the affected full API gate passed again. Final independent review confirmed the correction and source/evidence with no open findings. No release was published or deployed.

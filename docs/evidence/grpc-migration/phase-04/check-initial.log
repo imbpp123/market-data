@@ -1,0 +1,15 @@
+/Library/Developer/CommandLineTools/usr/bin/make fmt-check
+/Library/Developer/CommandLineTools/usr/bin/make check-config
+go build -o bin/market-data-service ./cmd/market-data-service
+./bin/market-data-service -config docs/examples/config-v1.yaml -check-config
+{"time":"2026-09-13T19:13:03.638733+02:00","level":"INFO","msg":"Configuration is valid"}
+/Library/Developer/CommandLineTools/usr/bin/make lint
+"/Users/nkornushkov/Projects/market-data/bin/golangci-lint/v2.13.2/golangci-lint" config verify --config .golangci.yml
+"/Users/nkornushkov/Projects/market-data/bin/golangci-lint/v2.13.2/golangci-lint" run --config .golangci.yml ./...
+scripts/api/httpfixture/grpc.go:105:26: Error return value of `connection.Close` is not checked (errcheck)
+			defer connection.Close()
+			                      ^
+1 issues:
+* errcheck: 1
+make[1]: *** [lint] Error 1
+make: *** [check] Error 2

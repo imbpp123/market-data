@@ -1,0 +1,14 @@
+MDS_RELEASE_LOAD=main GOMEMLIMIT=700MiB go test ./internal/bootstrap -run '^TestReleaseLoad$' -count=1 -v -timeout=15m
+=== RUN   TestReleaseLoad
+    release_load_test.go:85: profile=main series=600 preloaded_rows=599400 snapshots_per_type=20000 populate=654.897083ms
+    release_load_test.go:86: stage=retained heap_alloc=490934104 runtime_sys=630026648
+    release_load_test.go:138: pass=partial fills requests=2400 attempts=600 p50=12.044667ms p95=28.637833ms p99=52.574917ms max=181.932584ms
+    release_load_test.go:138: pass=warm reads requests=2400 attempts=0 p50=8.098375ms p95=18.890958ms p99=29.72225ms max=79.747833ms
+    release_load_test.go:152: stage=after reads and fills heap_alloc=501360600 runtime_sys=803827144
+    release_load_test.go:157: rolling_cleanup=7.897875ms
+    release_load_test.go:168: idle_cleanup_and_late_write=49.943583ms
+    release_load_test.go:172: fill_shutdown=2.958µs
+    release_load_test.go:173: stage=after cleanup heap_alloc=44590816 runtime_sys=803827144
+--- PASS: TestReleaseLoad (24.72s)
+PASS
+ok  	market-data/internal/bootstrap	25.254s

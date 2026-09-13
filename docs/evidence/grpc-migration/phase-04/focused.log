@@ -1,0 +1,7 @@
+# market-data/scripts/api/httpfixture [market-data/scripts/api/httpfixture.test]
+scripts/api/httpfixture/grpc.go:105:5: declared and not used: elapsed
+# market-data/internal/bootstrap [market-data/internal/bootstrap.test]
+internal/bootstrap/grpc_budget_acceptance_test.go:21:2: "market-data/internal/application/kline" imported and not used
+FAIL	market-data/internal/bootstrap [build failed]
+FAIL	market-data/scripts/api/httpfixture [build failed]
+FAIL

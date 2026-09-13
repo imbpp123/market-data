@@ -1,0 +1,57 @@
+/Library/Developer/CommandLineTools/usr/bin/make fmt-check
+/Library/Developer/CommandLineTools/usr/bin/make check-config
+go build -o bin/market-data-service ./cmd/market-data-service
+./bin/market-data-service -config docs/examples/config-v1.yaml -check-config
+{"time":"2026-09-13T19:13:35.407031+02:00","level":"INFO","msg":"Configuration is valid"}
+/Library/Developer/CommandLineTools/usr/bin/make lint
+"/Users/nkornushkov/Projects/market-data/bin/golangci-lint/v2.13.2/golangci-lint" config verify --config .golangci.yml
+"/Users/nkornushkov/Projects/market-data/bin/golangci-lint/v2.13.2/golangci-lint" run --config .golangci.yml ./...
+0 issues.
+/Library/Developer/CommandLineTools/usr/bin/make test
+go test ./...
+ok  	market-data/cmd/market-data-service	(cached)
+?   	market-data/internal/application	[no test files]
+ok  	market-data/internal/application/instrument	(cached)
+ok  	market-data/internal/application/kline	(cached)
+ok  	market-data/internal/application/marketstats	(cached)
+ok  	market-data/internal/application/ticker	(cached)
+ok  	market-data/internal/bootstrap	0.683s
+ok  	market-data/internal/config	(cached)
+ok  	market-data/internal/domain	(cached)
+ok  	market-data/internal/infrastructure/exchange	(cached)
+ok  	market-data/internal/infrastructure/exchange/binance	(cached)
+ok  	market-data/internal/infrastructure/exchange/bybit	(cached)
+ok  	market-data/internal/infrastructure/exchange/normalization	(cached)
+ok  	market-data/internal/infrastructure/exchange/upstream	(cached)
+ok  	market-data/internal/infrastructure/observability	(cached)
+ok  	market-data/internal/infrastructure/storage/memory	(cached)
+?   	market-data/internal/testfixture/grpcapi	[no test files]
+ok  	market-data/internal/transport/grpc	(cached)
+ok  	market-data/internal/transport/http	(cached)
+?   	market-data/scripts/api/grpcfixture	[no test files]
+ok  	market-data/scripts/api/httpfixture	1.273s
+?   	market-data/scripts/api/httpfixture/legacyhttp	[no test files]
+/Library/Developer/CommandLineTools/usr/bin/make test-race
+go test -race ./...
+ok  	market-data/cmd/market-data-service	(cached)
+?   	market-data/internal/application	[no test files]
+ok  	market-data/internal/application/instrument	(cached)
+ok  	market-data/internal/application/kline	(cached)
+ok  	market-data/internal/application/marketstats	(cached)
+ok  	market-data/internal/application/ticker	(cached)
+ok  	market-data/internal/bootstrap	2.286s
+ok  	market-data/internal/config	(cached)
+ok  	market-data/internal/domain	(cached)
+ok  	market-data/internal/infrastructure/exchange	(cached)
+ok  	market-data/internal/infrastructure/exchange/binance	(cached)
+ok  	market-data/internal/infrastructure/exchange/bybit	(cached)
+ok  	market-data/internal/infrastructure/exchange/normalization	(cached)
+ok  	market-data/internal/infrastructure/exchange/upstream	(cached)
+ok  	market-data/internal/infrastructure/observability	(cached)
+ok  	market-data/internal/infrastructure/storage/memory	(cached)
+?   	market-data/internal/testfixture/grpcapi	[no test files]
+ok  	market-data/internal/transport/grpc	(cached)
+ok  	market-data/internal/transport/http	(cached)
+?   	market-data/scripts/api/grpcfixture	[no test files]
+ok  	market-data/scripts/api/httpfixture	7.177s
+?   	market-data/scripts/api/httpfixture/legacyhttp	[no test files]

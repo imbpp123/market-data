@@ -1,0 +1,120 @@
+* Getting build dependencies for wheel...
+running egg_info
+creating src/market_data_api.egg-info
+writing src/market_data_api.egg-info/PKG-INFO
+writing dependency_links to src/market_data_api.egg-info/dependency_links.txt
+writing requirements to src/market_data_api.egg-info/requires.txt
+writing top-level names to src/market_data_api.egg-info/top_level.txt
+writing manifest file 'src/market_data_api.egg-info/SOURCES.txt'
+reading manifest file 'src/market_data_api.egg-info/SOURCES.txt'
+writing manifest file 'src/market_data_api.egg-info/SOURCES.txt'
+* Building wheel...
+running bdist_wheel
+running build
+running build_py
+creating build/lib/marketdata
+copying src/marketdata/__init__.py -> build/lib/marketdata
+creating build/lib/marketdata/v1
+copying src/marketdata/v1/market_data_pb2.py -> build/lib/marketdata/v1
+copying src/marketdata/v1/__init__.py -> build/lib/marketdata/v1
+copying src/marketdata/v1/market_data_pb2_grpc.py -> build/lib/marketdata/v1
+running egg_info
+writing src/market_data_api.egg-info/PKG-INFO
+writing dependency_links to src/market_data_api.egg-info/dependency_links.txt
+writing requirements to src/market_data_api.egg-info/requires.txt
+writing top-level names to src/market_data_api.egg-info/top_level.txt
+reading manifest file 'src/market_data_api.egg-info/SOURCES.txt'
+writing manifest file 'src/market_data_api.egg-info/SOURCES.txt'
+copying src/marketdata/py.typed -> build/lib/marketdata
+copying src/marketdata/v1/market_data_pb2.pyi -> build/lib/marketdata/v1
+copying src/marketdata/v1/market_data_pb2.pyi -> build/lib/marketdata/v1
+installing to build/bdist.macosx-26.0-arm64/wheel
+running install
+running install_lib
+creating build/bdist.macosx-26.0-arm64/wheel
+creating build/bdist.macosx-26.0-arm64/wheel/marketdata
+creating build/bdist.macosx-26.0-arm64/wheel/marketdata/v1
+copying build/lib/marketdata/v1/market_data_pb2.py -> build/bdist.macosx-26.0-arm64/wheel/./marketdata/v1
+copying build/lib/marketdata/v1/__init__.py -> build/bdist.macosx-26.0-arm64/wheel/./marketdata/v1
+copying build/lib/marketdata/v1/market_data_pb2.pyi -> build/bdist.macosx-26.0-arm64/wheel/./marketdata/v1
+copying build/lib/marketdata/v1/market_data_pb2_grpc.py -> build/bdist.macosx-26.0-arm64/wheel/./marketdata/v1
+copying build/lib/marketdata/__init__.py -> build/bdist.macosx-26.0-arm64/wheel/./marketdata
+copying build/lib/marketdata/py.typed -> build/bdist.macosx-26.0-arm64/wheel/./marketdata
+running install_egg_info
+Copying src/market_data_api.egg-info to build/bdist.macosx-26.0-arm64/wheel/./market_data_api-0.1.0-py3.13.egg-info
+running install_scripts
+creating build/bdist.macosx-26.0-arm64/wheel/market_data_api-0.1.0.dist-info/WHEEL
+creating '/var/folders/8x/c4q_tbfd4rbgwnkbqvg1qq940000gn/T/market-data-package-55bzi5by/wheels/.tmp-sonxc2a4/market_data_api-0.1.0-py3-none-any.whl' and adding 'build/bdist.macosx-26.0-arm64/wheel' to it
+adding 'marketdata/__init__.py'
+adding 'marketdata/py.typed'
+adding 'marketdata/v1/__init__.py'
+adding 'marketdata/v1/market_data_pb2.py'
+adding 'marketdata/v1/market_data_pb2.pyi'
+adding 'marketdata/v1/market_data_pb2_grpc.py'
+adding 'market_data_api-0.1.0.dist-info/METADATA'
+adding 'market_data_api-0.1.0.dist-info/WHEEL'
+adding 'market_data_api-0.1.0.dist-info/top_level.txt'
+adding 'market_data_api-0.1.0.dist-info/RECORD'
+removing build/bdist.macosx-26.0-arm64/wheel
+Successfully built market_data_api-0.1.0-py3-none-any.whl
+min_qty 12345.1234567890123456789
+Processing /var/folders/8x/c4q_tbfd4rbgwnkbqvg1qq940000gn/T/market-data-package-55bzi5by/wheels/market_data_api-0.1.0-py3-none-any.whl
+Collecting protobuf==6.33.5 (from market-data-api==0.1.0)
+  Using cached protobuf-6.33.5-cp39-abi3-macosx_10_9_universal2.whl.metadata (593 bytes)
+Collecting grpcio==1.76.0 (from market-data-api==0.1.0)
+  Using cached grpcio-1.76.0-cp313-cp313-macosx_11_0_universal2.whl.metadata (3.7 kB)
+Collecting grpcio-status==1.76.0 (from market-data-api==0.1.0)
+  Using cached grpcio_status-1.76.0-py3-none-any.whl.metadata (1.1 kB)
+Collecting googleapis-common-protos==1.70.0 (from market-data-api==0.1.0)
+  Using cached googleapis_common_protos-1.70.0-py3-none-any.whl.metadata (9.3 kB)
+Collecting typing-extensions==4.15.0 (from market-data-api==0.1.0)
+  Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Using cached googleapis_common_protos-1.70.0-py3-none-any.whl (294 kB)
+Using cached protobuf-6.33.5-cp39-abi3-macosx_10_9_universal2.whl (427 kB)
+Using cached grpcio-1.76.0-cp313-cp313-macosx_11_0_universal2.whl (11.8 MB)
+Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Using cached grpcio_status-1.76.0-py3-none-any.whl (14 kB)
+Installing collected packages: typing-extensions, protobuf, grpcio, googleapis-common-protos, grpcio-status, market-data-api
+
+Successfully installed googleapis-common-protos-1.70.0 grpcio-1.76.0 grpcio-status-1.76.0 market-data-api-0.1.0 protobuf-6.33.5 typing-extensions-4.15.0
+No broken requirements found.
+test_explicit_cancellation (__main__.AsyncContractTest.test_explicit_cancellation) ... ok
+test_four_calls_and_error_details (__main__.AsyncContractTest.test_four_calls_and_error_details) ... ok
+test_deadline (__main__.ContractTest.test_deadline) ... FAIL
+test_empty_multi_maximum_and_count_presence (__main__.ContractTest.test_empty_multi_maximum_and_count_presence) ... ok
+test_full_snapshots (__main__.ContractTest.test_full_snapshots) ... ok
+test_installation_is_isolated_and_typed (__main__.ContractTest.test_installation_is_isolated_and_typed) ... ok
+test_invalid_timestamp (__main__.ContractTest.test_invalid_timestamp) ... ok
+test_known_unknown_and_absent_details (__main__.ContractTest.test_known_unknown_and_absent_details) ... ok
+test_omitted_empty_canonical_and_unknown_fields (__main__.ContractTest.test_omitted_empty_canonical_and_unknown_fields) ... ok
+test_receive_cap (__main__.ContractTest.test_receive_cap) ... ok
+test_values_presence_and_long_decimal (__main__.ContractTest.test_values_presence_and_long_decimal) ... ok
+
+======================================================================
+FAIL: test_deadline (__main__.ContractTest.test_deadline)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/8x/c4q_tbfd4rbgwnkbqvg1qq940000gn/T/market-data-package-55bzi5by/consumer/test_contract.py", line 129, in test_deadline
+    self.assertEqual(grpc.StatusCode.DEADLINE_EXCEEDED, failure.exception.code())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: <StatusCode.DEADLINE_EXCEEDED: (4, 'deadline exceeded')> != <StatusCode.CANCELLED: (1, 'cancelled')>
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.311s
+
+FAILED (failures=1)
+PASS
+Traceback (most recent call last):
+  File "/Users/nkornushkov/Projects/market-data/scripts/api/check_package.py", line 133, in <module>
+    main()
+    ~~~~^^
+  File "/Users/nkornushkov/Projects/market-data/scripts/api/check_package.py", line 115, in main
+    run([executable, "test_contract.py", "-v"], cwd=test_dir, env=env)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nkornushkov/Projects/market-data/scripts/api/check_package.py", line 17, in run
+    subprocess.run([str(value) for value in command], check=True, **kwargs)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.12_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/subprocess.py", line 577, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/var/folders/8x/c4q_tbfd4rbgwnkbqvg1qq940000gn/T/market-data-package-55bzi5by/python3.13-wheel/bin/python', 'test_contract.py', '-v']' returned non-zero exit status 1.

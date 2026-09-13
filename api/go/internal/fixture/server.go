@@ -83,8 +83,15 @@ func Klines(count int) *pb.GetKlinesResponse {
 
 func scenarioError(ctx context.Context, symbol string) error {
 	switch symbol {
-	case "error":
-		value, err := status.New(codes.InvalidArgument, "Invalid filter").WithDetails(&pb.ErrorDetail{Reason: "invalid_filter"})
+	case "error", "response-too-large", "request-canceled":
+		code, reason := codes.InvalidArgument, "invalid_filter"
+		if symbol == "response-too-large" {
+			code, reason = codes.ResourceExhausted, "response_too_large"
+		}
+		if symbol == "request-canceled" {
+			code, reason = codes.Canceled, "request_canceled"
+		}
+		value, err := status.New(code, "Fixture application failure").WithDetails(&pb.ErrorDetail{Reason: reason})
 		if err != nil {
 			return err
 		}

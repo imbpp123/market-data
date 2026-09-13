@@ -18,7 +18,7 @@ Ask only when a missing decision blocks the current task; continue independent w
 ## Language and communication
 
 - Use English for all project content: code, identifiers, comments, documentation, tests, test names, fixtures written for this project, logs, error messages, configuration descriptions, commit messages, and pull requests.
-- Use simple, clear English. Keep code, comments, and project reports neutral and professional.
+- Use simple, clear level B1 English. Keep code, comments, and project reports neutral and professional.
 - Communicate with the user in Russian unless requested otherwise. Be brief, direct, and factual. Explain unnecessary complexity or incorrect assumptions without motivational filler.
 - Write new documentation and documentation updates in English. Preserve the meaning of existing requirements when translating them.
 

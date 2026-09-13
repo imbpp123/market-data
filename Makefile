@@ -102,6 +102,7 @@ check-api: install-api-tools
 	"$(API_GO_TOOLS)/buf" breaking api/descriptor.binpb --against api/compatibility/baseline.binpb --config api/compatibility/buf.yaml
 	"$(API_VENV)/bin/python" scripts/api/test_generation.py
 	"$(API_VENV)/bin/python" scripts/api/test_baseline.py
+	"$(API_VENV)/bin/python" scripts/api/test_comparison.py
 	cd api/go && $(GO) build ./... && $(GO) vet ./... && $(GO) test ./... && $(GO) test -race ./...
 	"$(API_VENV)/bin/python" scripts/api/check_package.py
 

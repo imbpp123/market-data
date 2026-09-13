@@ -1,0 +1,68 @@
+docker compose build
+ Image market-data-service:v1 Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 581B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 955B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/golang:1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125
+#3 DONE 0.9s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 199B done
+#4 DONE 0.0s
+
+#5 [build 1/9] FROM docker.io/library/golang:1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125
+#5 resolve docker.io/library/golang:1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125 done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 6.95kB 0.0s done
+#6 DONE 0.0s
+
+#7 [stage-1 1/2] COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+#7 CACHED
+
+#8 [build 9/9] RUN go build -trimpath -buildvcs=false -ldflags="-s -w" -o /out/market-data-service ./cmd/market-data-service
+#8 CACHED
+
+#9 [build 4/9] COPY api/go/go.mod api/go/go.sum ./api/go/
+#9 CACHED
+
+#10 [build 6/9] COPY cmd ./cmd
+#10 CACHED
+
+#11 [build 8/9] COPY api/go/marketdata ./api/go/marketdata
+#11 CACHED
+
+#12 [build 3/9] COPY go.mod go.sum ./
+#12 CACHED
+
+#13 [build 7/9] COPY internal ./internal
+#13 CACHED
+
+#14 [build 2/9] WORKDIR /src
+#14 CACHED
+
+#15 [build 5/9] RUN go mod download && go mod verify
+#15 CACHED
+
+#16 [stage-1 2/2] COPY --from=build /out/market-data-service /market-data-service
+#16 CACHED
+
+#17 exporting to image
+#17 exporting layers done
+#17 exporting manifest sha256:02603270869a6403cd68ae050af46efb8ccb7dc3b984947ff1295fc310a263e0 done
+#17 exporting config sha256:bf86c7e3d15eb2d722995538cd7f23057dbf938338aae69867544bf011d52c02 done
+#17 exporting attestation manifest sha256:6d45de38c0f3fcd7cee636cf97bb92a6faa5fe7e6453c67c6aca51564238c62d done
+#17 exporting manifest list sha256:e014b0a9bbc5d5345f2ba5445edad03e59061eacca9d56ed6d7b4f862bf43398 done
+#17 naming to docker.io/library/market-data-service:v1 done
+#17 unpacking to docker.io/library/market-data-service:v1 done
+#17 DONE 0.0s
+
+#18 resolving provenance for metadata file
+#18 DONE 0.0s
+ Image market-data-service:v1 Built 

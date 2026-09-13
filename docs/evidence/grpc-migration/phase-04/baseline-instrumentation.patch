@@ -1,0 +1,14 @@
+diff --git a/scripts/api/httpfixture/main.go b/scripts/api/httpfixture/main.go
+index feb6d99..a7f231c 100644
+--- a/scripts/api/httpfixture/main.go
++++ b/scripts/api/httpfixture/main.go
+@@ -111,6 +111,9 @@ func serve() {
+ 	emit(map[string]string{"address": listener.Addr().String()})
+ 	scanner := bufio.NewScanner(os.Stdin)
+ 	for scanner.Scan() {
++		if scanner.Text() == "gc" {
++			runtime.GC()
++		}
+ 		emit(measure(counts))
+ 	}
+ 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

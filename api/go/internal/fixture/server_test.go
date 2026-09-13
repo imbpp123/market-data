@@ -146,9 +146,11 @@ func TestStatusDetails(t *testing.T) {
 	cases := []struct {
 		name   string
 		code   codes.Code
-		detail bool
+		reason string
 	}{
-		{name: "error", code: codes.InvalidArgument, detail: true}, {name: "unknown-detail", code: codes.Unavailable}, {name: "native-error", code: codes.Unavailable},
+		{name: "error", code: codes.InvalidArgument, reason: "invalid_filter"}, {name: "unknown-detail", code: codes.Unavailable}, {name: "native-error", code: codes.Unavailable},
+		{name: "response-too-large", code: codes.ResourceExhausted, reason: "response_too_large"},
+		{name: "request-canceled", code: codes.Canceled, reason: "request_canceled"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -160,11 +162,7 @@ func TestStatusDetails(t *testing.T) {
 					reason = value.Reason
 				}
 			}
-			if tc.detail {
-				assert.Equal(t, "invalid_filter", reason)
-			} else {
-				assert.Empty(t, reason)
-			}
+			assert.Equal(t, tc.reason, reason)
 		})
 	}
 }

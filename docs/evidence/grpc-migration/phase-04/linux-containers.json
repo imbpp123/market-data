@@ -1,0 +1,505 @@
+[
+    {
+        "Id": "2dd01e9411c8c012d689d9fd6c0c753133009c25d9e224e5cc1ddc22b48bf141",
+        "Created": "2026-09-13T17:24:38.33113371Z",
+        "Path": "/probe",
+        "Args": [
+            "-test.run",
+            "^TestReleaseLoad$",
+            "-test.v",
+            "-test.timeout",
+            "15m"
+        ],
+        "State": {
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-09-13T17:24:38.38857721Z",
+            "FinishedAt": "2026-09-13T17:25:11.819128003Z",
+            "Health": {
+                "Status": "unhealthy",
+                "FailingStreak": 3,
+                "Log": [
+                    {
+                        "Start": "2026-09-13T17:24:43.44586767Z",
+                        "End": "2026-09-13T17:24:43.470852795Z",
+                        "ExitCode": 1,
+                        "Output": "{\"time\":\"2026-09-13T17:24:43.46986117Z\",\"level\":\"ERROR\",\"msg\":\"Service stopped with an error\",\"error\":\"open configuration: open /etc/market-data/config.yaml: no such file or directory\"}\n"
+                    },
+                    {
+                        "Start": "2026-09-13T17:24:53.47244505Z",
+                        "End": "2026-09-13T17:24:53.495790884Z",
+                        "ExitCode": 1,
+                        "Output": "{\"time\":\"2026-09-13T17:24:53.494467509Z\",\"level\":\"ERROR\",\"msg\":\"Service stopped with an error\",\"error\":\"open configuration: open /etc/market-data/config.yaml: no such file or directory\"}\n"
+                    },
+                    {
+                        "Start": "2026-09-13T17:25:03.496813555Z",
+                        "End": "2026-09-13T17:25:03.517986722Z",
+                        "ExitCode": 1,
+                        "Output": "{\"time\":\"2026-09-13T17:25:03.516587722Z\",\"level\":\"ERROR\",\"msg\":\"Service stopped with an error\",\"error\":\"open configuration: open /etc/market-data/config.yaml: no such file or directory\"}\n"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:e014b0a9bbc5d5345f2ba5445edad03e59061eacca9d56ed6d7b4f862bf43398",
+        "ResolvConfPath": "/var/lib/docker/containers/2dd01e9411c8c012d689d9fd6c0c753133009c25d9e224e5cc1ddc22b48bf141/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/2dd01e9411c8c012d689d9fd6c0c753133009c25d9e224e5cc1ddc22b48bf141/hostname",
+        "HostsPath": "/var/lib/docker/containers/2dd01e9411c8c012d689d9fd6c0c753133009c25d9e224e5cc1ddc22b48bf141/hosts",
+        "LogPath": "/var/lib/docker/containers/2dd01e9411c8c012d689d9fd6c0c753133009c25d9e224e5cc1ddc22b48bf141/2dd01e9411c8c012d689d9fd6c0c753133009c25d9e224e5cc1ddc22b48bf141-json.log",
+        "Name": "/market-data-phase04-capacity-final",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/Users/nkornushkov/Projects/market-data/bin/phase04-load:/probe:ro"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "none",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": true,
+            "SecurityOpt": [
+                "no-new-privileges"
+            ],
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 1000000000,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 1000000000,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/Users/nkornushkov/Projects/market-data/bin/phase04-load",
+                "Destination": "/probe",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "2dd01e9411c8",
+            "Domainname": "",
+            "User": "65532:65532",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "8080/tcp": {},
+                "9090/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "GOMEMLIMIT=700MiB",
+                "MDS_RELEASE_LOAD=main",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Cmd": [
+                "-test.run",
+                "^TestReleaseLoad$",
+                "-test.v",
+                "-test.timeout",
+                "15m"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD",
+                    "/market-data-service",
+                    "-config",
+                    "/etc/market-data/config.yaml",
+                    "-healthcheck"
+                ],
+                "Interval": 10000000000,
+                "Timeout": 3000000000,
+                "StartPeriod": 5000000000,
+                "Retries": 3
+            },
+            "Image": "market-data-service:v1",
+            "Volumes": null,
+            "WorkingDir": "/",
+            "Entrypoint": [
+                "/probe"
+            ],
+            "Labels": {
+                "com.docker.compose.project": "market-data",
+                "com.docker.compose.service": "market-data-service",
+                "com.docker.compose.version": "5.5.1"
+            },
+            "StopSignal": "SIGTERM"
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "none": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "796cc008ff2d6e449c2520d8f5a234e596d921380f0b2374e9fa44dc77aca932",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:02603270869a6403cd68ae050af46efb8ccb7dc3b984947ff1295fc310a263e0",
+            "size": 672,
+            "platform": {
+                "architecture": "arm64",
+                "os": "linux"
+            }
+        }
+    },
+    {
+        "Id": "eac5787c2dec10acb26673297a0d5ea78807e0443cabff40a04ed6c6bca1ac88",
+        "Created": "2026-09-13T17:22:27.814232886Z",
+        "Path": "python",
+        "Args": [
+            "/workspace/scripts/api/compare_transports.py",
+            "--baseline",
+            "/workspace/bin/phase04-linux-http",
+            "--grpc-binary",
+            "/workspace/bin/phase04-linux-grpc",
+            "--fixtures",
+            "/workspace/bin/phase04-fixtures",
+            "--output",
+            "/results"
+        ],
+        "State": {
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-09-13T17:22:27.897347177Z",
+            "FinishedAt": "2026-09-13T17:23:43.042233962Z"
+        },
+        "Image": "sha256:4ec52d079167b5028bfcf4802c8f411602e3466311d25a624264ed468d1b6cb9",
+        "ResolvConfPath": "/var/lib/docker/containers/eac5787c2dec10acb26673297a0d5ea78807e0443cabff40a04ed6c6bca1ac88/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/eac5787c2dec10acb26673297a0d5ea78807e0443cabff40a04ed6c6bca1ac88/hostname",
+        "HostsPath": "/var/lib/docker/containers/eac5787c2dec10acb26673297a0d5ea78807e0443cabff40a04ed6c6bca1ac88/hosts",
+        "LogPath": "/var/lib/docker/containers/eac5787c2dec10acb26673297a0d5ea78807e0443cabff40a04ed6c6bca1ac88/eac5787c2dec10acb26673297a0d5ea78807e0443cabff40a04ed6c6bca1ac88-json.log",
+        "Name": "/market-data-phase04-comparison",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/Users/nkornushkov/Projects/market-data:/workspace:ro",
+                "/Users/nkornushkov/Projects/market-data/docs/evidence/grpc-migration/phase-04/tcp-linux:/results:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "none",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": true,
+            "SecurityOpt": [
+                "no-new-privileges"
+            ],
+            "Tmpfs": {
+                "/tmp": "rw,nosuid,noexec,size=64m"
+            },
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 1000000000,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 1000000000,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/Users/nkornushkov/Projects/market-data",
+                "Destination": "/workspace",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/Users/nkornushkov/Projects/market-data/docs/evidence/grpc-migration/phase-04/tcp-linux",
+                "Destination": "/results",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "eac5787c2dec",
+            "Domainname": "",
+            "User": "501:20",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+                "PYTHON_VERSION=3.13.15",
+                "PYTHON_SHA256=1e66a7945a48390ee4c2a4268a0e4185884059a13c4aab6d148aa208deea4a76",
+                "PYTHONDONTWRITEBYTECODE=1",
+                "PYTHONNOUSERSITE=1",
+                "GOMEMLIMIT=700MiB"
+            ],
+            "Cmd": [
+                "python",
+                "/workspace/scripts/api/compare_transports.py",
+                "--baseline",
+                "/workspace/bin/phase04-linux-http",
+                "--grpc-binary",
+                "/workspace/bin/phase04-linux-grpc",
+                "--fixtures",
+                "/workspace/bin/phase04-fixtures",
+                "--output",
+                "/results"
+            ],
+            "Image": "market-data-comparison:phase04",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "Labels": {}
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "none": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "796cc008ff2d6e449c2520d8f5a234e596d921380f0b2374e9fa44dc77aca932",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:4e04dd980f6fb891507e26c3feba21ad2f72b9f5679869fe61cb487cab246e86",
+            "size": 1437,
+            "platform": {
+                "architecture": "arm64",
+                "os": "linux"
+            }
+        }
+    }
+]

@@ -1,6 +1,6 @@
 # Market Data Service — Technical Specification v1
 
-> **Status:** the current HTTP implementation was verified for the agreed workload, September 13, 2026. See the [release audit](release-verification-v1.md) for historical acceptance evidence and operating limits. The first release now requires the [gRPC and Protobuf migration](grpc-migration-specification.md), which replaces all market-data HTTP routes and keeps a separate operational HTTP listener. The gRPC transport and phase 3 operational cutover are complete after independent review; phase 4 acceptance remains pending. The migration replacement rules take precedence over the historical transport requirements below.
+> **Status:** gRPC serves all market data, with a separate operational HTTP listener. Migration phases 1–3 are independently reviewed. Phase 4 is complete after independent review and correction of one finding. The full migration is complete. The [gRPC verification](grpc-migration-verification.md) records current traffic, installed clients and bounded Linux capacity. The [HTTP audit](release-verification-v1.md) remains historical evidence.
 >
 > This document keeps the content of the original 60 sections. Timeframe, MarketStats, and Market statistics API now have separate sections, with 65 sections in total. It includes Go 1.27.1 and request admission requirements, with matching changes in related sections.
 >
@@ -221,7 +221,7 @@ Exchange-specific structs must not appear in the public API.
 
 `MinQty`, `MaxQty`, and `MinNotional` are nullable. A missing limit must not become zero. Bybit spot does not provide a current separate minimum quantity, so `MinQty = nil`. Do not calculate a fixed `MinQty` from `MinNotional`: the result depends on the order price.
 
-The HTTP API writes decimal fields as strings. Optional fields are strings or explicit `null`, without `omitempty`. `PriceTick` and `QtyStep` are required for a supported instrument. Do not replace an empty, invalid, zero, or negative step with a default. The adapter returns a normalization error and does not publish a partial snapshot.
+The gRPC API writes decimal fields as strings. Optional fields have explicit Protobuf presence, separate from zero. `PriceTick` and `QtyStep` are required for a supported instrument. Do not replace an empty, invalid, zero, or negative step with a default. The adapter returns a normalization error and does not publish a partial snapshot.
 
 These fields provide reference limits for a normal limit order. They do not cover all exchange filters or guarantee that the exchange will accept an order. Dynamic price limits, account restrictions, and other checks are outside the v1 model.
 
@@ -351,7 +351,7 @@ Do not map `END_OF_DAY` or `BREAK` to a final instrument closure. Source: [Binan
 
 Define the mapping explicitly for each exchange and market. Do not guess the status from part of a string, the delisting time, or an available ticker. An unknown status must not become `trading`. Store the record as `unknown` and write the original value to a structured log for checks. Do not add an exchange-specific field to the public model.
 
-The HTTP Instruments API `status` filter accepts only our enum values. An unknown filter value returns `400 invalid_status`.
+The Instruments RPC `status` filter accepts only our enum values. An unknown filter value returns `INVALID_ARGUMENT / invalid_status`.
 
 The mapping table does not guarantee a full upstream catalog for all statuses. For refresh, explicitly define the upstream status filters and fetch all their pages. Bybit returns a limited set of statuses by default. If a symbol is absent from a successfully loaded full snapshot of the selected set, remove it from the current repository as described in section 20. Do not create a made-up record with status `closed`. A failed page must not cause replacement with a partial snapshot.
 
@@ -359,12 +359,12 @@ The mapping table does not guarantee a full upstream catalog for all statuses. F
 
 Checked against the official documentation on September 11, 2026. The derivatives below are Bybit linear and Binance USDⓈ-M. Do not assume these fields are supported on other markets.
 
-| Domain field | HTTP API field | Meaning |
+| Domain field | Protobuf field | Meaning |
 | --- | --- | --- |
-| `FundingInterval *time.Duration` | `funding_interval`: integer seconds or `null` | The current known interval between regular funding settlements. It is not the next funding time or a history of interval changes. |
-| `DelistingTime *time.Time` | `delisting_time`: RFC 3339 UTC string or `null` | The known scheduled delisting time of this instrument on this market. |
+| `FundingInterval *time.Duration` | optional `funding_interval_seconds`: integer seconds | The current known interval between regular funding settlements. It is not the next funding time or a history of interval changes. |
+| `DelistingTime *time.Time` | optional `delisting_time`: Protobuf Timestamp | The known scheduled delisting time of this instrument on this market. |
 
-Both fields are present in HTTP JSON, including `null`. Do not use `omitempty`. The transport DTO explicitly converts `time.Duration` to integer seconds, not nanoseconds. The adapter checks that the funding interval is positive.
+Both fields have explicit Protobuf presence. The transport converts `time.Duration` to integer seconds, not nanoseconds. The adapter checks that the funding interval is positive.
 
 `null` means that no applicable value was provided. Funding interval does not apply to spot and is `null`. `delisting_time: null` does not guarantee that there is no future delisting. We may have no confirmed time.
 
@@ -372,7 +372,7 @@ Both fields are present in HTTP JSON, including `null`. Do not use `omitempty`. 
 
 The public linear endpoint `GET /v5/market/instruments-info` provides:
 
-- `fundingInterval` in minutes: convert it to a domain duration. The HTTP API returns seconds, for example `480` minutes → `28800` seconds;
+- `fundingInterval` in minutes: convert it to a domain duration. The gRPC API returns integer seconds, for example `480` minutes → `28800` seconds;
 - `deliveryTime` in milliseconds: the documentation explicitly defines it as the delisting time for perpetual contracts. Convert `"0"` to `null`.
 
 For expiry futures, `deliveryTime` is the expiry or delivery date. Do not automatically put it in `delisting_time`. The adapter must check `contractType`; `market=linear` alone is not enough. Funding interval applies only to perpetual contracts.
@@ -381,7 +381,7 @@ Source: [Bybit Instruments Info](https://bybit-exchange.github.io/docs/v5/market
 
 #### Binance USDⓈ-M
 
-`GET /fapi/v1/fundingInfo` provides `fundingIntervalHours` for symbols with changed funding settings. Convert hours to a domain duration, then to seconds in the HTTP API. This response is not a full instrument catalog. Join it with `exchangeInfo` by symbol.
+`GET /fapi/v1/fundingInfo` provides `fundingIntervalHours` for symbols with changed funding settings. Convert hours to a domain duration, then to integer seconds in the gRPC API. This response is not a full instrument catalog. Join it with `exchangeInfo` by symbol.
 
 Phase 01 decision: use a valid explicit interval from the successful full `fundingInfo` response. A perpetual symbol absent from that response gets `null`; do not infer an eight-hour interval from the general FAQ. The FAQ base interval is not a current per-symbol guarantee, especially for inactive instruments. A failed or malformed response fails the refresh and preserves the previous snapshot instead of publishing new nulls or defaults. Unknown contract types and expiry futures have no inferred fallback. The interval can change and is refreshed with instruments. Captured explicit values and synthetic failure cases are in the [phase 01 evidence](evidence/phase-01/README.md).
 
@@ -393,7 +393,7 @@ Source: [Binance Exchange Information](https://developers.binance.com/en/docs/ca
 
 #### Refresh and verification
 
-Extra requests run during background instrument refresh and use the `instruments` budget, including pages and retries. The HTTP Instruments API still reads only the repository. If a required refresh source fails, keep the previous snapshot and its `UpdatedAt`. Do not silently clear known values or use a default. An unsupported field is different from a failed request to a supported source.
+Extra requests run during background instrument refresh and use the `instruments` budget, including pages and retries. The Instruments RPC still reads only the repository. If a required refresh source fails, keep the previous snapshot and its `UpdatedAt`. Do not silently clear known values or use a default. An unsupported field is different from a failed request to a supported source.
 
 For identity, filters, and statuses, add table-driven unit tests without network access and adapter integration tests with `httptest.Server`:
 
@@ -404,11 +404,11 @@ For identity, filters, and statuses, add table-driven unit tests without network
 - Binance precision metadata does not change steps;
 - Binance spot: no minimum-notional filter, one filter, and both filters; with both, use the larger lower limit;
 - exact decimal string conversion, missing optional limits, invalid strings, negative values, zero steps, and conflicting limits;
-- JSON decimal strings and explicit `null`; one `UpdatedAt` for a successful snapshot;
+- Protobuf decimal strings and optional presence; one `UpdatedAt` for a successful snapshot;
 - a page or parsing error keeps the previous snapshot and its `UpdatedAt`;
-- an unknown HTTP status filter returns `400 invalid_status`.
+- an unknown RPC status filter returns `INVALID_ARGUMENT / invalid_status`.
 
-Unit and integration tests must cover minutes and hours converted to seconds, `null` for fields that do not apply, `deliveryTime="0"`, perpetual versus expiry futures, and explicit `null` in JSON. Check that a fundingInfo error does not trigger the default. Cover a symbol missing from a successful fundingInfo response (null), a successful empty response, and the special perpetual placeholder date (delisting_time remains null).
+Unit and integration tests must cover minutes and hours converted to seconds, `null` for fields that do not apply, `deliveryTime="0"`, perpetual versus expiry futures, and explicit optional presence on the wire. Check that a fundingInfo error does not trigger the default. Cover a symbol missing from a successful fundingInfo response (null), a successful empty response, and the special perpetual placeholder date (delisting_time remains null).
 
 ---
 
@@ -442,7 +442,7 @@ The tables below define adapter normalization rules. They do not automatically a
 
 ### Field semantics
 
-| Domain field | HTTP JSON field | Meaning |
+| Domain field | Protobuf field | Meaning |
 | --- | --- | --- |
 | `Exchange` | `exchange` | Exchange, set as an adapter constant. |
 | `Market` | `market` | Market, based on the upstream API category or family. |
@@ -454,7 +454,7 @@ The tables below define adapter normalization rules. They do not automatically a
 | `AskSize` | `ask_size` | Quantity at the best sell price, in `BaseAsset` units. |
 | `FundingRate` | `funding_rate` | Latest regular funding rate published by the exchange for the relevant interval, as a signed fraction of one. |
 | `NextFundingAt` | Not published directly | Internal timestamp of the next funding event from upstream. Used to calculate the countdown on read. |
-| `NextFundingIn` (read model, `*time.Duration`) | `next_funding_in`: integer seconds or `null` | Time left until the known next funding event when the response is built. |
+| `NextFundingIn` (read model, `*time.Duration`) | optional `next_funding_in_seconds`: integer seconds | Time left until the known next funding event when the response is built. |
 | `FetchedAt` | `fetched_at` | Local UTC receipt time of the last successful response needed to build the current ticker. |
 
 Prices are in `QuoteAsset` per unit of `BaseAsset`. Take asset identifiers and multiplier prefixes from Instrument without recalculating them. This unit rule covers only the supported spot and linear markets.
@@ -505,17 +505,17 @@ Bybit returns funding fields in the ticker response we already use. Binance need
 
 Upstream `nextFundingTime` is an absolute Unix timestamp in milliseconds: a string from Bybit and an integer from Binance. The adapter converts it to UTC `NextFundingAt`. Empty, missing, or zero → `nil`. Negative, invalid, or overflowing values → normalization error. For spot and known expiry futures, both funding fields are `nil`, even if upstream uses numeric placeholders. For linear contracts of unknown type, a positive `nextFundingTime` is evidence of a provided funding schedule. If neither metadata nor a funding schedule confirms that funding applies, keep the fields `nil`.
 
-On a ticker read, the application builds a read model with `NextFundingIn *time.Duration`. The transport DTO writes it as `next_funding_in`: integer remaining seconds, without `omitempty`. Do not use `next_funding_time` for a duration. Keep timestamps and countdowns distinct.
+On a ticker read, the application builds a read model with `NextFundingIn *time.Duration`. The transport writes it as optional `next_funding_in_seconds`: integer remaining seconds. Do not use `next_funding_time` for a duration. Keep timestamps and countdowns distinct.
 
 Calculation rules:
 
 1. Read `now` from replaceable clocks once for the whole response, including the list endpoint.
 2. If `NextFundingAt == nil`, return `NextFundingIn = nil`.
 3. If `NextFundingAt <= now`, return `nil`: the known time has arrived and there is no new schedule yet. Do not move it to the next interval automatically.
-4. Otherwise, calculate `NextFundingAt.Sub(now)` as `time.Duration`. For JSON, drop the fractional second with integer division by `time.Second`. `0` is possible only for a known event less than a second away.
-5. Do not store the calculated countdown in the repository. Do not change the snapshot or `FetchedAt` on read. A new HTTP request to the cache recalculates the countdown without an exchange request.
+4. Otherwise, calculate `NextFundingAt.Sub(now)` as `time.Duration`. For the wire value, drop the fractional second with integer division by `time.Second`. `0` is possible only for a known event less than a second away.
+5. Do not store the calculated countdown in the repository. Do not change the snapshot or `FetchedAt` on read. A new RPC to the cache recalculates the countdown without an exchange request.
 
-Example: stored `NextFundingAt = 16:00:00 UTC` gives `next_funding_in = 90` at `15:58:30`, then `30` at `15:59:30`, then `null` at `16:00:00` if no new ticker has arrived. This countdown assumes correctly synchronized system clocks. It is an estimate based on the known schedule, not a guarantee of the actual settlement time.
+Example: stored `NextFundingAt = 16:00:00 UTC` gives `next_funding_in_seconds = 90` at `15:58:30`, then `30` at `15:59:30`, then an absent value at `16:00:00` if no new ticker has arrived. This countdown assumes correctly synchronized system clocks. It is an estimate based on the known schedule, not a guarantee of the actual settlement time.
 
 We can read `Instrument.FundingInterval` from an already loaded repository for the same `exchange + market + symbol`, including Bybit. This lookup must not start an upstream fetch or block ticker until instruments are loaded. The interval defines frequency, but not the schedule anchor. It alone cannot define `NextFundingAt`, round the current time to 4/8 hours, or replace missing `nextFundingTime`. The source of the next event is the Bybit ticker response or Binance premiumIndex. A missing instrument cache does not prevent use of an explicit funding schedule from these responses.
 
@@ -557,7 +557,7 @@ Required `LastPrice` must not get a zero default for a missing value, an empty s
 
 Do not validate the assembled ticker as an order book from one point in time.
 
-In HTTP JSON, all decimal fields are strings. Optional fields use explicit `null`, without `omitempty`. `fetched_at` is an RFC 3339 UTC string. Do not serialize internal `NextFundingAt`. Return `next_funding_in` as integer seconds or `null` instead.
+In Protobuf, all decimal fields are strings and optional fields have explicit presence. `fetched_at` is a Timestamp. Do not serialize internal `NextFundingAt`. Return optional `next_funding_in_seconds` as integer seconds instead.
 
 ### Ticker verification
 
@@ -570,21 +570,21 @@ Table-driven unit tests and adapter integration tests with `httptest.Server`, wi
 - failure of the second/third request or a batch keeps the previous snapshot and timestamps;
 - every HTTP request and retry uses the `tickers` budget;
 - required empty/invalid numeric fields do not become zero;
-- ticker JSON keeps decimal strings and explicit `null` and has no statistics fields;
+- ticker messages keep decimal strings and optional presence and have no statistics fields;
 - funding rate: positive/negative values, explicit zero, empty value, and parsing error;
 - spot and expiry futures do not get funding from placeholders; unknown type without a confirmed schedule → `nil`;
 - nextFundingTime: string/integer milliseconds, zero, missing, negative value, and overflow;
 - countdown decreases on repeated reads of one snapshot; less than a second → `0`, time reached → `null`;
 - the list endpoint uses one `now`; clock tests are deterministic;
 - present/missing instrument cache does not cause an upstream fetch; FundingInterval alone does not create a schedule;
-- internal NextFundingAt is not in JSON; NextFundingIn is written in seconds;
+- internal NextFundingAt is not on the wire; NextFundingIn is written in seconds;
 - a cache read does not change FetchedAt or make upstream requests.
 
 ---
 
 ## 7. Market statistics
 
-`MarketStats` is a separate domain model for market statistics over a time window. Section 37 describes its HTTP API, which reads a separate repository. The shared Bybit upstream fetch does not merge the models or their API contracts.
+`MarketStats` is a separate domain model for market statistics over a time window. Section 37 describes its gRPC API, which reads a separate repository. The shared Bybit upstream fetch does not merge the models or their API contracts.
 
 ### Domain model
 
@@ -608,9 +608,9 @@ type MarketStats struct {
 }
 ```
 
-`Window` is the duration of a rolling statistics window, not the collector refresh interval. In v1, the only supported value is `24 * time.Hour` for every exchange. The HTTP API accepts `window=24h`. Model and field names have no `24h` suffix, so we can add `2h`, `3h`, or `6h` later without changing the response structure.
+`Window` is the duration of a rolling statistics window, not the collector refresh interval. In v1, the only supported value is `24 * time.Hour` for every exchange. The gRPC API accepts window `24h`. Model and field names have no `24h` suffix, so we can add `2h`, `3h`, or `6h` later without changing the response structure.
 
-Other windows in v1 return `400 unsupported_window` before cache reads or any upstream action. Do not label 24h statistics as another window, scale volume by a ratio, or treat a 24h window as a calendar day. A future window needs explicit provider support or a separate calculation with defined boundaries, rules for incomplete data, and tests. v1 does not build new windows from klines.
+Other windows in v1 return `INVALID_ARGUMENT / unsupported_window` before cache reads or any upstream action. Do not label 24h statistics as another window, scale volume by a ratio, or treat a 24h window as a calendar day. A future window needs explicit provider support or a separate calculation with defined boundaries, rules for incomplete data, and tests. v1 does not build new windows from klines.
 
 `FetchedAt` is the local receipt time of the source response for these statistics. Do not copy it from a newer ticker or update it on a cache read. Each model has its own freshness. The exchange defines the actual rolling window boundaries and calculation. `Window=24h` does not promise matching boundaries across exchanges or a full 24h history for a new instrument.
 
@@ -618,7 +618,7 @@ Other windows in v1 return `400 unsupported_window` before cache reads or any up
 
 Bybit uses the same `result.list[]` record received by the ticker collector. Binance uses a separate 24hr response. The table applies to spot/linear.
 
-| Domain field | HTTP JSON field | Bybit | Binance spot / USDⓈ-M |
+| Domain field | Protobuf field | Bybit | Binance spot / USDⓈ-M |
 | --- | --- | --- | --- |
 | `Exchange` | `exchange` | `bybit` | `binance` |
 | `Market` | `market` | `result.category` | From the API family |
@@ -634,7 +634,7 @@ Bybit uses the same `result.list[]` record received by the ticker collector. Bin
 
 High/Low are prices in QuoteAsset per unit of BaseAsset. Volume is a BaseAsset quantity. Turnover is in QuoteAsset. PriceChange is a signed price difference, not a percentage. Do not calculate Turnover by multiplying Volume by the current LastPrice.
 
-Required High/Low/Volume/Turnover values are parsed exactly. Do not replace missing, empty, or invalid values with zero; keep an explicitly provided nonnegative zero. An error in a required field cancels only that stats snapshot. PriceChange and TradeCount are nullable. In JSON, decimals are strings, TradeCount is an integer, and optional values use explicit null. Write Window as the canonical string `24h` and FetchedAt as RFC 3339 UTC.
+Required High/Low/Volume/Turnover values are parsed exactly. Do not replace missing, empty, or invalid values with zero; keep an explicitly provided nonnegative zero. An error in a required field cancels only that stats snapshot. PriceChange and TradeCount are nullable. On the wire, decimals are strings, TradeCount is int64, and optional values have presence. Write Window as the canonical string `24h` and FetchedAt as Timestamp.
 
 ### Price change
 
@@ -674,9 +674,9 @@ Sources: [Bybit Tickers](https://bybit-exchange.github.io/docs/v5/market/tickers
 - One Bybit upstream request updates two models; an error in one projection does not cancel the other.
 - Binance ticker does not call 24hr; stats does not call price/book/funding; refresh rates are independent.
 - Different windows use separate repository keys; unsupported 2h/3h/6h return unsupported_window without upstream calls.
-- Before the first successful snapshot, the API returns 503 data_not_ready; a cache hit makes no requests.
+- Before the first successful snapshot, the API returns `UNAVAILABLE / data_not_ready`; a cache hit makes no requests.
 - A failed refresh keeps the previous data and FetchedAt; a stats failure does not make ticker older.
-- Each HTTP response contains only its own data type; responses use one window format.
+- Each data RPC response contains only its own data type; responses use one window format.
 - Stats requests and retries follow their separate budget and bounds; shutdown cancels active and waiting stats workers.
 
 ---
@@ -725,7 +725,7 @@ Each request is for one symbol and interval. Pagination and retries use the comm
 
 Below, `row[n]` is a zero-based index inside one candle. Bybit returns rows in `result.list[]`; Binance returns a root response array. Identifiers taken from the request come from the validated context of that provider call.
 
-| Domain field | HTTP JSON field | Bybit spot / linear | Binance spot / USDⓈ-M linear |
+| Domain field | Protobuf field | Bybit spot / linear | Binance spot / USDⓈ-M linear |
 | --- | --- | --- | --- |
 | `Exchange` | `exchange` | Adapter constant: bybit | Adapter constant: binance |
 | `Market` | `market` | result.category; check that it matches the request | From the API family: spot / linear |
@@ -748,7 +748,7 @@ Section 9 defines Timeframe, its operations, and exchange mapping.
 
 ### Time boundaries and freshness
 
-Domain and HTTP use the half-open candle range `[OpenTime, CloseTime)`. CloseTime is the end of the time slot. It is not the last trade time or proof that the data is final.
+Domain and gRPC use the half-open candle range `[OpenTime, CloseTime)`. CloseTime is the end of the time slot. It is not the last trade time or proof that the data is final.
 
 Conversion rules:
 
@@ -778,7 +778,7 @@ A symbol/category mismatch, incomplete row, or error in a used field fails norma
 
 Bybit returns rows from newest to oldest. The adapter returns them in ascending OpenTime order, regardless of upstream order. Reject duplicate OpenTime values within a page. Handle overlapping pages with upsert by exchange/market/symbol/interval/OpenTime. An older result must not overwrite a newer open candle. An empty successful response is not a zero candle. Do not create missing slots or mark them as loaded data.
 
-In HTTP JSON, all decimal fields are strings. trades_count is an integer or explicit null, without omitempty. Interval is a canonical string from the section 9 table. All three times use RFC 3339 UTC with the required precision. Serialization must keep the exclusive meaning of CloseTime.
+In Protobuf, all decimal fields are strings. trades_count is optional int64. Interval is a canonical string from the section 9 table and appears once in the response series identity. All three times use Timestamp with nanosecond precision. Serialization must keep the exclusive meaning of CloseTime.
 
 ### Sources and verification
 
@@ -795,7 +795,7 @@ Table-driven unit tests and adapter integration tests with httptest.Server, with
 - One candle and gaps do not break CloseTime calculation; row order is normalized; duplicates and wrong symbol/category are rejected.
 - Open candle refresh and fetch after close; a response to a request started before the boundary does not become final just because it arrives later.
 - Pagination keeps the series context, is bounded, and uses budgets; a page error does not return an incomplete range as complete.
-- Cache reads keep FetchedAt; a failed refresh keeps previous values; JSON follows decimal string, explicit null, and time boundary rules.
+- Cache reads keep FetchedAt; a failed refresh keeps previous values; Protobuf follows decimal string, optional presence, and time boundary rules.
 
 
 ---
@@ -847,11 +847,11 @@ The table defines the canonical set and market support. Sources are the official
 
 Domain stores canonical values and calendar arithmetic. It does not import exchange SDKs or contain Bybit parameters such as D/W/M. Adapters own exchange string conversions and support tables. Provider.SupportedTimeframes(market) gives the application a list of supported domain values. The list and conversions must use one adapter mapping table so they stay consistent.
 
-The application checks support for the selected exchange/market before cache lookup and upstream fetch. Support is market-specific: for example, Binance spot accepts 1s, while Binance linear does not. An unsupported value returns HTTP 400 invalid_interval. Do not silently replace the interval or build candles from another interval.
+The application checks support for the selected exchange/market before cache lookup and upstream fetch. Support is market-specific: for example, Binance spot accepts 1s, while Binance linear does not. An unsupported value returns `INVALID_ARGUMENT / invalid_interval`. Do not silently replace the interval or build candles from another interval.
 
 ### Use in planning and storage
 
-Parse and validate interval at the application entry point. Adapters also reject unsupported values on direct calls. HTTP has no separate copy of the upstream mapping. Keep the model field `Kline.Interval Timeframe` and the HTTP query/JSON field `interval`. Renaming the type does not rename these fields. Use the canonical string in the cache key and response.
+Parse and validate interval at the application entry point. Adapters also reject unsupported values on direct calls. gRPC has no separate copy of the upstream mapping. Keep the model field `Kline.Interval Timeframe` and the Protobuf field `interval`. Renaming the type does not rename these fields. Use the canonical string in the cache key and response.
 
 The planner uses shared Timeframe rules to calculate candle slot boundaries. Do not count monthly slots by dividing time.Duration. Request bounds limit all slot creation and counting. Stop planning before an upstream fetch if there is no progress, a boundary error, or too many slots. The next slot starting does not make cached OHLC final; section 8 defines those rules.
 
@@ -873,7 +873,7 @@ Deterministic domain unit tests and table-driven adapter tests:
 Use Clean Architecture without adding unnecessary structure.
 
 ```text
-                    HTTP API
+                    gRPC API
                        │
                        ▼
                   Application
@@ -1045,7 +1045,7 @@ type ExchangeCapabilities struct {
 
 Bybit: MarketStatsWithTicker=true, HasMarketStats=true, and Window=24h in all stats records. The application saves each successful branch separately. Binance: both flags=false; GetTickers does not fetch statistics. The worker checks the capability, not the exchange name.
 
-The worker calls separate GetMarketStats only when MarketStatsWithTicker=false. A direct call to this method on Bybit returns unsupported_operation without network access. Ticker and MarketStats HTTP handlers read only repositories and do not call provider methods. In v1, MarketStatsWindows contains only 24h; validate window before any fetch. These capabilities are the same for each provider's supported markets in v1.
+The worker calls separate GetMarketStats only when MarketStatsWithTicker=false. A direct call to this method on Bybit returns unsupported_operation without network access. Ticker and MarketStats RPC handlers read only repositories and do not call provider methods. In v1, MarketStatsWindows contains only 24h; validate window before any fetch. These capabilities are the same for each provider's supported markets in v1.
 
 The application layer does not know:
 
@@ -1143,7 +1143,7 @@ Source code: [Binance Spot request methods](https://github.com/binance/binance-c
 3. The Bybit adapter checks both transport error and retCode. Treat retCode=10006 as a rate limit even with HTTP 200. Do not publish result from an error envelope as a successful snapshot.
 4. Bybit GetServerResponse uses json.Unmarshal into Result interface{}, so JSON numbers become float64. The test integer 9007199254740993 became 9007199254740992. This shows a decoder limit; it does not mean that the exchange sends prices in this format. Documented string prices stay exact. Do not convert float64 back to decimal or marshal/unmarshal result to recover the original number. For required integer metadata, check the type, that it is an integer, the safe range, and the field's allowed range. If a market value is a JSON number, use the original body and an exact decoder, or a custom HTTP path for that endpoint as described in section 3.
 5. SDK getters with zero defaults do not prove that a field exists. For Binance, check pointers/presence. For Bybit, check field presence and type in result. Schema errors must not become default prices, timestamps, or counts.
-6. Normalize the shared Bybit response into two models as described in section 7. The SDK does not handle independent snapshot publication. No SDK type leaves infrastructure adapters. Generated array containers serialize as an object with items, so marshaling an SDK response does not replace building our HTTP DTO.
+6. Normalize the shared Bybit response into two models as described in section 7. The SDK does not handle independent snapshot publication. No SDK type leaves infrastructure adapters. Generated array containers serialize as an object with items, so marshaling an SDK response does not replace mapping the normalized model to Protobuf.
 
 ### Request costs and rate-limit scopes
 
@@ -1381,15 +1381,15 @@ Context cancellation stops admission and backoff waits. No busy loop is allowed.
 
 A failed ticker refresh keeps the last successful Ticker snapshot. A new cycle must not bypass backoff or the wait time required by the exchange.
 
-Section 6 defines Ticker sources and assembly. The collector publishes data to TickerRepository. The HTTP Tickers API reads the repository and does not start a refresh.
+Section 6 defines Ticker sources and assembly. The collector publishes data to TickerRepository. The Tickers RPC reads the repository and does not start a refresh.
 
-For Bybit, also pass the received HTTP response for independent MarketStats normalization as described in section 22. This reuses the source; it does not merge models, repositories, or HTTP endpoints. The Binance ticker collector does not fetch MarketStats.
+For Bybit, also pass the received HTTP response for independent MarketStats normalization as described in section 22. This reuses the source; it does not merge models, repositories, or RPC methods. The Binance ticker collector does not fetch MarketStats.
 
 ---
 
 ## 22. Market statistics collector
 
-Refresh MarketStats using section 7 rules and publish it to MarketStatsRepository. A statistics normalization or publication error keeps the last successful stats snapshot and its FetchedAt. It does not cancel a successful Ticker update. The HTTP Market statistics API reads only the repository and does not start a refresh.
+Refresh MarketStats using section 7 rules and publish it to MarketStatsRepository. A statistics normalization or publication error keeps the last successful stats snapshot and its FetchedAt. It does not cancel a successful Ticker update. The Market statistics RPC reads only the repository and does not start a refresh.
 
 ### Binance
 
@@ -1409,7 +1409,7 @@ Count the shared HTTP request once in the tickers budget. There is no separate s
 
 ## 23. Ticker storage
 
-The HTTP API never calls an exchange to fetch a ticker.
+The gRPC API never calls an exchange to fetch a ticker.
 
 Flow:
 
@@ -1420,7 +1420,7 @@ continuous ticker collector
    ↓
 TickerRepository
    ↓
-HTTP API
+gRPC API
 ```
 
 Use snapshot semantics for current tickers:
@@ -1462,7 +1462,7 @@ Store only the latest state.
 
 ## 24. Market statistics storage
 
-Store MarketStats in MarketStatsRepository next to application/marketstats. The HTTP Market statistics API reads only this repository and does not start an upstream fetch.
+Store MarketStats in MarketStatsRepository next to application/marketstats. The Market statistics RPC reads only this repository and does not start an upstream fetch.
 
 Repository contract:
 
@@ -1817,7 +1817,7 @@ In v1, coordination covers the whole series. Even non-overlapping cache misses f
 5. Save successfully fetched data before notifying waiting callers that the fill is complete.
 6. Each caller reads the repository again and checks its own range for completeness. If gaps remain, repeat the coordination steps within its deadline and total request processing budget.
 
-When refreshing an open candle, track updates already completed for the current HTTP request, including a shared fill. After a successful refresh, do not immediately request another only because the candle is still open. This would create an infinite loop. If the close boundary passes during the wait and a final result is needed, apply section 8 rules. The next independent HTTP request checks refresh needs again.
+When refreshing an open candle, track updates already completed for the current RPC, including a shared fill. After a successful refresh, do not immediately request another only because the candle is still open. This would create an infinite loop. If the close boundary passes during the wait and a final result is needed, apply section 8 rules. The next independent RPC checks refresh needs again.
 
 ### Errors, cancellation, and wait limits
 
@@ -1825,7 +1825,7 @@ A fill error must not cause every waiting caller to start an immediate separate 
 
 If a successful exchange response adds no required data, do not repeat the same fill forever. No progress with an unchanged plan ends the request with an incomplete upstream data error. Do not create missing candles.
 
-Each caller can stop waiting through its own context/deadline. Canceling one HTTP request, including the caller that started the fill, must not cancel a shared fetch that others still await. The fill uses the service lifecycle context with its own bounded deadline, not the first client's context. If all callers leave, an already started bounded fill may finish and save its result. Do not start new fills without callers. Service shutdown cancels active fills and admission waits.
+Each caller can stop waiting through its own context/deadline. Canceling one RPC, including the caller that started the fill, must not cancel a shared fetch that others still await. The fill uses the service lifecycle context with its own bounded deadline, not the first client's context. If all callers leave, an already started bounded fill may finish and save its result. Do not start new fills without callers. Service shutdown cancels active fills and admission waits.
 
 Limit waiting callers, active fills, and total wait time before creating unbounded goroutines. Waiting for a fill does not occupy an active upstream HTTP request slot. On overload, use service_overloaded from section 33. These limits are needed in addition to duplicate prevention.
 
@@ -1833,7 +1833,7 @@ Limit waiting callers, active fills, and total wait time before creating unbound
 
 Use `golang.org/x/sync/singleflight` with the series key to combine concurrent calls. The library combines calls with one key and shares their completion result with waiting callers. It is not a cache and does not inspect candle ranges. Source: [Go singleflight documentation](https://pkg.go.dev/golang.org/x/sync/singleflight).
 
-The application service still handles repository rechecks, range completeness, deadlines, canceled waits, budgets, and errors. Apply singleflight to the fill, not to building one identical HTTP response for all callers. A completed fill must not leave a permanent entry in a separate coordination registry.
+The application service still handles repository rechecks, range completeness, deadlines, canceled waits, budgets, and errors. Apply singleflight to the fill, not to building one identical RPC response for all callers. A completed fill must not leave a permanent entry in a separate coordination registry.
 
 ### Behavior checks
 
@@ -1846,7 +1846,7 @@ Tests control event order and do not depend on random delays:
 - Different series load independently; at most one fill is active for one series.
 - A shared fetch error does not cause a burst of retries from waiting callers; a partial result is not returned as complete.
 - Canceling one caller does not cancel the fill for others; deadlines and shutdown stop the relevant waits and work.
-- An open candle does not cause endless refreshes within one HTTP request; no progress or exceeded bounds end processing.
+- An open candle does not cause endless refreshes within one RPC; no progress or exceeded bounds end processing.
 
 ---
 
@@ -1986,151 +1986,37 @@ Binance budget rejection is immediate for candle work that needs an exchange cal
 
 Concurrency and queue limits must leave room for each operation type. Ticker cannot take all resources needed by instruments, klines, and independent market_stats loading.
 
-When the queue is full, the API returns HTTP `503` with code `service_overloaded`.
+When the queue is full, the API returns `RESOURCE_EXHAUSTED` with reason `service_overloaded`.
 
-A request above `klines.max_history_candles` slots returns HTTP `400` with code `request_too_large`. The default is `1000`. This setting also limits how far back a request may start, as described in section 38. Check size and lookback before cache access, building a fetch plan, or allocating memory for all candle slots. Count calendar slots, not the number of rows an exchange happens to return.
+A request above `klines.max_history_candles` slots returns `INVALID_ARGUMENT` with reason `request_too_large`. The default is `1000`. This setting also limits how far back a request may start, as described in section 38. Check size and lookback before cache access, building a fetch plan, or allocating memory for all candle slots. Count calendar slots, not the number of rows an exchange happens to return.
 
 When the deadline or attempt budget is reached, the operation ends with an error. Do not return an incomplete result as complete. Successfully fetched candles may stay in cache.
 
-The total kline caller timeout is configured by `klines.request_timeout`, with a confirmed default of `30s`. Start the deadline when the HTTP handler begins processing. It includes validation, cache reads, queue and shared-fill waits, awaited upstream work, retries, and the final completeness check. Return immediately when the data is ready. Pages, retries, and coordination loops do not reset the deadline. Earlier caller deadlines and cancellation take precedence. Preserve the independent shared-fill lifetime from section 31: a caller timeout must not cancel work still awaited by others. An expired service deadline returns HTTP `504` with code `request_timeout` if the connection is still writable, without a successful partial result. This setting is separate from the timeout for one upstream HTTP attempt.
+The total kline caller timeout is configured by `klines.request_timeout`, with a confirmed default of `30s`. Start the deadline at RPC admission. It includes validation, cache reads, queue and shared-fill waits, awaited upstream work, retries, and the final completeness check. Return immediately when the data is ready. Pages, retries, and coordination loops do not reset the deadline. Earlier caller deadlines and cancellation take precedence. Preserve the independent shared-fill lifetime from section 31: a caller timeout must not cancel work still awaited by others. An expired service deadline returns `DEADLINE_EXCEEDED` with reason `request_timeout` if the connection is still writable, without a successful partial result. This setting is separate from the timeout for one upstream HTTP attempt.
 
 The remaining numeric bounds and ownership scopes are fixed in the [implementation contract](implementation-contract-v1.md#resource-ownership-and-finite-bounds) and configuration example. These are configurable engineering defaults, not guarantees that all concurrent cold loads complete in 30 seconds.
 
 ---
 
-## 34. HTTP API
+## 34. gRPC API
 
-The [HTTP implementation contract](implementation-contract-v1.md#http-contract) defines envelopes, validation order, filters, readiness, timestamp/range behavior, and stable status/error mappings for sections 35–40. [Synthetic HTTP examples](examples/http-contract-v1.json) provide expected responses for future tests.
-
-Base:
-
-```text
-/api/v1
-```
-
----
+The [gRPC implementation contract](implementation-contract-v1.md#grpc-contract) and [schema](../api/proto/marketdata/v1/market_data.proto) define the active wire, presence, validation, and statuses. `marketdata.v1.MarketDataService` has four unary methods. Generated Go and Python packages are installed from this repository. All old market-data HTTP routes return 404; there is no compatibility listener, gateway, or reflection.
 
 ## 35. Instruments API
 
-```http
-GET /api/v1/instruments
-```
-
-Filters:
-
-```text
-exchange
-market
-symbol
-status
-```
-
-Example:
-
-```http
-GET /api/v1/instruments?exchange=bybit&market=linear
-```
-
-The API reads only the repository. Return `{"data":[...]}` sorted by exchange, market, symbol. Filters are optional. As with statistics, every selected scope must have a first successful snapshot; otherwise return `503 data_not_ready`. A ready empty snapshot or absent symbol returns `200` with `data: []`. Failed refreshes keep the prior snapshot and timestamps. The common query rules are in the HTTP implementation contract.
-
----
+`ListInstruments` accepts optional exchange, market, symbol and status filters. It reads only the repository and returns typed rows sorted by exchange, market, symbol. Every selected scope must be ready; otherwise return `UNAVAILABLE / data_not_ready`. A ready empty scope or missing symbol returns an empty list. Failed refreshes preserve data and timestamps.
 
 ## 36. Tickers API
 
-```http
-GET /api/v1/tickers
-```
-
-Filters:
-
-```text
-exchange
-market
-symbol
-```
-
-Example:
-
-```http
-GET /api/v1/tickers?exchange=bybit&market=linear&symbol=BTCUSDT
-```
-
-The API reads only the repository. Return `{"data":[...]}` sorted by exchange, market, symbol. Filters are optional. As with statistics, every selected scope must have a first successful snapshot; otherwise return `503 data_not_ready`. A ready empty snapshot or absent symbol returns `200` with `data: []`. Failed refreshes keep the prior snapshot and timestamps. The common query rules are in the HTTP implementation contract.
-
-The API never starts an exchange ticker fetch.
-
-The ticker response contains only ticker fields from section 6, without window statistics.
-
----
+`ListTickers` accepts optional exchange, market and symbol filters and follows the same readiness, sorting and preservation rules. It never starts an exchange fetch. The response contains ticker fields from section 6, without window statistics.
 
 ## 37. Market statistics API
 
-Section 7 describes the model, field meanings, and sources.
-
-```http
-GET /api/v1/market-stats?window=24h&exchange=bybit&market=linear&symbol=BTCUSDT
-```
-
-`exchange`, `market`, and `symbol` are optional filters. `window` is one value from an explicit list of supported windows. In v1, only the canonical string `24h` is supported. A missing parameter means `24h`. An empty, repeated, or different value returns HTTP `400`, code `unsupported_window`. v1 does not accept equivalent forms such as `1440m`.
-
-The response is a list in `data`. Filtering by symbol does not change the format:
-
-```json
-{
-  "data": [
-    {
-      "exchange": "bybit",
-      "market": "linear",
-      "symbol": "BTCUSDT",
-      "window": "24h",
-      "high": "106000",
-      "low": "101000",
-      "volume": "1234.56",
-      "turnover": "127500000.25",
-      "price_change": "2500",
-      "trade_count": null,
-      "fetched_at": "2026-09-11T10:00:00Z"
-    }
-  ]
-}
-```
-
-The API reads only MarketStatsRepository. The window parameter does not start a new calculation or exchange fetch.
-
-Read rules:
-
-- Enabled exchange/market pairs and filters define the selected scopes. Explicitly unknown or disabled exchange/market values return `400 invalid_filter`.
-- If any selected exchange/market/window scope has not received its first successful snapshot, return `503 data_not_ready`. Do not return a partial combined list as complete.
-- A successful empty snapshot or a symbol absent from ready snapshots returns `200` with `data: []`.
-- After a failed refresh, return the last successful snapshot with its previous fetched_at. A read does not update the time or start a fetch.
-- Use a stable result order: exchange, market, symbol, ascending.
-
-Future windows need support in the collector/provider, config, and API allowlist. The endpoint shape, model, and repository keys already include window. In v1, the endpoint is available for all enabled supported markets.
-
----
+`ListMarketStats` accepts optional exchange, market, symbol and window filters. Omitted window means `24h`; empty and other values return `INVALID_ARGUMENT / unsupported_window`. It reads only its own repository and follows the same selected-scope readiness, empty-list, sorting and failed-refresh rules. Filtering by symbol does not change the response type. Future windows require an explicit extension to collection, configuration and validation.
 
 ## 38. Klines API
 
-```http
-GET /api/v1/klines
-```
-
-Parameters:
-
-```text
-exchange
-market
-symbol
-interval
-from
-to
-```
-
-Example:
-
-```http
-GET /api/v1/klines?exchange=bybit&market=linear&symbol=BTCUSDT&interval=5m&from=...&to=...
-```
+`GetKlines` requires exchange, market, symbol, interval, from and to. From/to are Protobuf Timestamps. Use aligned half-open ranges and the [range contract](implementation-contract-v1.md#kline-range-contract).
 
 The Kline application service may start an exchange fetch only for missing/stale ranges.
 
@@ -2140,82 +2026,24 @@ Use the selected exchange/market calendar from section 9:
 
 1. Capture an injected UTC clock value. Let `C` be the latest slot boundary at or before now: the current slot starts at C and the latest closed slot ends at C.
 2. Calculate `cutoff` by moving N slots backwards from C using calendar operations. For `1M`, move by calendar months; never multiply by 30 days. Weekly and multi-day anchors require the evidence in D10. Missing upstream candles do not shift cutoff backwards.
-3. After validating query values, count requested slots with bounded arithmetic. More than N slots returns `400 request_too_large`. Otherwise, `from < cutoff` returns `400 range_out_of_retention`. Reject before reading candle storage, joining a fill, or calling the exchange. Do not trim the range or serve expired rows awaiting cleanup. `from == cutoff` passes the depth check.
-4. `[cutoff, C)` contains exactly N closed slots. The current open slot is not included in these N historical slots and cannot move cutoff backwards. Its API inclusion follows the HTTP implementation contract; any returned open slot also counts toward the N-slot request size limit.
+3. After validating query values, count requested slots with bounded arithmetic. More than N slots returns `INVALID_ARGUMENT / request_too_large`. Otherwise, `from < cutoff` returns `INVALID_ARGUMENT / range_out_of_retention`. Reject before reading candle storage, joining a fill, or calling the exchange. Do not trim the range or serve expired rows awaiting cleanup. `from == cutoff` passes the depth check.
+4. `[cutoff, C)` contains exactly N closed slots. The current open slot is not included in these N historical slots and cannot move cutoff backwards. Its API inclusion follows the gRPC implementation contract; any returned open slot also counts toward the N-slot request size limit.
 
-For example, at `2026-09-11T12:00:30Z`, the default minute-candle window is `[2026-09-10T19:20:00Z, 2026-09-11T12:00:00Z)`. All 1,000 closed slots fit. A request for a single older slot still fails the depth check, even though its size is below 1,000:
+For example, at `2026-09-11T12:00:30Z`, the default minute-candle window is `[2026-09-10T19:20:00Z, 2026-09-11T12:00:00Z)`. All 1,000 closed slots fit. Even one older slot returns `INVALID_ARGUMENT / range_out_of_retention`.
 
-```json
-{
-  "error": {
-    "code": "range_out_of_retention",
-    "message": "requested range starts before the history boundary"
-  }
-}
-```
-
-Use checked calendar arithmetic, including when the mathematical cutoff precedes the earliest valid API timestamp. Existing timestamp validation still applies; this does not permit negative upstream timestamps or guarantee data before listing. A nonempty requested range with missing historical or pre-listing slots returns incomplete_data as defined in the HTTP implementation contract; the empty-range case is separate.
+Use checked calendar arithmetic, including when the mathematical cutoff precedes the earliest valid API timestamp. Existing timestamp validation still applies; this does not permit negative upstream timestamps or guarantee data before listing. A nonempty requested range with missing historical or pre-listing slots returns incomplete_data as defined in the gRPC implementation contract; the empty-range case is separate.
 
 Recheck the window before another planning pass or the final repository read after waiting. A range that expires when a new candle closes returns the same depth error; it must not cause a repeated fetch/cleanup loop. A complete snapshot read while the range is valid may finish serialization even if the boundary advances afterwards.
 
 ---
 
-## 39. Decimal JSON representation
+## 39. Exact wire values
 
-All decimal market values must be returned as JSON strings so the API does not introduce another precision problem. This is required by the model contracts in sections 5–8.
-
-For example:
-
-```json
-{
-  "symbol": "BTCUSDT",
-  "last_price": "112345.12345678",
-  "bid_price": "112345.12"
-}
-```
-
-Instead of:
-
-```json
-{
-  "last_price": 112345.12345678
-}
-```
-
-This lets consumers explicitly choose their decimal representation.
-
----
+All decimal market values use exact Protobuf strings. Optional fields distinguish absence from zero. Counts use int64 without a float conversion; Timestamp preserves nanoseconds. Candle series identity is encoded once per response. Consumers choose their own decimal representation.
 
 ## 40. API errors
 
-The complete [status/code table](implementation-contract-v1.md#stable-errors) is authoritative. Unknown/disabled filters, empty/unready snapshots, range expiry, overload, incomplete data, and deadlines have explicit mappings. Exchange error payloads are not public messages.
-
-Unified errors:
-
-```json
-{
-  "error": {
-    "code": "invalid_interval",
-    "message": "unsupported interval"
-  }
-}
-```
-
-Exchange errors must not appear directly in the API contract.
-
-For example:
-
-```text
-Binance SDK error
-      ↓
-Binance adapter
-      ↓
-application/domain error
-      ↓
-HTTP error mapper
-```
-
----
+Application errors use gRPC statuses with the generated `ErrorDetail.reason`. The [status/reason table](grpc-migration-specification.md#errors) is authoritative. Unknown methods and native transport failures may have no detail. Public messages never expose exchange payloads or internal errors. A caller receives either the complete success result or an error.
 
 ## 41. Data retention
 
@@ -2241,7 +2069,7 @@ Current ticker and MarketStats snapshots store only the latest state per scope, 
 
 ## 42. Configuration
 
-Main config is YAML, with explicit MDS_ environment overrides. The [complete v1 configuration example](examples/config-v1.yaml) defines the phase 01 field/default inventory. The [implementation contract](implementation-contract-v1.md) explains units, scopes, capability handling, limits, restart behavior, and validation. Phase 02 implements and tests the loader; a YAML example is not an application implementation.
+Main config is YAML, with explicit MDS_ environment overrides. The [complete v1 configuration example](examples/config-v1.yaml) defines the active field/default inventory. The [implementation contract](implementation-contract-v1.md) explains units, scopes, capability handling, limits, restart behavior, and validation. The loader validates separate server.grpc and server.http settings; removed flat listener settings fail startup.
 
 The user-confirmed core defaults are:
 
@@ -2266,7 +2094,8 @@ Default statistics windows remain [24h]. Binance statistics refresh defaults to 
 Example:
 
 ```text
-MDS_SERVER_PORT=8081
+MDS_SERVER_HTTP_PORT=8081
+MDS_SERVER_GRPC_PORT=9091
 MDS_STORAGE_DRIVER=memory
 MDS_KLINES_REQUEST_TIMEOUT=30s
 MDS_KLINES_MAX_HISTORY_CANDLES=1000
@@ -2394,7 +2223,7 @@ Use Sentry mainly for:
 ```text
 errors
 panic recovery
-HTTP traces
+data RPC and operational HTTP traces
 exchange request traces
 slow operations
 storage errors
@@ -2571,7 +2400,7 @@ process alive
 `/ready`:
 
 ```text
-HTTP/API + storage initialized
+both server owners + storage initialized
 ```
 
 A temporary exchange failure does not make the whole service unready.
@@ -2582,7 +2411,7 @@ Exchange data freshness can be checked separately through statistics.
 
 ## 54. Startup
 
-Load defaults/YAML/environment, validate config, initialize optional observability and local statistics/storage, construct providers and admission. Then bind HTTP and start owned instrument/ticker/independent statistics/retention workers without waiting for exchange success.
+Load defaults/YAML/environment, validate config, initialize optional observability and local statistics/storage, construct providers and admission. Then bind gRPC and operational HTTP and start owned instrument/ticker/independent statistics/retention workers without waiting for exchange success.
 
 First data cycles are scheduled immediately, subject to cooldown and admission. They run independently per enabled exchange/market; instrument readiness does not block ticker. Bybit has no independent statistics worker. The three snapshot APIs return data_not_ready for uninitialized selected scopes, and klines requires a ready instrument catalog for symbol validation. An exchange outage does not turn local readiness into a global failure. See the [startup contract](implementation-contract-v1.md#startup-and-metadata).
 
@@ -2597,29 +2426,7 @@ SIGINT
 SIGTERM
 ```
 
-Sequence:
-
-```text
-cancel root context
-       ↓
-stop accepting new HTTP requests
-       ↓
-ticker workers stop
-       ↓
-market stats workers stop
-       ↓
-instrument workers stop
-       ↓
-cleanup worker stop
-       ↓
-wait active operations
-       ↓
-flush Sentry
-       ↓
-exit
-```
-
----
+Clear readiness and close RPC admission, then cancel root-owned work. Drain gRPC and operational HTTP concurrently within one `server.shutdown_timeout` budget (35s by default). Wait for fills and collectors. At the deadline force-stop pending sends and close HTTP. Sentry flush uses only the remaining budget. No unbounded GracefulStop is allowed.
 
 ## 56. Project structure
 
@@ -2826,7 +2633,7 @@ fake exchange response
 → exchange adapter
 → domain normalization
 → repository
-→ HTTP API
+→ generated gRPC client
 ```
 
 ### Tickers
@@ -2835,16 +2642,16 @@ fake exchange response
 fake exchange response
 → ticker collector
 → repository
-→ HTTP API
+→ generated gRPC client
 ```
 
 ### Market statistics
 
-Bybit: one fake upstream response → two independent normalizations → two repositories → separate HTTP responses. An error in either branch, including a repository write, does not cancel publication of the other.
+Bybit: one fake upstream response → two independent normalizations → two repositories → separate gRPC responses. An error in either branch, including a repository write, does not cancel publication of the other.
 
 Binance: separate price/book/funding and 24hr requests → independent collectors → separate snapshots. A 24hr error does not stop ticker; a ticker error does not stop statistics. All HTTP attempts count toward the correct budgets.
 
-Test the default window, unsupported_window without cache/upstream, data_not_ready before the first snapshot, a successful empty snapshot, filters, old fetched_at kept after an error, and no statistics fields in ticker JSON.
+Test the default window, unsupported_window without cache/upstream, data_not_ready before the first snapshot, a successful empty snapshot, filters, old fetched_at kept after an error, and no statistics fields in ticker messages.
 
 ### Kline cold cache
 
@@ -2929,7 +2736,7 @@ Storage:
 memory
 ```
 
-Config mounted read-only. Market data and limiter state are memory-only in v1; no persistent state mount or initialization command is required. Restart loses local counters and cooldowns without resetting exchange-side limits.
+Compose uses a non-root user, a read-only root filesystem, 1,000,000,000-byte memory and swap limits, and GOMEMLIMIT=700MiB. Both published ports bind only to 127.0.0.1. The healthcheck uses operational HTTP. Config is mounted read-only. Market data and limiter state are memory-only in v1; no persistent state mount or initialization command is required. Restart loses local counters and cooldowns without resetting exchange-side limits.
 
 Future:
 
@@ -2955,8 +2762,13 @@ make test
 make test-race
 
 make lint
+make check
+make vet
+make check-api
+make release-load
 
 make docker-build
+make docker-verify
 make docker-up
 make docker-down
 ```
@@ -2995,7 +2807,7 @@ market statistics aggregation from klines
 WebSocket market-data ingestion
 ```
 
-WebSocket ingestion may be a separate next stage after the REST service architecture is stable.
+WebSocket ingestion may be a separate next stage after the service architecture is stable.
 
 ---
 
@@ -3039,8 +2851,10 @@ v1 is ready when:
 34. Continuous ticker does not use up other operation types' budgets and resources.
 35. Overload and oversized requests return the documented errors.
 36. Budget values and their config schema are fixed based on section 14 results and deployment conditions.
-37. Window values are removed from Ticker and provided through a separate MarketStats model at `/api/v1/market-stats`.
+37. Window values are removed from Ticker and provided through a separate MarketStats model through `ListMarketStats`.
 38. v1 supports only window=24h; other windows are rejected before cache/upstream. Window is part of the storage key.
 39. Bybit fills both models with one request and independent publication; Binance refreshes statistics with a separate worker and budget.
 40. The MarketStats API reads only the repository, distinguishes unready and empty snapshots, and keeps fetched_at after a failed refresh.
 41. Tests cover all fields in both model mappings, independent updates, and the API contract as described in sections 6–7 and 57–60.
+
+Current acceptance also requires all four methods from installed Go/Python clients, independent operational HTTP under saturation, bounded native send ownership, and the complete Linux capacity profile. See the [gRPC verification](grpc-migration-verification.md); historical HTTP latency is not a network gRPC baseline.

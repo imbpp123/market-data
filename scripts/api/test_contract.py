@@ -7,6 +7,7 @@ import pathlib
 import shutil
 import sys
 import unittest
+import time
 
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -108,6 +109,8 @@ class ContractTest(unittest.TestCase):
     def test_known_unknown_and_absent_details(self):
         for symbol, expected_code, expected_reason in (
             ("error", grpc.StatusCode.INVALID_ARGUMENT, "invalid_filter"),
+            ("response-too-large", grpc.StatusCode.RESOURCE_EXHAUSTED, "response_too_large"),
+            ("request-canceled", grpc.StatusCode.CANCELLED, "request_canceled"),
             ("unknown-detail", grpc.StatusCode.UNAVAILABLE, None),
             ("native-error", grpc.StatusCode.UNAVAILABLE, None),
         ):
@@ -124,9 +127,17 @@ class ContractTest(unittest.TestCase):
 
     def test_deadline(self):
         grpc.channel_ready_future(self.channel).result(timeout=5)
+        started = time.monotonic()
         with self.assertRaises(grpc.RpcError) as failure:
             self.client.ListTickers(pb.ListTickersRequest(symbol="wait"), timeout=0.1)
-        self.assertEqual(grpc.StatusCode.DEADLINE_EXCEEDED, failure.exception.code())
+        elapsed = time.monotonic() - started
+        if failure.exception.code() == grpc.StatusCode.CANCELLED:
+            # grpc-go can reset the expired stream before C-core publishes its local deadline.
+            self.assertEqual("Received RST_STREAM with error code 8", failure.exception.details())
+            self.assertGreaterEqual(elapsed, 0.1)
+            self.assertIsNone(rpc_status.from_call(failure.exception))
+        else:
+            self.assertEqual(grpc.StatusCode.DEADLINE_EXCEEDED, failure.exception.code())
 
     def test_full_snapshots(self):
         for method, request, field in (

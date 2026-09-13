@@ -111,6 +111,9 @@ func serve() {
 	emit(map[string]string{"address": listener.Addr().String()})
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
+		if scanner.Text() == "gc" {
+			runtime.GC()
+		}
 		emit(measure(counts))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -206,6 +209,9 @@ func encode(path string, samples int) {
 }
 
 func main() {
+	grpcMode := flag.Bool("grpc", false, "Use actual gRPC transport")
+	fixtureName := flag.String("fixture", "", "Fixed response name")
+	protoFile := flag.String("proto-file", "", "Protobuf input for encoding-only measurement")
 	url := flag.String("url", "", "HTTP client URL")
 	path := flag.String("encode", "", "Handler-only measurement path")
 	workers := flag.Int("workers", 1, "Concurrent clients")
@@ -214,6 +220,16 @@ func main() {
 	flag.Parse()
 	if *workers < 1 || *workers > 4 || *samples < 1 {
 		log.Fatal("Invalid measurement bounds")
+	}
+	if *grpcMode {
+		if *protoFile != "" {
+			encodeGRPC(*fixtureName, *protoFile, *samples)
+		} else if *url != "" {
+			benchmarkGRPC(*url, *fixtureName, *workers, *samples, *expected)
+		} else {
+			serveGRPC()
+		}
+		return
 	}
 	if *url != "" {
 		benchmark(*url, *workers, *samples, *expected)

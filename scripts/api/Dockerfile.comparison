@@ -1,0 +1,6 @@
+# Local measurement runtime only. It is not the service image.
+FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285
+COPY market_data_api-0.1.0-py3-none-any.whl /tmp/market_data_api-0.1.0-py3-none-any.whl
+RUN python -m pip install --no-cache-dir /tmp/market_data_api-0.1.0-py3-none-any.whl
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 GOMEMLIMIT=700MiB
+USER 65532:65532

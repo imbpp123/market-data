@@ -1,0 +1,133 @@
+[
+    {
+        "Id": "sha256:e014b0a9bbc5d5345f2ba5445edad03e59061eacca9d56ed6d7b4f862bf43398",
+        "RepoTags": [
+            "market-data-service:v1"
+        ],
+        "RepoDigests": [
+            "market-data-service@sha256:e014b0a9bbc5d5345f2ba5445edad03e59061eacca9d56ed6d7b4f862bf43398"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-09-13T14:55:46.758757802Z",
+        "Config": {
+            "User": "65532:65532",
+            "ExposedPorts": {
+                "8080/tcp": {},
+                "9090/tcp": {}
+            },
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Entrypoint": [
+                "/market-data-service"
+            ],
+            "Cmd": [
+                "-config",
+                "/etc/market-data/config.yaml"
+            ],
+            "WorkingDir": "/",
+            "Labels": {
+                "com.docker.compose.project": "market-data",
+                "com.docker.compose.service": "market-data-service",
+                "com.docker.compose.version": "5.5.1"
+            },
+            "StopSignal": "SIGTERM",
+            "ArgsEscaped": true,
+            "Healthcheck": {
+                "Test": [
+                    "CMD",
+                    "/market-data-service",
+                    "-config",
+                    "/etc/market-data/config.yaml",
+                    "-healthcheck"
+                ],
+                "Interval": 10000000000,
+                "Timeout": 3000000000,
+                "StartPeriod": 5000000000,
+                "Retries": 3
+            }
+        },
+        "Architecture": "arm64",
+        "Os": "linux",
+        "Size": 6118603,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:a180243e442b8adafb52224475e6811421d92fdb1f1f5cf9525691c815112eaa",
+                "sha256:624da65132f52ef13ddf2a9295bd507aeaaf4b06c028d9e07a8476471d1e8e84"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-09-13T17:16:36.649738001Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:e014b0a9bbc5d5345f2ba5445edad03e59061eacca9d56ed6d7b4f862bf43398",
+            "size": 855
+        },
+        "Identity": {
+            "Build": [
+                {
+                    "Ref": "le9anry8a960qzv0sbix4xgq0",
+                    "CreatedAt": "2026-09-13T17:16:36.654363376Z"
+                }
+            ]
+        }
+    },
+    {
+        "Id": "sha256:4ec52d079167b5028bfcf4802c8f411602e3466311d25a624264ed468d1b6cb9",
+        "RepoTags": [
+            "market-data-comparison:phase04"
+        ],
+        "RepoDigests": [
+            "market-data-comparison@sha256:4ec52d079167b5028bfcf4802c8f411602e3466311d25a624264ed468d1b6cb9"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-09-13T17:21:37.166974584Z",
+        "Config": {
+            "User": "65532:65532",
+            "Env": [
+                "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+                "PYTHON_VERSION=3.13.15",
+                "PYTHON_SHA256=1e66a7945a48390ee4c2a4268a0e4185884059a13c4aab6d148aa208deea4a76",
+                "PYTHONDONTWRITEBYTECODE=1",
+                "PYTHONNOUSERSITE=1",
+                "GOMEMLIMIT=700MiB"
+            ],
+            "Cmd": [
+                "python3"
+            ]
+        },
+        "Architecture": "arm64",
+        "Os": "linux",
+        "Size": 57812455,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:41d6505109809884e681a97f978542a2d4d3506af0124f18b3f3a471edfcc9b7",
+                "sha256:24ee6013411acfda10179bf582a40cc4fc3b2c57372aecc8fb1b6750999fe82e",
+                "sha256:a65635ba778221a3d02c961c78b3d53f2a52faa9c95e4c6ba50165bf98db83c1",
+                "sha256:7bdec5df92bee072856dee9cb1a7104325355120e9b1fedc032a58dd90bfbe1f",
+                "sha256:6c874e5db5db2da1720f0e08241286f9bfd4707be56ea8286767aaa095d4bc6a",
+                "sha256:5dd8017dc1721cfdcab373b3e99f8bef9371e160886ebd8ad8ad676de635ff4b"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-09-13T17:21:38.08348796Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:4ec52d079167b5028bfcf4802c8f411602e3466311d25a624264ed468d1b6cb9",
+            "size": 856
+        },
+        "Identity": {
+            "Build": [
+                {
+                    "Ref": "jbqiy7km2cbf5mreeib5c9n7p",
+                    "CreatedAt": "2026-09-13T17:21:38.298388418Z"
+                }
+            ]
+        }
+    }
+]

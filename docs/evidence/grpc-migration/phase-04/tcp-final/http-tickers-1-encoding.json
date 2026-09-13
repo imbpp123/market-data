@@ -1,0 +1,50 @@
+{
+  "before": {
+    "cpu_seconds": 0.0129,
+    "total_alloc_bytes": 11122928,
+    "mallocs": 40069,
+    "heap_alloc_bytes": 11060824,
+    "peak_rss_bytes": 23511040,
+    "connection_read_bytes": 0,
+    "connection_written_bytes": 0
+  },
+  "after": {
+    "cpu_seconds": 0.013168,
+    "total_alloc_bytes": 11346128,
+    "mallocs": 41590,
+    "heap_alloc_bytes": 11284024,
+    "peak_rss_bytes": 24035328,
+    "connection_read_bytes": 0,
+    "connection_written_bytes": 0
+  },
+  "response_message_bytes": 385,
+  "response_sha256": "e3fd3c5f8f718109e63ef9bbed115eab1b3084d3411676e34d00ca0ffde3971f",
+  "raw_latency_ns": [
+    2500,
+    2625,
+    2667,
+    2708,
+    2708,
+    2709,
+    2750,
+    2791,
+    2833,
+    2834,
+    2875,
+    2875,
+    2917,
+    3083,
+    3417,
+    3417,
+    3583,
+    4750,
+    4750,
+    124458
+  ],
+  "samples": 20,
+  "latency_ns": {
+    "p50": 2875,
+    "p95": 124458,
+    "p99": 124458
+  }
+}

@@ -98,3 +98,24 @@ func TestConversionCancellationAndInvalidTimestamp(t *testing.T) {
 	_, err = timestamp(time.Unix(-1, 0))
 	assert.ErrorIs(t, err, application.ErrInternal)
 }
+
+// BenchmarkKlineConversionAndEncoding separates the bounded mapping path from TCP and storage.
+func BenchmarkKlineConversionAndEncoding(b *testing.B) {
+	value := decimal.RequireFromString("12345.1234567890123456789")
+	count := int64(9007199254740993)
+	stamp := time.Unix(1789214400, 123456789).UTC()
+	rows := make([]domain.Kline, 1000)
+	for i := range rows {
+		open := time.Unix(1789154400+int64(i)*60, 0).UTC()
+		rows[i] = domain.Kline{OpenTime: open, CloseTime: open.Add(time.Minute), Open: value, High: value, Low: value, Close: value, Volume: value, Turnover: value, TradesCount: &count, FetchedAt: stamp}
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		result := &pb.GetKlinesResponse{Exchange: "binance", Market: "spot", Symbol: "S0000USDT", Interval: "1m"}
+		err := convertRows(b.Context(), rows, 16<<20, proto.Size(result), klineMessage, func(row *pb.Kline) { result.Klines = append(result.Klines, row) })
+		require.NoError(b, err)
+		body, err := proto.Marshal(result)
+		require.NoError(b, err)
+		require.Len(b, body, 203030)
+	}
+}

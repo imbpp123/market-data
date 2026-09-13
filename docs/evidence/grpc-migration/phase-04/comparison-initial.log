@@ -1,0 +1,61 @@
+http instruments-1 go 1
+http instruments-1 go 4
+http instruments-1 python 1
+http instruments-1 python 4
+http instruments-1 async 1
+http instruments-1 async 4
+http instruments-20000 go 1
+http instruments-20000 go 4
+http instruments-20000 python 1
+http instruments-20000 python 4
+http instruments-20000 async 1
+http instruments-20000 async 4
+http tickers-1 go 1
+http tickers-1 go 4
+http tickers-1 python 1
+http tickers-1 python 4
+http tickers-1 async 1
+http tickers-1 async 4
+http tickers-20000 go 1
+http tickers-20000 go 4
+http tickers-20000 python 1
+http tickers-20000 python 4
+http tickers-20000 async 1
+http tickers-20000 async 4
+http market-stats-1 go 1
+http market-stats-1 go 4
+http market-stats-1 python 1
+http market-stats-1 python 4
+http market-stats-1 async 1
+http market-stats-1 async 4
+http market-stats-20000 go 1
+http market-stats-20000 go 4
+http market-stats-20000 python 1
+http market-stats-20000 python 4
+http market-stats-20000 async 1
+http market-stats-20000 async 4
+http klines-1 go 1
+http klines-1 go 4
+http klines-1 python 1
+http klines-1 python 4
+http klines-1 async 1
+http klines-1 async 4
+http klines-100 go 1
+http klines-100 go 4
+http klines-100 python 1
+http klines-100 python 4
+http klines-100 async 1
+http klines-100 async 4
+http klines-1000 go 1
+http klines-1000 go 4
+http klines-1000 python 1
+http klines-1000 python 4
+http klines-1000 async 1
+http klines-1000 async 4
+Traceback (most recent call last):
+  File "/Users/nkornushkov/Projects/market-data/scripts/api/compare_transports.py", line 230, in <module>
+    main()
+    ~~~~^^
+  File "/Users/nkornushkov/Projects/market-data/scripts/api/compare_transports.py", line 191, in main
+    import grpc
+ModuleNotFoundError: No module named 'grpc'

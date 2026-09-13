@@ -1,6 +1,6 @@
 # v1 implementation decisions
 
-Current business and configuration contract. The [gRPC migration contract](grpc-migration-specification.md) and [generated schema](../api/proto/marketdata/v1/market_data.proto) define the active data transport. HTTP data details retained below are historical; all old data paths now return 404. Initial decisions were adopted on September 11, 2026; Binance admission rules were updated on September 13, 2026. This document fills in the engineering details of the [specification](technical-specification-v1.md). The [decision register](specification-decisions-v1.md) identifies user requirements and engineering defaults. See the [verification record](release-verification-v1.md) for completed checks and their limits.
+Current business and configuration contract. The [gRPC migration contract](grpc-migration-specification.md) and [generated schema](../api/proto/marketdata/v1/market_data.proto) define the active data transport. The linked HTTP examples and audit are historical; all old data paths now return 404. Initial decisions were adopted on September 11, 2026; Binance admission rules were updated on September 13, 2026. This document fills in the engineering details of the [specification](technical-specification-v1.md). The [decision register](specification-decisions-v1.md) identifies user requirements and engineering defaults. See the [gRPC verification record](grpc-migration-verification.md) for current acceptance and the [HTTP audit](release-verification-v1.md) for historical measurements.
 
 The [complete configuration example](examples/config-v1.yaml) is the normative field/default inventory for phase 02. This contract takes precedence over superseded illustrative configuration fragments. All durations are elapsed Go-style duration strings (ns, us, ms, s, m, h); days are no longer needed by the history policy. Markets and intervals use canonical strings. Market data remains in memory.
 
@@ -45,9 +45,9 @@ Defaults are listed in the configuration example. Resource scopes are explicit:
 - A ticker cycle lasts at most 15s/9 total HTTP attempts; instruments 60s/100 attempts; independent statistics 15s/3 attempts; a kline fill 30s/12 attempts. Counts include all pages and retries. Each caller separately tracks attempts made by fills it awaits; count a shared attempt once for the exchange and once against each participating caller's logical bound. A late joiner need not count already completed attempts. No caller may escape its bound by joining a new fill.
 - The per-request retry limit is three attempts including the first. Retry only transport/network failures that are temporary, per-attempt timeouts, 429, and 500/502/503/504. Other failures do not enter a generic retry loop. 418 and Bybit rate signals set cooldown; another attempt is possible only when both cooldown and the operation bounds permit it.
 - Backoff after failed background cycles persists across cycles. Use exponential backoff capped at 2s with injected full jitter; interval-based workers wait at least their normal refresh interval after the failed cycle, and all workers respect shared cooldown. Reset failure backoff only after a successful full cycle. Do not build a job backlog.
-- Upstream response bodies are capped at 16 MiB before unbounded buffering/SDK decode. HTTP request headers are capped at 32 KiB and query strings at 8 KiB. Excess queries return 414 request_too_large; body-bearing GET requests return 400 invalid_parameter. Snapshot reads have a 5s timeout.
+- Upstream response bodies are capped at 16 MiB before unbounded buffering/SDK decode. Data RPC requests are capped at 8 KiB and responses at 16 MiB; headers are capped at 32 KiB. The operational listener separately bounds query strings at 8 KiB and rejects body-bearing GET requests. Snapshot reads have a 5s timeout.
 
-Instrument, ticker, market-statistics, and candle source decimal fields accept at most 1,024 bytes of source numeric text and at most 1,024 characters of fixed-point expansion before trimming trailing fractional zeros, including the leading zero and decimal point where needed. Check source length before parsing and the coefficient/exponent bounds before decimal comparison or publication. The same bounds apply to explicit zero. This prevents small scientific-notation inputs from causing large allocations during normalization or HTTP serialization. Oversized values fail the whole refresh or candle page with invalid_upstream_data and preserve the prior snapshot; never round or truncate them. Scientific notation within these bounds remains exact.
+Instrument, ticker, market-statistics, and candle source decimal fields accept at most 1,024 bytes of source numeric text and at most 1,024 characters of fixed-point expansion before trimming trailing fractional zeros, including the leading zero and decimal point where needed. Check source length before parsing and the coefficient/exponent bounds before decimal comparison or publication. The same bounds apply to explicit zero. This prevents small scientific-notation inputs from causing large allocations during normalization or RPC serialization. Oversized values fail the whole refresh or candle page with invalid_upstream_data and preserve the prior snapshot; never round or truncate them. Scientific notation within these bounds remains exact.
 
 RPCs do not send partial successful data before completeness validation. Their transport bound is the request lifetime plus 5s from admission, or an earlier client deadline. Operational HTTP writes use server.http.write_timeout. Graceful shutdown defaults to 35s, cancels root work, stops accepting requests, and waits within that bound.
 
@@ -71,63 +71,51 @@ Each process starts with empty local ledgers and configured bootstrap ceilings. 
 
 This local policy does not account for another process sharing the outgoing IP. Verify the deployment topology before release.
 
-## HTTP contract
+## gRPC contract
 
-**Historical wire contract:** HTTP data routes, JSON shapes, parsing rules and HTTP data statuses in this section were replaced at cutover. The business rules still apply; use the [gRPC error mapping and request contract](grpc-migration-specification.md#errors) for current calls. The historical JSON examples below are not runnable client instructions.
+The active data API is `marketdata.v1.MarketDataService`, using the [checked-in schema](../api/proto/marketdata/v1/market_data.proto). It has four unary methods: `ListInstruments`, `ListTickers`, `ListMarketStats`, and `GetKlines`. Data is not served through HTTP. Generated Go and Python clients live in this repository; Python supports sync and async calls and exact-revision Git/subdirectory installation.
+
+### HTTP contract
+
+The old `/api/v1/*` routes return 404 without reading application data. The [JSON examples](examples/http-contract-v1.json) and [HTTP release audit](release-verification-v1.md) are historical evidence. They are not current client instructions. Operational HTTP keeps GET `/health`, `/ready`, and enabled `/metrics` and `/debug/stats`; disabled exporters return 404 and other methods return 405.
 
 ### Common envelope and validation
 
-All four endpoints are GET-only and return application/json. Other methods return 405 method_not_allowed. Successful data responses are always `{"data":[...]}`, including a symbol-filtered result or an empty list. Objects use the specification's snake_case fields, decimal strings, explicit optional nulls, and UTC RFC 3339 timestamps preserving available precision. No SDK objects appear in responses.
+There is no JSON data envelope. Snapshot responses contain repeated typed rows. Candle responses contain their series identity once and a repeated candle field. Decimal values are exact strings; optional fields distinguish absence from explicit zero. Counts are signed 64-bit integers, including values above 2^53. Times are Protobuf Timestamp values with nanosecond precision. Reject malformed Timestamp values and pre-epoch request times. Unknown Protobuf fields are tolerated.
 
-Reject unknown query keys, malformed percent encoding, empty present values, or repeated scalar parameters with 400 invalid_parameter, except window follows unsupported_window, status follows invalid_status, and interval follows invalid_interval. Do not silently accept the last repeated value. Exchange/market/interval/status are canonical and case-sensitive. Symbols are exact UTF-8 identifiers, 1–128 bytes, without whitespace or control characters; no uppercasing or ASCII-only assumption. A syntactically invalid symbol is invalid_filter.
+String filters have explicit presence. Omission selects defaults; an explicitly empty value fails. Exchange, market, interval, and status are canonical case-sensitive strings. Symbols are exact UTF-8 identifiers of 1–128 bytes without whitespace or control characters. Never uppercase or trim them. Unknown or disabled scopes return `INVALID_ARGUMENT / invalid_filter`.
 
-Validation order is: HTTP/query shape; canonical enum/filter values and enabled scopes; timestamp syntax and range shape; bounded slot count; history depth; data readiness and symbol lookup; execution. When several parameters are invalid, use that order and then parameter order exchange, market, symbol, status/window, interval, from, to. Apply the documented special window error before data access. All invalid inputs fail without upstream calls.
+Global transport admission and byte bounds apply before decoding. After decoding, validate canonical scope/filter values, timestamp/range shape, bounded slot count, history depth, readiness and symbol existence, then execute. Invalid inputs make no upstream calls. The [migration contract](grpc-migration-specification.md#errors) defines field-specific reasons.
 
 ### Instruments, tickers, and statistics
 
-Filters are optional. Instruments accepts exchange/market/symbol/status; tickers accepts exchange/market/symbol; statistics additionally accepts window, default 24h. Omitted exchange/market selects all enabled supported pairs. An explicit unknown/disabled exchange or market, or a filter combination selecting no enabled pair, returns 400 invalid_filter. Return rows sorted by exchange, market, symbol ascending.
+Snapshot reads are cache-only and sorted by exchange, market, symbol. Instruments accepts exchange/market/symbol/status; tickers accepts exchange/market/symbol; statistics also accepts window. Omitted window means `24h`; an empty or different value is `INVALID_ARGUMENT / unsupported_window`.
 
-All selected scopes must have published their first successful snapshot before returning a combined list. Otherwise return 503 data_not_ready, including instruments and tickers. Keep readiness independent per repository and scope. A successful empty snapshot or absent symbol in ready selected scopes returns 200 with data: []. Status/symbol filtering cannot hide an unready scope. After refresh failure, return the previous successful data with its unchanged timestamps; a stale-data flag or maximum staleness policy is not added in v1. Snapshot reads never fetch upstream.
+Every selected scope must have a first successful snapshot, even if a symbol/status filter would hide its rows. Otherwise return `UNAVAILABLE / data_not_ready`. A successful empty snapshot or absent symbol in ready scopes returns an empty repeated field. Failed refreshes keep prior values and timestamps. There is no new stale-data flag or expiry policy.
 
 ### Kline range contract
 
-Required single parameters: exchange, market, symbol, interval, from, to. `from` and `to` are RFC 3339 timestamps with an explicit timezone; accept Z or a numeric offset and normalize to UTC. Reject integer Unix timestamps, date-only values, missing offsets, leap seconds, more than nine fractional digits, invalid calendar dates, and times before Unix epoch. Bound arithmetic before allocation. Range boundaries must align exactly to the selected calendar; reject unaligned values with 400 invalid_range rather than rounding.
+Exchange, market, symbol, interval, from and to are required. From/to use valid nonnegative Protobuf Timestamps aligned exactly to the selected calendar. The range is half-open: `from <= OpenTime < to`. Reversed, unaligned, or disallowed future ranges fail with `INVALID_ARGUMENT / invalid_range`.
 
-The range is half-open by candle OpenTime. Include starts satisfying from <= OpenTime < to. `from > to` is invalid_range. A valid `from == to` returns data: [] after scope/catalog/symbol validation, without a kline fetch. Read the current instrument snapshot to validate symbol existence; unready instruments give 503 data_not_ready and a missing symbol gives 404 symbol_not_found. No historical symbol discovery call is added.
+A valid empty range still validates the scope, catalog and symbol; it returns an empty candle field without a fetch. Unready instruments return `UNAVAILABLE / data_not_ready`; an absent candle symbol returns `NOT_FOUND / symbol_not_found`. There is no historical symbol discovery.
 
-The default workload uses only closed candles, with `to=C`, where C is the latest boundary at or before now. Preserve the existing open-candle capability: a client may explicitly request the current slot by setting to to the next boundary after C. A range ending later, or beginning after C, is invalid_range; equality for an empty range at the next boundary is allowed. Open inclusion consumes a slot of the configured N-slot request limit. Do not add an include_open parameter, change the canonical interval set, or synthesize candles.
+Use the [calendar history rules](technical-specification-v1.md#38-klines-api): 1,000 slots by default, independent of missing rows. The normal workload ends at the current slot boundary C and uses only closed candles. A caller can explicitly include the open slot by ending at the next boundary. This consumes one request slot; no `include_open` parameter or synthetic candle is added. An empty range at that next boundary is valid.
 
-Apply the history window and size rules from specification section 38. Missing slots do not move the oldest allowed boundary. If a nonempty valid range includes pre-listing slots, a trading halt with no rows, or other unavailable history, a successful empty/short upstream response is not proof of a complete range. Return 502 incomplete_data after the bounded fetch shows no progress; keep valid fetched rows. Do not create zero candles, silently trim to listing, negatively cache absent slots as complete, or retry an unchanged logical gap forever. An empty requested range is different from an empty response to a nonempty range.
+No-progress gaps, pre-listing gaps, and short successful upstream pages are not complete success. Return `FAILED_PRECONDITION / incomplete_data` after bounded fetching makes no progress, while retaining valid fetched pages. Never silently trim a range or negatively cache missing slots as complete.
 
-See the [synthetic request/response examples](examples/http-contract-v1.json) for successful, empty, unready, invalid, overloaded, and incomplete outcomes.
-
-An API request for the maximum rolling window can become too old if a new slot closes while it waits. v1 returns range_out_of_retention in that case, as already specified, rather than extending history or returning a partial result. This is especially relevant to the optional 1s interval; clients can leave a small lookback margin. Record this limitation in the release guide and tests.
+Recheck history after waiting. A range that becomes too old returns `range_out_of_retention`; it must not trigger a fetch/cleanup loop. A complete read captured while valid can finish serialization after the boundary advances. If saved rows already satisfy the full range after a shared fill error, return those complete rows under the existing cache-success rule.
 
 ### Stable errors
 
-| HTTP | Code | Condition |
-| --- | --- | --- |
-| 400 | invalid_parameter | Missing/empty/repeated/unknown query input or malformed query encoding |
-| 400 | invalid_filter | Invalid, disabled, or incompatible exchange/market/symbol filter |
-| 400 | invalid_status / unsupported_window / invalid_interval | Invalid canonical value for the corresponding field |
-| 400 | invalid_range | Timestamp syntax, reversed/unaligned range, or disallowed future slots |
-| 400 | request_too_large | More than configured N candle slots |
-| 400 | range_out_of_retention | Valid size but an older range start |
-| 404 | symbol_not_found | Symbol absent from the ready current instrument catalog for klines |
-| 404 | not_found | Unknown HTTP route |
-| 405 | method_not_allowed | Non-GET method |
-| 414 | request_too_large | Query string exceeds the byte bound |
-| 503 | data_not_ready | A selected required snapshot has never been published |
-| 503 | service_overloaded | Full caller/fill/admission capacity, admission wait timeout, or a Binance common/share budget rejection |
-| 503 | upstream_unavailable | Known cooldown or unusable runtime limits prevent execution within the operation lifetime |
-| 504 | request_timeout | Caller or owned fill deadline expires before a complete result is ready |
-| 502 | upstream_error | Non-retryable upstream failure or exhausted transport/HTTP retries |
-| 502 | invalid_upstream_data | Malformed envelope/row, body limit, invalid decimals, or inconsistent response scope |
-| 502 | upstream_attempt_limit | Total page/retry attempt allowance exhausted, including an impossible bounded plan detected before sending |
-| 502 | incomplete_data | Remaining requested slots are absent after successful bounded fetching/no progress |
-| 500 | internal_error | Unexpected internal or repository failure |
+Application failures use a gRPC status and generated `ErrorDetail.reason`, with a simple sanitized message. The complete [status/reason mapping](grpc-migration-specification.md#errors) is authoritative. New transport reasons are `response_too_large` and `request_canceled`; existing business reasons retain their meaning.
 
-Errors use `{"error":{"code":"...","message":"..."}}`, with stable English messages and no raw exchange payload. A disconnected client receives no guaranteed response; cancellation releases that caller's resources. Never return a successful partial body. If saved data already satisfies that caller's complete range after a shared fill error, the existing section 31 cache-success rule still applies.
+Native unknown methods, connection failures, invalid wire messages, message caps, local deadlines, and stream resets may have no detail. Clients must handle absent and unknown details. A disconnected caller has no guaranteed response. Never expose raw exchange payloads or a successful partial range.
+
+### Listener and message bounds
+
+Defaults: gRPC `0.0.0.0:9090`, operational HTTP `0.0.0.0:8080`; request message 8,192 bytes, response message 16,777,216 bytes, and headers 32,768 bytes. Message limits refer to uncompressed Protobuf bytes. Response conversion and sending are bounded; an oversized result returns `RESOURCE_EXHAUSTED / response_too_large` without truncation. Clients reuse channels and explicitly set the 16 MiB receive cap.
+
+There is no native TLS, authentication, compression, gateway or reflection. Local Compose publishes both ports only on 127.0.0.1. An untrusted remote path requires separately verified authenticated encryption.
 
 ## Startup and metadata
 
@@ -135,7 +123,7 @@ After config validation and local initialization, bind both gRPC and operational
 
 For Bybit linear instrument collection, fetch the default current catalog (documented Trading/PendingOpen) plus the explicit status=PreLaunch catalog, including all cursor pages; spot uses its non-paginated default catalog. Omit baseCoin so other categories cannot enter the result. Identical duplicate symbols across the two collections may be deduplicated; conflicting duplicates fail that refresh. These choices follow the [Bybit instrument reference](https://bybit-exchange.github.io/docs/v5/market/instrument). Do not claim a historical/delisted catalog. Binance uses complete exchangeInfo. Reject repeated cursors or no pagination progress; total pages and retries use the instruments attempt/deadline bounds. A partial catalog never replaces the current snapshot. Rows absent from a complete selected catalog are removed without inventing closed records.
 
-The internal instrument model retains a contract classification (`perpetual`, `expiry`, or unknown) from explicit exchange metadata. Ticker normalization reads it from the local instrument snapshot to suppress funding for known expiry contracts. This field is not exposed by the instruments HTTP DTO. An unready catalog is treated as unknown; an explicit positive next funding timestamp still confirms a schedule without an instrument fetch.
+The internal instrument model retains a contract classification (`perpetual`, `expiry`, or unknown) from explicit exchange metadata. Ticker normalization reads it from the local instrument snapshot to suppress funding for known expiry contracts. This field is not exposed by the instruments Protobuf message. An unready catalog is treated as unknown; an explicit positive next funding timestamp still confirms a schedule without an instrument fetch.
 
 Binance funding interval decision: use a valid explicit fundingIntervalHours from the successful full fundingInfo response; absent perpetual symbols return null. The generic eight-hour default in the FAQ is not a per-symbol current-value guarantee, especially for inactive instruments. Do not infer an interval from history or timestamps. Unknown contract types and expiry futures get no fallback. A required fundingInfo request/parse failure fails the refresh and preserves the previous instrument snapshot; it does not publish nulls or defaults. The fixture distinguishes explicit 1/4/8-hour values from absence. Binance delisting_time stays null until an authoritative source establishes the perpetual placeholder semantics; this is a deliberate v1 limitation, not a blocker for instruments.
 
@@ -149,4 +137,4 @@ Validate positive durations/counts, finite caps, 0–99 integer Bybit safety mar
 
 Global HTTP/waiter caps must cover the sum of configured per-exchange lanes for enabled providers. Fills must not exceed their global/per-exchange limits or the available kline lane HTTP capacity. Global fill/caller caps must fit positive finite integers. Shutdown timeout must cover the maximum active caller/fill lifetime plus 5s. Verify the largest valid kline range fits at least its minimum page count within the total attempt bound; lowering the upstream page size may require increasing that bound. A worker may still fail on retries or unavailable exchange data. Validate starting budgets against each permitted single request and two ordinary statistics cycles per minute for the default 30s interval; changed schedules require recalculating capacity, not inventing higher exchange limits.
 
-Phase 02 implements the loader, baseline lifecycle, and checks the pinned Go 1.27.1 toolchain. The official release catalog confirms availability; the current local binary is 1.26.0. Do not silently change the pin. Phase 05 implements in-memory admission and restart behavior and controlled-time tests. Phases 06–10 recreate earlier SDK contracts against local fake servers at the pinned revisions; historical reported tests are not accepted as executed project tests. Phase 12 measures memory and deployment access. None of these future gates prevents the specification decisions themselves from being recorded.
+The loader, lifecycle, in-memory admission, SDK adapters and generated clients are implemented and tested with Go 1.27.1. Current gRPC measurements and remaining release limits are recorded in the [migration verification](grpc-migration-verification.md). Historical HTTP checks remain separate. Publishing and deployment require their own explicit operator action.

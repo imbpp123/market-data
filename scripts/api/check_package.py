@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import http.client
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -42,14 +44,39 @@ def main():
         run(["go", "build", "-o", example_path, "./examples/client"], cwd=ROOT / "api/go")
         application_path = work / "application-fixture"
         application_check = work / "application-check"
+        consumer = work / "go-consumer"
+        consumer.mkdir()
+        shutil.copytree(ROOT / "api/go", project / "api/go")
+        shutil.copyfile(ROOT / "api/go/cmd/application-check/main.go", consumer / "main.go")
+        shutil.copyfile(ROOT / "api/go/go.sum", consumer / "go.sum")
+        module = (ROOT / "api/go/go.mod").read_text().replace("module github.com/imbpp123/market-data/api/go", "module installed-consumer")
+        module += f"\nrequire github.com/imbpp123/market-data/api/go v0.0.0\nreplace github.com/imbpp123/market-data/api/go => {project / 'api/go'}\n"
+        (consumer / "go.mod").write_text(module)
         run(["go", "build", "-o", application_path, "./scripts/api/grpcfixture"], cwd=ROOT)
-        run(["go", "build", "-o", application_check, "./cmd/application-check"], cwd=ROOT / "api/go")
+        run(["go", "build", "-o", application_check, "."], cwd=consumer)
+        composition_path = work / "composition-fixture"
+        run(["go", "test", "-c", "-o", composition_path, "./internal/bootstrap"], cwd=ROOT)
+        manifest_path = work / "composition.json"
+        composition = subprocess.Popen([composition_path, "-test.run", "^TestInstalledCompositionFixture$", "-test.timeout", "10m"], env=dict(os.environ, MDS_COMPOSITION_MANIFEST=str(manifest_path)))
         application = subprocess.Popen([application_path], stdout=subprocess.PIPE, text=True)
         server = subprocess.Popen([server_path], stdout=subprocess.PIPE, text=True)
         try:
             application_address = application.stdout.readline().strip()
             if not application_address:
                 raise RuntimeError("Application fixture failed to start")
+            deadline = time.monotonic() + 30
+            while not manifest_path.exists():
+                if composition.poll() is not None or time.monotonic() > deadline:
+                    raise RuntimeError("Final composition failed to start")
+                time.sleep(0.02)
+            composition_manifest = json.loads(manifest_path.read_text())
+            connection = http.client.HTTPConnection(composition_manifest["operations"], timeout=5)
+            for route in ("/health", "/ready"):
+                connection.request("GET", route)
+                response = connection.getresponse()
+                assert response.status == 200, route
+                response.read()
+            connection.close()
             address = server.stdout.readline().strip()
             if not address:
                 raise RuntimeError("Contract fixture failed to start")
@@ -59,6 +86,9 @@ def main():
             (clean_bin / "git").symlink_to(shutil.which("git"))
             test_dir = work / "consumer"
             test_dir.mkdir()
+            composition_env = dict(os.environ, API_CANDLE_FROM=str(composition_manifest["from"]), API_CANDLE_TO=str(composition_manifest["to"]))
+            with (test_dir / "composition-go.json").open("w") as output:
+                run([application_check, composition_manifest["address"]], stdout=output, env=composition_env)
             with (test_dir / "application-go.json").open("w") as output:
                 run([application_check, application_address], stdout=output)
             for source in [ROOT / "scripts/api/test_contract.py", ROOT / "scripts/api/test_application.py", *sorted((ROOT / "api/examples").glob("*.py"))]:
@@ -84,6 +114,8 @@ def main():
                             raise RuntimeError("Installed Git identity differs")
                     run([executable, "test_contract.py", "-v"], cwd=test_dir, env=env)
                     run([executable, "test_application.py", "-v"], cwd=test_dir, env=env)
+                    final_env = dict(env, API_APPLICATION_ADDRESS=composition_manifest["address"], API_CANDLE_FROM=str(composition_manifest["from"]), API_CANDLE_TO=str(composition_manifest["to"]), API_EXPECTED_FILE="composition-go.json")
+                    run([executable, "test_application.py", "-v"], cwd=test_dir, env=final_env)
                     for example in ("client.py", "client_async.py"):
                         run([executable, example, address], cwd=test_dir, env=env)
         finally:
@@ -91,6 +123,9 @@ def main():
             server.wait(timeout=10)
             application.terminate()
             application.wait(timeout=10)
+            composition.terminate()
+            if composition.wait(timeout=40) != 0:
+                raise RuntimeError("Final composition did not shut down cleanly")
         print("Wheel and pinned local Git installations passed:", ", ".join(versions))
 
 
