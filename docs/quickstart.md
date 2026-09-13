@@ -76,8 +76,8 @@ A successful response contains a `tickers` array. Example values below are illus
 }
 ```
 
-Until the first successful snapshot, the request returns `UNAVAILABLE` with `ErrorDetail.reason=data_not_ready`. Retry after collection succeeds. If it persists, inspect the service logs using the [diagnostic guide](operations.md#diagnose-and-operate). `/health` and `/ready` report process and local initialization status, not data availability or freshness.
+Until the first successful snapshot, the request returns `UNAVAILABLE` with `ErrorDetail.reason=data_not_ready`. Retry after collection succeeds. If it persists, follow [troubleshooting](troubleshooting.md#data-is-not-ready). `/health` and `/ready` report process and local initialization status, not data availability or freshness.
 
-Clients should reuse channels, set call deadlines, and allow responses up to 16 MiB. Candle ranges must be aligned and half-open: `[from, to)`. See the [API guide](development.md#instruments) for filters, candle ranges, and error behavior, and the [operations guide](operations.md) for resource and rate-limit details.
+Clients should reuse channels, set call deadlines, and allow responses up to 16 MiB. Candle ranges must be aligned and half-open: `[from, to)`. See the [API guide](api.md) for filters, candle ranges, and error behavior, and the [operations guide](operations.md) for resource and rate-limit details.
 
-For settings and environment overrides, see the [configuration guide](development.md#configuration) and [complete example](../config/config-v1.yaml). For more guides, return to the [documentation index](../README.md#documentation).
+For settings and environment overrides, see the [configuration guide](configuration.md) and [complete reference](../config/config-v1.yaml). For more guides, return to the [documentation index](../README.md#documentation).

@@ -1,50 +1,130 @@
-# Operations guide
+# Operations
 
-This guide covers container setup, diagnostics, and operating limits for the v1 service. For the first local request, use the [quick start](quickstart.md). For settings and older configuration changes, see the [configuration guide](development.md#configuration).
+Use this guide to deploy, monitor, update, and stop the service. For a first run, follow the [quick start](quickstart.md). For settings, see [configuration](configuration.md). For failures, see [troubleshooting](troubleshooting.md).
 
 ## Docker and Compose
 
-Install Docker Engine/Desktop with a recent Compose v2 or later. Run from the repository root:
+Install Docker with Compose v2 or later. From the repository root:
 
 ```sh
 make docker-build
 make docker-up
 docker compose logs --tail=100 -f
+```
+
+`make docker-up` waits for the container healthcheck. To stop and remove the container:
+
+```sh
 make docker-down
 ```
 
-The image uses a digest-pinned Go builder and a `scratch` runtime with CA certificates, a static executable, and UID/GID 65532. Compose publishes only `127.0.0.1:9090` and `127.0.0.1:8080`, mounts the example configuration read-only, drops capabilities, and makes the root filesystem read-only. Keep the mounted file readable by UID 65532. There is one service and no state volume.
+[compose.yaml](../compose.yaml) builds the local source. It publishes gRPC on `127.0.0.1:9090` and operational HTTP on `127.0.0.1:8080`. It mounts [config/config-v1.yaml](../config/config-v1.yaml) read-only at `/etc/market-data/config.yaml`. There is one service and no state volume.
 
-Compose enforces 1,000,000,000 bytes of memory, disables swap, and sets `GOMEMLIMIT=700MiB`, a soft Go runtime memory target, not a process RSS limit. Validate memory use for the deployment workload. Rebuild with `make docker-build` after source changes, then run `make docker-up` to recreate the service.
+The image runs as UID/GID 65532 with a static executable and CA certificates. Compose makes the root filesystem read-only, drops capabilities, and prevents privilege escalation. Keep the mounted config readable by that user.
 
-The image runs `/market-data-service -config /etc/market-data/config.yaml`. Its healthcheck uses the same file and environment with `-healthcheck`; it makes one local `/health` request with a two-second timeout and never starts collectors. When running the image directly, mount configuration at that path. Override configuration, ports, or environment with a local Compose override; host `MDS_` variables are not forwarded automatically by Compose. Change the matching port mapping and `server.grpc.port` or `server.http.port` together. Removed flat `server.host`, `server.port`, HTTP settings and their old environment names fail validation.
+Use a local Compose override for environment or deployment changes. Host `MDS_` variables are not forwarded automatically. For example, this `compose.override.yaml` enables metrics:
 
-SIGINT/SIGTERM close RPC admission and owned work. The default internal shutdown bound is 35 seconds; Compose allows 40 seconds before forced termination. Increase `stop_grace_period` if increasing `server.shutdown_timeout`. The service does not restart automatically.
-
-The service has no native TLS or authentication. Keep both listeners on a trusted network. A remote deployment needs a separately configured protected connection. Direct local runs bind to `0.0.0.0` by default; the [local quick start](quickstart.md#local) overrides both hosts to `127.0.0.1`.
-
-## Diagnose and operate
-
-Logs are JSON on stderr. Use the operational HTTP listener for process checks:
-
-```sh
-curl 'http://localhost:8080/health'
-curl 'http://localhost:8080/ready'
+```yaml
+services:
+  market-data-service:
+    environment:
+      MDS_OBSERVABILITY_PROMETHEUS_ENABLED: "true"
 ```
 
-After local initialization, both return HTTP 200 with `{"status":"ok"}`. These checks do not wait for the first exchange snapshot.
+Recreate the container after changes. If you change a container listener port, change the matching published port mapping too. The [Docker quick start](quickstart.md#docker) shows how to use a published image without building the repository.
 
-- `/health` means the process is alive; `/ready` means local initialization is complete. Neither proves exchange data is available or fresh.
-- On `data_not_ready`, inspect collector errors and enabled scopes. A failed first refresh leaves its scope unready. Other scopes continue.
-- Stale `updated_at` or `fetched_at` means a collector has not published new data. Failed refreshes preserve previous snapshots; v1 has no snapshot expiry. Check upstream errors, admission waits, cooldowns, and system time before restarting.
-- `service_overloaded` means a finite caller/fill/queue limit was reached or needed Binance exchange work failed a budget check. `request_too_large` and `range_out_of_retention` require a valid smaller/recent request. No error returns a successful partial candle range.
-- Optional `/metrics` and `/debug/stats` expose counters, last successes, durations, retained candle counts, and failures. `/debug/stats?view=admission` shows current Binance limits, usage, per-window operation reasons, and recovery times. See the [diagnostic guide](development.md#binance-admission-diagnostics). Keep these operational routes on a trusted network. All counters reset on restart.
+## Network access
 
-All data, usage counters, discovered exchange limits, and cooldowns are memory-only. A restart loses them immediately, begins from bootstrap budgets, and adds no automatic quiet period. Exchange-side usage and bans may remain. Restarting is not a rate-limit reset.
+Public exchange data requires outbound network access and no exchange credentials. Verify that the deployment IP can use the selected exchange endpoints, including Binance spot bulk FULL statistics.
 
-v1 assumes one instance and no other exchange clients sharing its outgoing IP. Verify this on the deployment network, including Binance Spot bulk `type=FULL` access. Binance uses a configurable stop line (default 90%) and strict 60/30/5/5 operation shares. No new positive-cost request is admitted when current accounted usage is already above a stop line; crossing from equality or below is allowed. Bybit keeps its 20% safety margin. These local checks cannot guarantee actual IP usage: external traffic, restarts, delayed observations, and unseen limits remain unknown. Conservative counter overlap can approach twice actual usage. See the [operating contract](implementation-contract-v1.md).
+The service has no native TLS or authentication. Direct executable runs bind to `0.0.0.0` by default; the quick start overrides both hosts to loopback. Keep both listeners on a trusted network. For an untrusted remote path, configure authenticated encryption separately. A proxy must support gRPC over HTTP/2, including trailers.
 
-Retention prunes old candles on merges and every hour by default. It keeps at most the configured rolling history per series, including every supported interval; it does not cap the number of requested series. Keep the host clock synchronized to UTC using NTP. A candle is final only after a request started at or after its close. v1 assumes exchanges do not later revise such confirmed candles; it does not reconcile later corrections.
+Request-limit accounting assumes one service instance and no other exchange clients sharing its outgoing IP. Another process or instance can spend budget the service cannot fully observe.
+
+## Health and readiness
+
+Use the operational HTTP listener:
+
+```sh
+curl -i 'http://localhost:8080/health'
+curl -i 'http://localhost:8080/ready'
+```
+
+`/health` checks process liveness. `/ready` returns 200 with `{"status":"ok"}` after local storage, services, both listeners, and worker ownership are initialized. It returns 503 during initialization or shutdown. Neither endpoint waits for exchange data or checks freshness.
+
+The executable's `-healthcheck` mode makes one local `/health` request with a two-second timeout, then exits without starting collectors. It uses the same configuration and environment as the service. The container healthcheck uses this mode. It cannot be combined with `-check-config`.
+
+Operational routes are separate from data admission, so saturated data requests do not consume their request slots. They still share the process's CPU and memory.
+
+## Monitoring
+
+Logs are JSON on stderr. They report collector failures, upstream attempts, limit changes, cooldowns, and lifecycle events. Repeated unchanged Binance budget deferrals are not logged as repeated failures.
+
+In-memory statistics are collected by default. Enable HTTP exporters through [monitoring settings](configuration.md#logs-and-optional-monitoring):
+
+```sh
+curl 'http://localhost:8080/metrics'
+curl 'http://localhost:8080/debug/stats'
+```
+
+Prometheus uses text format 0.0.4 at its configured path. The default debug response is a sorted array of `{name, labels, value}` samples. Both routes return 404 when disabled.
+
+Counters cover snapshot publication, last success, retained candle rows, cache hits/misses, fills, exchange attempts, and RPC outcomes. Last-success times are Unix seconds; zero means no successful publication yet. Duration samples include count, sum, and maximum. Different metric groups can reflect slightly different moments. All counters reset on restart.
+
+Labels are bounded: exchange, market, operation, statistics window, and RPC method/status/reason as applicable. Symbols do not become metric labels. RPC completion means local processing and stream closure, not confirmed receipt by the remote application.
+
+Optional Sentry reporting uses sanitized errors and sampled traces. Expected invalid requests, missing symbols, unready data, and caller cancellation do not create RPC error reports. Raw exchange bodies, request bodies, headers, queries, and raw panic text are excluded. Trace sampling zero keeps error reports enabled. Keep operational endpoints on a trusted network.
+
+## Binance admission diagnostics
+
+When the debug endpoint is enabled, inspect the current controller state:
+
+```sh
+curl 'http://localhost:8080/debug/stats?view=admission'
+```
+
+This view shows Binance spot and linear separately. Reading it does not make exchange requests, reserve budget, or record a rejection.
+
+Each window shows its limit source (`bootstrap` or `exchange_info`), age, selected limit, optional user cap, percentage, and stop line. A zero user cap means none was configured.
+
+`local` already includes in-flight `reserved` cost. `accounted` combines local and observed usage. Do not add these fields together. `remaining` is headroom, not permission to send: an operation share can still block a request.
+
+`history_since` and `incomplete_history` show accounting gaps after restart or a longer discovered window. `uncertain` marks estimates with unproven counter overlap. A false value does not prove that no other process uses the IP.
+
+| Reason | Meaning |
+| --- | --- |
+| `common_threshold` | Accounted usage is above a common stop line. |
+| `operation_share` | Operation usage plus the shown request cost exceeds its share. |
+| `request_cost_exceeds_allowance` | This cost cannot fit even with zero usage. Waiting for expiry cannot fix it. |
+| `exchange_cooldown` | A real exchange signal still blocks this scope. |
+| `catalog_refresh_failed` | A dispatched catalog refresh failed; previous usable limits remain. |
+| `oversized_body` | A decoded exchange response exceeded its size bound. |
+
+Operation entries use the largest configured request cost for the window. A cheaper actual request can have a different result. Per-window `next_eligible` predicts recovery from known usage expiry, pacing, and cooldown. A zero time means unknown or impossible. Check every applicable window; these estimates exclude HTTP slots, queue capacity, caller deadlines, and request-specific retry backoff.
+
+Prometheus exposes `admission_*` gauges with fixed window labels: `request_weight_1m`, `raw_requests_5m`, and `funding_requests_5m`. Other discovered windows are counted by unit, not turned into arbitrary labels. Exact windows remain in the detailed JSON. Prometheus operation recovery uses the latest relevant time, or zero if any is unknown. Times use Unix seconds.
+
+For the admission algorithm and its limits, see [architecture](architecture.md#exchange-request-limits).
+
+## Memory and history
+
+Compose limits the whole container to 1,000,000,000 bytes and disables swap. `GOMEMLIMIT=700MiB` is a soft Go runtime target; it is not a limit on process RSS. Measure the deployment workload before increasing capacity settings.
+
+The default history is 1,000 closed slots per series, with a current candle possible when explicitly requested. This bounds time depth, not the number of series. Many symbols and intervals can exceed the intended memory budget. No symbol count or request-rate allowlist is enforced.
+
+The sizing workload uses 3–4 clients and up to 50 symbols, with 1h candles for 20 days, 5m candles for two days, and 1m candles for eight hours. For conservative sizing, assume 50 symbols in each of the four exchange/market pairs. That initial history contains 307,200 candles. Continuing to fill all three intervals to the retention bound can retain 600,000 closed candles across 600 series. These are sizing assumptions, not preloading behavior or an API restriction.
+
+Keep the host clock synchronized. Retention, candle finality, and funding countdowns depend on it. The cache assumes that confirmed closed candles will not receive later exchange corrections.
+
+## Restarts and updates
+
+All snapshots, candles, usage ledgers, discovered limits, and cooldowns live in memory. Restarting clears them and starts with configured limits. There is no automatic quiet period after restart. Exchange-side usage and bans can remain, so a restart is not a rate-limit reset.
+
+SIGINT and SIGTERM stop new RPC admission and cancel owned work. The internal shutdown limit defaults to 35 seconds. Compose allows 40 seconds before forced termination. If you raise `server.shutdown_timeout`, increase `stop_grace_period` too. Compose does not restart the service automatically.
+
+For a source update, select the intended revision, run the [development checks](development.md#checks), rebuild with `make docker-build`, and recreate with `make docker-up`. For a published image, use its matching configuration and client contract. Watch readiness, collector success, and data timestamps after startup.
+
+To roll back, run a known earlier version with its matching configuration and clients. There is no persistent schema to migrate; cache data is rebuilt. Release publication is described in [development](development.md#releases).
 
 ## Container and capacity checks
 
@@ -52,12 +132,16 @@ Run from the repository root:
 
 ```sh
 make docker-build
-make docker-verify  # isolated Compose test; no exchange network access
-make release-load   # opt-in synthetic capacity measurement; no exchange access
+make docker-verify
+make release-load
 ```
 
-`make docker-verify` requires Python 3 and a local Linux Docker engine with the host's CPU architecture. It mounts a compiled probe in a temporary Compose project with an internal network and checks health/readiness, unready data, certificates, permissions, and SIGTERM. CI runs the same build and lifecycle checks. Build and dependency downloads need network access; test execution needs no exchange access or credentials.
+`make docker-verify` needs Python 3 and a local Linux Docker engine matching the host CPU architecture. It uses an isolated Compose project with an internal network. It checks health/readiness, unready data, certificates, permissions, and SIGTERM without exchange access. Build and dependency downloads still need network access.
 
-Use the capacity profile and acceptance criteria in the [gRPC specification](grpc-migration-specification.md#testing--validation). Keep new run output outside tracked documentation, for example under ignored `bin/`. Historical reports and measurements remain in Git history.
+`make release-load` is an opt-in synthetic measurement. Its main profile uses 600 series, 600,000 candles after fills, 20,000-row snapshots per type, and four local TCP clients. It preloads 999 candles per series, then checks partial fills and warm reads. It uses synthetic providers, so it does not measure live exchange pacing or availability. The Go clients run in the measured process.
 
-See the [development checks](development.md#checks) for service tests and the [release guide](releasing.md) for image publication.
+Use 800,000,000 bytes of peak process memory as the engineering target for this workload, leaving headroom within the 1 GB container. The Make target sets `GOMEMLIMIT`; it does not itself enforce a container limit. Record runtime, configuration, decimal lengths, process boundaries, CPU, memory, and latency when measuring. Do not reduce the profile silently to obtain a passing result.
+
+For wire and client comparisons, use the tools described in the [API package guide](../api/README.md). Compare the same data over the same transport boundary, and keep encoded message bytes separate from network bytes. Store new measurement output outside tracked documentation, for example under ignored `bin/`.
+
+[Documentation index](../README.md#documentation)

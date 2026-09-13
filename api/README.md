@@ -50,6 +50,6 @@ against the saved HTTP evidence. Do not run it merely to validate the service:
 it writes new benchmark output under ignored `bin/api-benchmarks/http-baseline/`. Committed response fixtures stay unchanged.
 
 For a running service, use the Python installation example or the descriptor
-commands in the [development guide](../docs/development.md). The complete Go and
+commands in the [API guide](../docs/api.md). The complete Go and
 Python example programs above use fixed contract-fixture candle values; adapt
 the symbol and aligned timestamps to a recent supported range for service data.

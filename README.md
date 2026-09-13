@@ -28,13 +28,13 @@ Market Data provides a single entry point for market data from multiple exchange
 | Guide | Contents |
 | --- | --- |
 | [Quick start](docs/quickstart.md) | Local and Docker setup, with a first API request. |
-| [API and clients](api/README.md) | Schema, generated clients, and examples. |
-| [API usage](docs/development.md#instruments) | Filters, candles, and error behavior. |
-| [Configuration](docs/development.md#configuration) | Settings, environment overrides, and validation. |
-| [Operations](docs/operations.md) | Docker Compose, diagnostics, and request limits. |
-| [Development](docs/development.md#checks) | Build tools and project checks. |
-| [Releases](docs/releasing.md) | Version tags and image publication. |
-| [Technical specification](docs/technical-specification-v1.md) | Architecture, requirements, and linked contracts. |
+| [API and clients](docs/api.md) | Requests, filters, candle ranges, clients, and errors. |
+| [Data model](docs/data-model.md) | Entities, units, timestamps, and candle intervals. |
+| [Configuration](docs/configuration.md) | YAML, environment overrides, defaults, and validation. |
+| [Architecture](docs/architecture.md) | Components, data flow, caching, and exchange request limits. |
+| [Operations](docs/operations.md) | Deployment, monitoring, memory, updates, and shutdown. |
+| [Troubleshooting](docs/troubleshooting.md) | Common failures, checks, and fixes. |
+| [Development](docs/development.md) | Source layout, tests, API generation, and releases. |
 
 ## Limits
 

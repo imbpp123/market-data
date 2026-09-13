@@ -7,11 +7,11 @@ Make the smallest sufficient change. Design non-trivial logic so it can be teste
 Before making changes:
 
 1. Read this file, `README.md`, and `CONTRIBUTING.md` if present. Read any instructions that apply to the target directory.
-2. Read the relevant sections of [the technical specification](docs/technical-specification-v1.md) and the documents they reference when needed for the task.
+2. Read the relevant guides in the [documentation index](README.md#documentation), starting with [architecture](docs/architecture.md) for implementation changes.
 3. Inspect the existing code, tests, build commands, and Git status. Preserve user changes.
 4. Identify the required behavior, affected layers, and test cases before implementation.
 
-Keep product requirements and implementation decisions in the specification and related documentation, not in this file. Do not duplicate them here.
+Keep service behavior and implementation details in the relevant documentation guides, not in this file. Do not duplicate them here.
 
 Ask only when a missing decision blocks the current task; continue independent work. Document reasonable assumptions. Do not treat examples or open questions as approved requirements.
 
@@ -101,7 +101,7 @@ Unit tests are required for every non-trivial logic change. Bug fixes need a reg
 - Keep unit tests beside the code in `*_test.go`. Use the standard `testing` package as the test runner and `testify/assert` or `testify/require` for assertions. Use `require` for prerequisites that must stop the test on failure, and `assert` for independent result checks. Prefer clear assertions over manual `if` blocks with `t.Fatal` or `t.Errorf`. Do not add a mocking framework by default.
 - Do not test trivial getters, setters, or pure data containers without meaningful behavior. Coverage numbers help locate gaps; they are not a substitute for assertions and are not a reason to add empty tests.
 
-Keep unit tests isolated from external services and credentials. Use integration tests to verify real component boundaries and serialization paths; they do not replace unit tests for business logic. Derive feature-specific scenarios from the specification instead of maintaining a second list here.
+Keep unit tests isolated from external services and credentials. Use integration tests to verify real component boundaries and serialization paths; they do not replace unit tests for business logic. Derive feature-specific scenarios from the relevant documentation instead of maintaining a second list here.
 
 ## Verification and delivery
 

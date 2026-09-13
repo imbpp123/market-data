@@ -26,9 +26,8 @@
 # Counts and byte limits are positive integers that fit Go int; additional bounds
 # and relationships are documented below. Zero does not mean unlimited or disabled.
 #
-# Implementation status: gRPC data and separate operational HTTP are active.
-# Migration acceptance and workload measurements remain phase 4 work.
-# See ../grpc-migration-specification.md and ../implementation-contract-v1.md.
+# Usage and validation: ../docs/configuration.md.
+# Runtime behavior and request limits: ../docs/architecture.md.
 
 # gRPC data and independent operational HTTP listeners.
 server:
@@ -200,8 +199,7 @@ server:
 
 storage:
   # Description: Storage implementation. With memory, data lives in this process and is
-  #              lost on restart; there is no database or disk backend in v1. Memory
-  #              repositories are implemented in a later phase.
+  #              lost on restart; there is no database or disk backend in v1.
   #
   # Values: memory only; no other storage driver is supported in v1.
   #
@@ -989,13 +987,12 @@ upstream:
 
 # Provider configuration. Only the fixed keys bybit and binance are supported.
 # At least one provider with at least one valid market must be enabled. Disabling
-# a provider stops its future workers; its configured values must still be valid.
+# a provider prevents its workers from starting; its configured values must still be valid.
 exchanges:
   # Bybit public market data; ticker responses also supply 24h statistics.
   bybit:
     # Description: true enables Bybit collection and API scopes; false excludes the
-    #              provider. This does not create workers until the exchange feature
-    #              phases are implemented.
+    #              provider and its workers.
     #
     # Values: true or false.
     #
@@ -1214,9 +1211,8 @@ http_client:
     # Required: no
     max_backoff: 2s
 
-# Optional operational diagnostics, separate from market_stats data. These options
-# are validated in phase 02 but their integrations are not implemented yet. Setting
-# an enabled flag logs that limitation; it does not activate a working integration.
+# Operational diagnostics, separate from market_stats data. In-memory statistics
+# are enabled by default. HTTP exporters and Sentry are enabled separately.
 observability:
   # Optional error reporting and sampled tracing to Sentry.
   sentry:
